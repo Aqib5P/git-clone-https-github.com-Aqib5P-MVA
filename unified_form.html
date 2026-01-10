@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unified Lead Form (D1 / D2 / D6 / D23 / D26 / D27)</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: rgba(255, 255, 255, 0.06);
+        --panel2: rgba(255, 255, 255, 0.09);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.16);
+        --accent: #7aa2ff;
+        --danger: #ff6b6b;
+        --ok: #4ade80;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background: radial-gradient(900px 600px at 20% 0%, rgba(122, 162, 255, 0.25), transparent 55%),
+          radial-gradient(900px 600px at 85% 10%, rgba(74, 222, 128, 0.14), transparent 60%),
+          var(--bg);
+        color: var(--text);
+      }
+      a { color: var(--accent); }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px 16px 40px;
+      }
+      header {
+        display: flex;
+        gap: 14px;
+        align-items: baseline;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 920px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 520px) {
+        .row { grid-template-columns: 1fr; }
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 10px 0 6px;
+      }
+      input, select, textarea {
+        width: 100%;
+        padding: 10px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.22);
+        color: var(--text);
+        outline: none;
+      }
+      textarea { min-height: 90px; resize: vertical; }
+      input:focus, select:focus, textarea:focus { border-color: rgba(122, 162, 255, 0.55); }
+      .hint {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--panel2);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .reqTag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(255, 107, 107, 0.14);
+        border: 1px solid rgba(255, 107, 107, 0.35);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 11px;
+        margin-left: 6px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: rgba(122, 162, 255, 0.16);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 600;
+      }
+      button.secondary { background: rgba(255, 255, 255, 0.08); }
+      button.danger { background: rgba(255, 107, 107, 0.16); }
+      button:disabled { opacity: 0.55; cursor: not-allowed; }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      pre {
+        margin: 0;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.28);
+        overflow: auto;
+        max-height: 420px;
+      }
+      .status {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .status .ok { color: var(--ok); }
+      .status .bad { color: var(--danger); }
+      details { border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: rgba(255, 255, 255, 0.04); }
+      summary { cursor: pointer; color: var(--text); font-weight: 600; }
+      .small { font-size: 12px; color: var(--muted); margin-top: 6px; }
+      .twoColList { columns: 2; column-gap: 18px; }
+      @media (max-width: 700px) { .twoColList { columns: 1; } }
+      ul { margin: 8px 0 0; padding-left: 18px; }
+      li { break-inside: avoid; margin: 4px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Unified Lead Form</h1>
+        <p class="sub">Fill once → choose endpoint (D1/D2/D6/D23/D26/D27) → submit with exact field names preserved.</p>
+      </header>
+
+      <div class="grid">
+        <form id="unifiedForm" class="card" autocomplete="on">
+          <h2>1) Choose endpoint + enter lead details</h2>
+
+          <div class="row">
+            <div>
+              <label for="endpointSelect">Endpoint</label>
+              <select id="endpointSelect">
+                <option value="D1">D1 (LeadsPedia post.do — FORM)</option>
+                <option value="D2">D2 (accident.com lead-create — JSON)</option>
+                <option value="D6">D6 (LeadConduit submit — FORM)</option>
+                <option value="D23">D23 (Ringba RTB Ping — JSON)</option>
+                <option value="D26">D26 (TrackDrive leads — FORM)</option>
+                <option value="D27">D27 (horizonswebform pingpost.php — JSON)</option>
+              </select>
+              <div class="hint" id="endpointHint"></div>
+            </div>
+
+            <div>
+              <label>Send mode</label>
+              <div class="pill">
+                <label style="margin:0; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="radio" name="sendMode" value="fetch" checked />
+                  Fetch (AJAX)
+                </label>
+                <span class="mono">|</span>
+                <label style="margin:0; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="radio" name="sendMode" value="form" />
+                  Form submit (new tab)
+                </label>
+              </div>
+              <div class="hint">
+                For many external FORM endpoints, <b>Form submit</b> avoids CORS issues. JSON endpoints typically require <b>Fetch</b>.
+              </div>
+            </div>
+          </div>
+
+          <details style="margin-top:12px;" open>
+            <summary>Common lead fields</summary>
+            <div class="row" style="margin-top: 8px;">
+              <div>
+                <label for="first_name">First Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D26,D27">required</span></label>
+                <input id="first_name" name="first_name" type="text" />
+              </div>
+              <div>
+                <label for="last_name">Last Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D26,D27">required</span></label>
+                <input id="last_name" name="last_name" type="text" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="email">Email <span class="reqTag" data-required-for="D6,D23,D26,D27">required</span></label>
+                <input id="email" name="email" type="email" />
+              </div>
+              <div>
+                <label for="phone">Phone / Caller ID <span class="reqTag" data-required-for="D1,D2,D6,D23,D26,D27">required</span></label>
+                <input id="phone" name="phone" type="tel" placeholder="+15642145678 or 5642145678" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="zip5">ZIP (5 digits) <span class="reqTag" data-required-for="D1,D2,D23,D26,D27">required</span></label>
+                <input id="zip5" name="zip5" type="text" inputmode="numeric" maxlength="5" placeholder="90210" />
+              </div>
+              <div>
+                <label for="state">State <span class="reqTag" data-required-for="D6,D23,D27">required</span></label>
+                <input id="state" name="state" type="text" placeholder="CA, TX, FL" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="accident_state">Accident State <span class="reqTag" data-required-for="D27">required</span></label>
+                <input id="accident_state" name="accident_state" type="text" placeholder="CA" />
+              </div>
+              <div>
+                <label for="accident_date_raw">Accident Date (picker)</label>
+                <input id="accident_date_raw" name="accident_date_raw" type="date" />
+                <div class="hint">
+                  Used to auto-fill MM/DD/YYYY (D6/D26) and YYYY-MM-DD (D27).
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="accident_date_mmddyyyy">Accident Date (MM/DD/YYYY)</label>
+                <input id="accident_date_mmddyyyy" class="mono" name="accident_date_mmddyyyy" type="text" placeholder="MM/DD/YYYY" />
+              </div>
+              <div>
+                <label for="ip_address">IP Address <span class="reqTag" data-required-for="D2,D27">required</span></label>
+                <input id="ip_address" name="ip_address" type="text" placeholder="e.g. 192.168.1.1" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="source_url">Source URL <span class="reqTag" data-required-for="D2,D27">required</span></label>
+                <input id="source_url" name="source_url" type="url" list="source_url_suggestions" placeholder="https://example.com/" />
+                <datalist id="source_url_suggestions">
+                  <option value="https://motorvehicleclaim.com/"></option>
+                  <option value="https://accidentclaimnow.com/"></option>
+                  <option value="https://roadtrafficaccident.com/"></option>
+                </datalist>
+              </div>
+              <div>
+                <label for="accident_sol">Accident SOL (D27)</label>
+                <select id="accident_sol" name="accident_sol">
+                  <option value="">Select</option>
+                  <option value="1">Within 1 Year</option>
+                  <option value="2">Within 2 Years</option>
+                </select>
+              </div>
+            </div>
+          </details>
+
+          <details style="margin-top:12px;">
+            <summary>Certificates / tracking fields</summary>
+            <div class="row" style="margin-top: 8px;">
+              <div>
+                <label for="trusted_form_cert_id">TrustedForm Cert ID (D1) <span class="reqTag" data-required-for="D1">required</span></label>
+                <input id="trusted_form_cert_id" name="trusted_form_cert_id" type="text" placeholder="D1 trusted_form_cert_id" />
+              </div>
+              <div>
+                <label for="trusted_form_cert_url">TrustedForm Cert URL (D26/D27) <span class="reqTag" data-required-for="D26,D27">required</span></label>
+                <input id="trusted_form_cert_url" name="trusted_form_cert_url" type="text" placeholder="https://cert.trustedform.com/xxxxx" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="trustedform_cert_url">TrustedForm Cert URL (D6) <span class="reqTag" data-required-for="D6">required</span></label>
+                <input id="trustedform_cert_url" name="trustedform_cert_url" type="url" placeholder="https://cert.trustedform.com/xxxxx" />
+              </div>
+              <div>
+                <label for="trusted_form_url">Trusted Form URL (D23)</label>
+                <input id="trusted_form_url" name="trusted_form_url" type="text" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="certificate_type">Certificate Type (D2) <span class="reqTag" data-required-for="D2">required</span></label>
+                <select id="certificate_type" name="certificate_type">
+                  <option value="TrustedForm">TrustedForm</option>
+                  <option value="Jornaya">Jornaya</option>
+                </select>
+              </div>
+              <div>
+                <label for="certificate_id">Certificate ID (D2)</label>
+                <input id="certificate_id" name="certificate_id" type="text" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="certificate_url">Certificate URL (D2) <span class="reqTag" data-required-for="D2">required</span></label>
+                <input id="certificate_url" name="certificate_url" type="url" />
+              </div>
+              <div>
+                <label for="cert_id_d23">TrustedCert ID (D23 → Cert_Id)</label>
+                <input id="cert_id_d23" name="cert_id_d23" type="text" placeholder="910cdaf2501d44585c03731a7b72fc4ed0c650ae" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="jornaya_leadid">Jornaya Lead ID (D26) <span class="reqTag" data-required-for="D26">required</span></label>
+                <input id="jornaya_leadid" name="jornaya_leadid" type="text" />
+              </div>
+              <div>
+                <label for="subid">SubID (D23 static default)</label>
+                <input id="subid" name="subid" type="text" value="hzn345" />
+              </div>
+            </div>
+          </details>
+
+          <details style="margin-top:12px;">
+            <summary>D2 question fields (used only for D2)</summary>
+            <div class="row" style="margin-top: 8px;">
+              <div>
+                <label for="incident_date_option_b">When did the accident happen? <span class="reqTag" data-required-for="D2">required</span></label>
+                <select id="incident_date_option_b" name="incident_date_option_b">
+                  <option value="">Select...</option>
+                  <option value="Less than 1 year">Less than 1 year</option>
+                  <option value="Less than 2 years">Less than 2 years</option>
+                  <option value="Over 2 years">Over 2 years</option>
+                </select>
+              </div>
+              <div>
+                <label for="injury_cause">What caused your injury? <span class="reqTag" data-required-for="D2">required</span></label>
+                <select id="injury_cause" name="injury_cause">
+                  <option value="">Select...</option>
+                  <option value="Motorcycle Accident">Motorcycle Accident</option>
+                  <option value="Car Accident">Car Accident</option>
+                  <option value="Truck Accident">Truck Accident</option>
+                  <option value="Slip and Fall">Slip and Fall</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="primary_injury">Did you sustain any of the following? <span class="reqTag" data-required-for="D2">required</span></label>
+                <select id="primary_injury" name="primary_injury">
+                  <option value="">Select...</option>
+                  <option value="Headaches">Headaches</option>
+                  <option value="Whiplash">Whiplash</option>
+                  <option value="Broken Bones">Broken Bones</option>
+                  <option value="Back Injury">Back Injury</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label for="role_in_accident">Driver / passenger / pedestrian? <span class="reqTag" data-required-for="D2">required</span></label>
+                <select id="role_in_accident" name="role_in_accident">
+                  <option value="">Select...</option>
+                  <option value="Driver">Driver</option>
+                  <option value="Passenger">Passenger</option>
+                  <option value="Pedestrian">Pedestrian</option>
+                </select>
+              </div>
+            </div>
+          </details>
+
+          <div class="actions">
+            <button type="button" id="previewBtn" class="secondary">Preview request</button>
+            <button type="submit" id="sendBtn">Send to selected endpoint</button>
+            <button type="button" id="resetBtn" class="danger">Reset form</button>
+          </div>
+
+          <div class="status" id="statusLine"></div>
+        </form>
+
+        <div class="card">
+          <h2>2) Request + response</h2>
+          <div class="hint">
+            - “Fetch” shows the response here (if CORS allows it).<br />
+            - “Form submit” opens a new tab (best for external FORM endpoints; response cannot be captured here).
+          </div>
+          <label style="margin-top: 12px;">Request preview</label>
+          <pre id="reqPreview" class="mono">{}</pre>
+          <label style="margin-top: 12px;">Response</label>
+          <pre id="respPreview" class="mono">---</pre>
+
+          <details style="margin-top: 12px;">
+            <summary>Endpoint field names (for verification)</summary>
+            <div class="small">These are the exact keys this page sends to each endpoint.</div>
+            <div class="twoColList">
+              <ul class="mono">
+                <li><b>D1</b>: lp_campaign_id, lp_campaign_key, first_name, last_name, zip_code, phone_home, trusted_form_cert_id, lp_caller_id</li>
+                <li><b>D2</b>: arrived_at, test_mode, deal, lead_first_name, lead_last_name, lead_phone, case_type, zip_code, certificate_type, certificate_id, certificate_url, source_url, ip_address, fields[]</li>
+                <li><b>D6</b>: phone_1, trustedform_cert_url, first_name, last_name, email, state_of_accident_qmark, date_of_accident_qmark</li>
+                <li><b>D23</b>: CID, exposeCallerId, zipcode, State, SubID, email, first_name, last_name, Cert_Type, Cert_Id, trusted_form_url, call_type</li>
+                <li><b>D26</b>: lead_token, traffic_source_id, caller_id, first_name, last_name, email, zip, trusted_form_cert_url, jornaya_leadid, accident_date</li>
+                <li><b>D27</b>: first_name, last_name, email, caller_id, state, accident_state, zip, accident_date, accident_sol, source_url, ip_address, trusted_form_cert_url, have_attorney, injury_occured, cited, injury_type, hospitalized_or_treated</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const endpoints = {
+        D1: {
+          label: "D1 (LeadsPedia post.do — FORM)",
+          type: "form",
+          method: "POST",
+          url: "https://growmyfirmonline.leadspediatrack.com/post.do",
+          hint:
+            "FORM POST. Includes hidden lp_campaign_id/lp_campaign_key. lp_caller_id is auto-set to phone_home.",
+          required: ["first_name", "last_name", "zip5", "phone", "trusted_form_cert_id"],
+          build: (v) => ({
+            kind: "form",
+            fields: {
+              lp_campaign_id: "64c953e483f75",
+              lp_campaign_key: "NxjrqXwd9cZgKBPLHhGD",
+              first_name: v.first_name,
+              last_name: v.last_name,
+              zip_code: v.zip5,
+              phone_home: v.phone,
+              trusted_form_cert_id: v.trusted_form_cert_id,
+              lp_caller_id: v.phone, // same as phone_home
+            },
+          }),
+        },
+        D2: {
+          label: "D2 (accident.com lead-create — JSON)",
+          type: "json",
+          method: "POST",
+          url: "https://api.accident.com/api/lead-create",
+          hint: "JSON POST with api-key + api-secret headers. Includes fields[] (visible + static).",
+          required: [
+            "first_name",
+            "last_name",
+            "phone",
+            "zip5",
+            "certificate_type",
+            "certificate_id",
+            "certificate_url",
+            "source_url",
+            "ip_address",
+            "incident_date_option_b",
+            "injury_cause",
+            "primary_injury",
+            "role_in_accident",
+          ],
+          headers: () => ({
+            "Content-Type": "application/json",
+            "api-key": "UuVb26nX-IPCa-kEOT-uW6a-L6DfTVOvyx2Z",
+            "api-secret": "1a11d1621d4476240c21ad0bd92e2972da21117e",
+          }),
+          build: (v) => {
+            const visibleFields = [
+              { ref: "incident_date_option_b", title: "When did the accident happen?", answer: v.incident_date_option_b },
+              { ref: "injury_cause", title: "What caused your injury?", answer: v.injury_cause },
+              { ref: "primary_injury", title: "Did you sustain any of the following?", answer: v.primary_injury },
+              { ref: "role_in_accident", title: "Were you the driver, passenger or pedestrian?", answer: v.role_in_accident },
+            ];
+
+            const staticFields = [
+              { ref: "were_you_injured", title: "Were you injured in an Auto Accident?", answer: "Yes" },
+              { ref: "were_you_at_fault", title: "Were you placed at fault for the accident?", answer: "No" },
+              { ref: "expressed_interest", title: "Do you want to speak to an Attorney?", answer: "Yes" },
+              { ref: "have_attorney", title: "Do you have an attorney?", answer: "No" },
+              {
+                ref: "doctor_treatment",
+                title: "Did the injury require hospitalization, medical treatment, surgery or cause you to miss work?",
+                answer: "Yes",
+              },
+              { ref: "accident_vehicle_count", title: "How many cars were involved in the accident?", answer: "2" },
+              { ref: "settled_insurance", title: "Have you settled with the insurance company regarding your injuries?", answer: "No" },
+              { ref: "signed_retainer", title: "Have you ever signed a retainer with a law firm regarding this case?", answer: "No" },
+              { ref: "driver_insurance", title: "Did the other driver, who was at fault, have auto insurance?", answer: "Yes" },
+            ];
+
+            return {
+              kind: "json",
+              body: {
+                arrived_at: new Date().toISOString(),
+                test_mode: "false",
+                deal: "4naA7Klbd3QD25QzJMxe8oZXBVPvgy",
+                lead_first_name: v.first_name,
+                lead_last_name: v.last_name,
+                lead_phone: v.phone,
+                case_type: "Auto Accident",
+                zip_code: v.zip5,
+                certificate_type: v.certificate_type,
+                certificate_id: v.certificate_id,
+                certificate_url: v.certificate_url,
+                source_url: v.source_url,
+                ip_address: v.ip_address,
+                fields: [...visibleFields, ...staticFields],
+              },
+            };
+          },
+        },
+        D6: {
+          label: "D6 (LeadConduit submit — FORM)",
+          type: "form",
+          method: "POST",
+          url: "https://app.leadconduit.com/flows/661eeb850ebe9b2e4e22ca05/sources/681e2bfa616414d18349203e/submit",
+          hint: "FORM POST. Date must be MM/DD/YYYY in date_of_accident_qmark.",
+          required: ["phone", "trustedform_cert_url", "first_name", "last_name", "email", "state", "accident_date_mmddyyyy"],
+          build: (v) => ({
+            kind: "form",
+            fields: {
+              phone_1: v.phone,
+              trustedform_cert_url: v.trustedform_cert_url,
+              first_name: v.first_name,
+              last_name: v.last_name,
+              email: v.email,
+              state_of_accident_qmark: v.state,
+              date_of_accident_qmark: v.accident_date_mmddyyyy,
+            },
+          }),
+        },
+        D23: {
+          label: "D23 (Ringba RTB Ping — JSON)",
+          type: "json",
+          method: "POST",
+          url: "https://rtb.ringba.com/v1/production/dece46cdd8064609a5dfec17da7cb010.json",
+          hint: "JSON POST. Uses static defaults: exposeCallerId=yes, Cert_Type=TrustedForm, call_type=o.",
+          required: ["phone", "zip5"],
+          headers: () => ({ "Content-Type": "application/json" }),
+          build: (v) => ({
+            kind: "json",
+            body: {
+              CID: v.phone,
+              exposeCallerId: "yes",
+              zipcode: v.zip5,
+              State: v.state,
+              SubID: v.subid || "hzn345",
+              email: v.email,
+              first_name: v.first_name,
+              last_name: v.last_name,
+              Cert_Type: "TrustedForm",
+              Cert_Id: v.cert_id_d23,
+              trusted_form_url: v.trusted_form_url,
+              call_type: "o",
+            },
+          }),
+        },
+        D26: {
+          label: "D26 (TrackDrive leads — FORM)",
+          type: "form",
+          method: "POST",
+          url: "https://horizons-law-consultants.trackdrive.com/api/v1/leads",
+          hint: "FORM POST. Includes hidden lead_token + traffic_source_id. accident_date must be MM/DD/YYYY.",
+          required: ["phone", "first_name", "last_name", "email", "zip5", "trusted_form_cert_url", "jornaya_leadid", "accident_date_mmddyyyy"],
+          build: (v) => ({
+            kind: "form",
+            fields: {
+              lead_token: "c5af0485a9a44f8c8832bbc80ea0f618",
+              traffic_source_id: "1002",
+              caller_id: v.phone,
+              first_name: v.first_name,
+              last_name: v.last_name,
+              email: v.email,
+              zip: v.zip5,
+              trusted_form_cert_url: v.trusted_form_cert_url,
+              jornaya_leadid: v.jornaya_leadid,
+              accident_date: v.accident_date_mmddyyyy,
+            },
+          }),
+        },
+        D27: {
+          label: "D27 (horizonswebform pingpost.php — JSON)",
+          type: "json",
+          method: "POST",
+          url: "https://horizonswebform.com/pingpost.php",
+          hint: "JSON POST to your ping/post proxy. Includes static fields: have_attorney/injury_occured/cited/injury_type/hospitalized_or_treated.",
+          required: ["first_name", "last_name", "email", "phone", "state", "accident_state", "zip5", "source_url", "ip_address", "trusted_form_cert_url", "accident_sol", "accident_date_yyyy_mm_dd"],
+          headers: () => ({ "Content-Type": "application/json" }),
+          build: (v) => ({
+            kind: "json",
+            body: {
+              first_name: v.first_name,
+              last_name: v.last_name,
+              email: v.email,
+              caller_id: v.phone,
+              state: v.state,
+              accident_state: v.accident_state,
+              zip: v.zip5,
+              accident_date: v.accident_date_yyyy_mm_dd, // D27 PHP expects YYYY-MM-DD and converts internally
+              accident_sol: v.accident_sol,
+              source_url: v.source_url,
+              ip_address: v.ip_address,
+              trusted_form_cert_url: v.trusted_form_cert_url,
+              have_attorney: "No",
+              injury_occured: "Yes",
+              cited: "No",
+              injury_type: "Other",
+              hospitalized_or_treated: "Yes",
+            },
+          }),
+        },
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const statusLine = $("statusLine");
+      const reqPreview = $("reqPreview");
+      const respPreview = $("respPreview");
+      const endpointSelect = $("endpointSelect");
+      const endpointHint = $("endpointHint");
+
+      function mmddyyyyFromDateInput(value) {
+        if (!value) return "";
+        const dt = new Date(value + "T00:00:00");
+        if (Number.isNaN(dt.getTime())) return "";
+        const mm = String(dt.getMonth() + 1).padStart(2, "0");
+        const dd = String(dt.getDate()).padStart(2, "0");
+        const yyyy = String(dt.getFullYear());
+        return `${mm}/${dd}/${yyyy}`;
+      }
+
+      function yyyyMmDdFromDateInput(value) {
+        // input[type=date] already returns YYYY-MM-DD in most browsers
+        return value || "";
+      }
+
+      function getSendMode() {
+        const checked = document.querySelector('input[name="sendMode"]:checked');
+        return checked ? checked.value : "fetch";
+      }
+
+      function readValues() {
+        const v = {
+          first_name: $("first_name").value.trim(),
+          last_name: $("last_name").value.trim(),
+          email: $("email").value.trim(),
+          phone: $("phone").value.trim(),
+          zip5: $("zip5").value.trim(),
+          state: $("state").value.trim(),
+          accident_state: $("accident_state").value.trim(),
+          accident_date_raw: $("accident_date_raw").value,
+          accident_date_mmddyyyy: $("accident_date_mmddyyyy").value.trim(),
+          accident_date_yyyy_mm_dd: yyyyMmDdFromDateInput($("accident_date_raw").value),
+          ip_address: $("ip_address").value.trim(),
+          source_url: $("source_url").value.trim(),
+          accident_sol: $("accident_sol").value,
+
+          trusted_form_cert_id: $("trusted_form_cert_id").value.trim(),
+          trusted_form_cert_url: $("trusted_form_cert_url").value.trim(),
+          trustedform_cert_url: $("trustedform_cert_url").value.trim(),
+          trusted_form_url: $("trusted_form_url").value.trim(),
+          certificate_type: $("certificate_type").value,
+          certificate_id: $("certificate_id").value.trim(),
+          certificate_url: $("certificate_url").value.trim(),
+          cert_id_d23: $("cert_id_d23").value.trim(),
+          jornaya_leadid: $("jornaya_leadid").value.trim(),
+          subid: $("subid").value.trim(),
+
+          incident_date_option_b: $("incident_date_option_b").value,
+          injury_cause: $("injury_cause").value,
+          primary_injury: $("primary_injury").value,
+          role_in_accident: $("role_in_accident").value,
+        };
+
+        // If user picked a date but didn't type MM/DD/YYYY, auto-fill it.
+        if (!v.accident_date_mmddyyyy && v.accident_date_raw) {
+          v.accident_date_mmddyyyy = mmddyyyyFromDateInput(v.accident_date_raw);
+          $("accident_date_mmddyyyy").value = v.accident_date_mmddyyyy;
+        }
+
+        return v;
+      }
+
+      function setStatus(text, kind) {
+        statusLine.innerHTML = "";
+        const span = document.createElement("span");
+        span.textContent = text;
+        if (kind === "ok") span.className = "ok";
+        if (kind === "bad") span.className = "bad";
+        statusLine.appendChild(span);
+      }
+
+      function validateRequired(endpointId, values) {
+        const ep = endpoints[endpointId];
+        const missing = [];
+        for (const key of ep.required || []) {
+          if (!values[key]) missing.push(key);
+        }
+        return missing;
+      }
+
+      function getPreviewObject(endpointId) {
+        const ep = endpoints[endpointId];
+        const v = readValues();
+        const missing = validateRequired(endpointId, v);
+        const built = ep.build(v);
+        return { endpointId, url: ep.url, method: ep.method, type: ep.type, missing, built };
+      }
+
+      function renderRequiredTags() {
+        const endpointId = endpointSelect.value;
+        document.querySelectorAll(".reqTag").forEach((tag) => {
+          const list = (tag.getAttribute("data-required-for") || "").split(",").map((s) => s.trim()).filter(Boolean);
+          tag.style.display = list.includes(endpointId) ? "inline-block" : "none";
+        });
+      }
+
+      function updateEndpointUi() {
+        const endpointId = endpointSelect.value;
+        const ep = endpoints[endpointId];
+        endpointHint.textContent = ep.hint || "";
+        renderRequiredTags();
+        respPreview.textContent = "---";
+        setStatus(`Selected: ${ep.label}`, "ok");
+      }
+
+      function toUrlEncodedFields(fieldsObj) {
+        // For preview purposes (not used for sending).
+        const out = {};
+        for (const [k, v] of Object.entries(fieldsObj)) out[k] = v == null ? "" : String(v);
+        return out;
+      }
+
+      function preview(endpointId) {
+        const p = getPreviewObject(endpointId);
+        if (p.type === "form") {
+          reqPreview.textContent = JSON.stringify(
+            {
+              url: p.url,
+              method: p.method,
+              content_type: "application/x-www-form-urlencoded (or multipart/form-data)",
+              fields: toUrlEncodedFields(p.built.fields),
+              missing_required_fields: p.missing,
+            },
+            null,
+            2
+          );
+        } else {
+          const headers = endpoints[endpointId].headers ? endpoints[endpointId].headers() : { "Content-Type": "application/json" };
+          reqPreview.textContent = JSON.stringify(
+            {
+              url: p.url,
+              method: p.method,
+              headers,
+              body: p.built.body,
+              missing_required_fields: p.missing,
+            },
+            null,
+            2
+          );
+        }
+        if (p.missing.length) setStatus(`Missing required fields: ${p.missing.join(", ")}`, "bad");
+        else setStatus("Request preview ready.", "ok");
+      }
+
+      function postViaHiddenForm(url, fields) {
+        const f = document.createElement("form");
+        f.method = "POST";
+        f.action = url;
+        f.target = "_blank";
+        f.acceptCharset = "UTF-8";
+        f.style.display = "none";
+
+        for (const [name, value] of Object.entries(fields)) {
+          const inp = document.createElement("input");
+          inp.type = "hidden";
+          inp.name = name;
+          inp.value = value == null ? "" : String(value);
+          f.appendChild(inp);
+        }
+
+        document.body.appendChild(f);
+        f.submit();
+        setTimeout(() => f.remove(), 0);
+      }
+
+      async function send(endpointId) {
+        const ep = endpoints[endpointId];
+        const mode = getSendMode();
+        const p = getPreviewObject(endpointId);
+        preview(endpointId);
+
+        if (p.missing.length) {
+          respPreview.textContent = "Cannot send: missing required fields.\nFix the fields listed in request preview.";
+          return;
+        }
+
+        if (mode === "form") {
+          if (ep.type !== "form") {
+            respPreview.textContent = "Form submit mode is intended for FORM endpoints. Switch to Fetch for JSON endpoints.";
+            return;
+          }
+          respPreview.textContent = "Opening a new tab with the POST request...";
+          postViaHiddenForm(ep.url, p.built.fields);
+          setStatus("Submitted via form (new tab).", "ok");
+          return;
+        }
+
+        // mode === "fetch"
+        respPreview.textContent = "Sending...";
+        setStatus("Sending via fetch...", "ok");
+
+        try {
+          let res;
+          if (ep.type === "json") {
+            res = await fetch(ep.url, {
+              method: ep.method,
+              headers: ep.headers ? ep.headers() : { "Content-Type": "application/json" },
+              body: JSON.stringify(p.built.body),
+            });
+          } else {
+            // FORM endpoint via fetch (may be blocked by CORS)
+            const fd = new FormData();
+            for (const [k, v] of Object.entries(p.built.fields)) fd.append(k, v == null ? "" : String(v));
+            res = await fetch(ep.url, { method: ep.method, body: fd });
+          }
+
+          const ct = (res.headers.get("content-type") || "").toLowerCase();
+          const text = await res.text();
+
+          if (ct.includes("application/json")) {
+            try {
+              const json = JSON.parse(text);
+              respPreview.textContent = JSON.stringify({ status: res.status, ok: res.ok, json }, null, 2);
+            } catch {
+              respPreview.textContent = JSON.stringify({ status: res.status, ok: res.ok, raw: text }, null, 2);
+            }
+          } else {
+            respPreview.textContent = `status=${res.status} ok=${res.ok}\n\n` + text;
+          }
+
+          setStatus(res.ok ? "Request completed." : `Request completed (HTTP ${res.status}).`, res.ok ? "ok" : "bad");
+        } catch (err) {
+          respPreview.textContent = "Error (often CORS for cross-domain endpoints):\n" + (err && err.message ? err.message : String(err));
+          setStatus("Request failed.", "bad");
+        }
+      }
+
+      // Wire events
+      endpointSelect.addEventListener("change", updateEndpointUi);
+      $("previewBtn").addEventListener("click", () => preview(endpointSelect.value));
+      $("resetBtn").addEventListener("click", () => {
+        $("unifiedForm").reset();
+        reqPreview.textContent = "{}";
+        respPreview.textContent = "---";
+        updateEndpointUi();
+      });
+      $("accident_date_raw").addEventListener("change", () => {
+        const mmdd = mmddyyyyFromDateInput($("accident_date_raw").value);
+        if (mmdd) $("accident_date_mmddyyyy").value = mmdd;
+      });
+      $("unifiedForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        send(endpointSelect.value);
+      });
+
+      // init
+      updateEndpointUi();
+      preview(endpointSelect.value);
+    </script>
+  </body>
+</html>
+
