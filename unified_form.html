@@ -185,31 +185,23 @@
             <div>
               <label for="endpointSelect">Endpoint</label>
               <select id="endpointSelect">
-                <option value="D1">D1 (LeadsPedia post.do — FORM)</option>
-                <option value="D2">D2 (accident.com lead-create — JSON)</option>
-                <option value="D6">D6 (LeadConduit submit — FORM)</option>
-                <option value="D23">D23 (Ringba RTB Ping — JSON)</option>
-                <option value="D26">D26 (TrackDrive leads — FORM)</option>
-                <option value="D27">D27 (horizonswebform pingpost.php — JSON)</option>
+                <option value="D1">D1</option>
+                <option value="D2">D2</option>
+                <option value="D6">D6</option>
+                <option value="D23">D23</option>
+                <option value="D26">D26</option>
+                <option value="D27">D27</option>
               </select>
               <div class="hint" id="endpointHint"></div>
             </div>
 
             <div>
-              <label>Send mode</label>
+              <label>Send</label>
               <div class="pill">
-                <label style="margin:0; display:flex; align-items:center; gap:8px; cursor:pointer;">
-                  <input type="radio" name="sendMode" value="fetch" checked />
-                  Fetch (AJAX)
-                </label>
-                <span class="mono">|</span>
-                <label style="margin:0; display:flex; align-items:center; gap:8px; cursor:pointer;">
-                  <input type="radio" name="sendMode" value="form" />
-                  Form submit (new tab)
-                </label>
+                Server-side relay (keys + buyer URLs hidden)
               </div>
               <div class="hint">
-                For many external FORM endpoints, <b>Form submit</b> avoids CORS issues. JSON endpoints typically require <b>Fetch</b>.
+                The browser sends to <b>relay.php</b> only. The relay forwards to the selected D# and returns the upstream response here.
               </div>
             </div>
           </div>
@@ -416,8 +408,7 @@
         <div class="card">
           <h2>2) Request + response</h2>
           <div class="hint">
-            - “Fetch” shows the response here (if CORS allows it).<br />
-            - “Form submit” opens a new tab (best for external FORM endpoints; response cannot be captured here).
+            This shows the response returned by <b>relay.php</b> (including the upstream HTTP status + body).
           </div>
           <label style="margin-top: 12px;">Request preview</label>
           <pre id="reqPreview" class="mono">{}</pre>
@@ -445,33 +436,13 @@
     <script>
       const endpoints = {
         D1: {
-          label: "D1 (LeadsPedia post.do — FORM)",
-          type: "form",
-          method: "POST",
-          url: "https://growmyfirmonline.leadspediatrack.com/post.do",
-          hint:
-            "FORM POST. Includes hidden lp_campaign_id/lp_campaign_key. lp_caller_id is auto-set to phone_home.",
+          label: "D1",
+          hint: "D1 request (server-side relay).",
           required: ["first_name", "last_name", "zip5", "phone", "trusted_form_cert_id"],
-          build: (v) => ({
-            kind: "form",
-            fields: {
-              lp_campaign_id: "64c953e483f75",
-              lp_campaign_key: "NxjrqXwd9cZgKBPLHhGD",
-              first_name: v.first_name,
-              last_name: v.last_name,
-              zip_code: v.zip5,
-              phone_home: v.phone,
-              trusted_form_cert_id: v.trusted_form_cert_id,
-              lp_caller_id: v.phone, // same as phone_home
-            },
-          }),
         },
         D2: {
-          label: "D2 (accident.com lead-create — JSON)",
-          type: "json",
-          method: "POST",
-          url: "https://api.accident.com/api/lead-create",
-          hint: "JSON POST with api-key + api-secret headers. Includes fields[] (visible + static).",
+          label: "D2",
+          hint: "D2 request (server-side relay).",
           required: [
             "first_name",
             "last_name",
@@ -487,155 +458,26 @@
             "primary_injury",
             "role_in_accident",
           ],
-          headers: () => ({
-            "Content-Type": "application/json",
-            "api-key": "UuVb26nX-IPCa-kEOT-uW6a-L6DfTVOvyx2Z",
-            "api-secret": "1a11d1621d4476240c21ad0bd92e2972da21117e",
-          }),
-          build: (v) => {
-            const visibleFields = [
-              { ref: "incident_date_option_b", title: "When did the accident happen?", answer: v.incident_date_option_b },
-              { ref: "injury_cause", title: "What caused your injury?", answer: v.injury_cause },
-              { ref: "primary_injury", title: "Did you sustain any of the following?", answer: v.primary_injury },
-              { ref: "role_in_accident", title: "Were you the driver, passenger or pedestrian?", answer: v.role_in_accident },
-            ];
-
-            const staticFields = [
-              { ref: "were_you_injured", title: "Were you injured in an Auto Accident?", answer: "Yes" },
-              { ref: "were_you_at_fault", title: "Were you placed at fault for the accident?", answer: "No" },
-              { ref: "expressed_interest", title: "Do you want to speak to an Attorney?", answer: "Yes" },
-              { ref: "have_attorney", title: "Do you have an attorney?", answer: "No" },
-              {
-                ref: "doctor_treatment",
-                title: "Did the injury require hospitalization, medical treatment, surgery or cause you to miss work?",
-                answer: "Yes",
-              },
-              { ref: "accident_vehicle_count", title: "How many cars were involved in the accident?", answer: "2" },
-              { ref: "settled_insurance", title: "Have you settled with the insurance company regarding your injuries?", answer: "No" },
-              { ref: "signed_retainer", title: "Have you ever signed a retainer with a law firm regarding this case?", answer: "No" },
-              { ref: "driver_insurance", title: "Did the other driver, who was at fault, have auto insurance?", answer: "Yes" },
-            ];
-
-            return {
-              kind: "json",
-              body: {
-                arrived_at: new Date().toISOString(),
-                test_mode: "false",
-                deal: "4naA7Klbd3QD25QzJMxe8oZXBVPvgy",
-                lead_first_name: v.first_name,
-                lead_last_name: v.last_name,
-                lead_phone: v.phone,
-                case_type: "Auto Accident",
-                zip_code: v.zip5,
-                certificate_type: v.certificate_type,
-                certificate_id: v.certificate_id,
-                certificate_url: v.certificate_url,
-                source_url: v.source_url,
-                ip_address: v.ip_address,
-                fields: [...visibleFields, ...staticFields],
-              },
-            };
-          },
         },
         D6: {
-          label: "D6 (LeadConduit submit — FORM)",
-          type: "form",
-          method: "POST",
-          url: "https://app.leadconduit.com/flows/661eeb850ebe9b2e4e22ca05/sources/681e2bfa616414d18349203e/submit",
-          hint: "FORM POST. Date must be MM/DD/YYYY in date_of_accident_qmark.",
+          label: "D6",
+          hint: "D6 request (server-side relay).",
           required: ["phone", "trustedform_cert_url", "first_name", "last_name", "email", "state", "accident_date_mmddyyyy"],
-          build: (v) => ({
-            kind: "form",
-            fields: {
-              phone_1: v.phone,
-              trustedform_cert_url: v.trustedform_cert_url,
-              first_name: v.first_name,
-              last_name: v.last_name,
-              email: v.email,
-              state_of_accident_qmark: v.state,
-              date_of_accident_qmark: v.accident_date_mmddyyyy,
-            },
-          }),
         },
         D23: {
-          label: "D23 (Ringba RTB Ping — JSON)",
-          type: "json",
-          method: "POST",
-          url: "https://rtb.ringba.com/v1/production/dece46cdd8064609a5dfec17da7cb010.json",
-          hint: "JSON POST. Uses static defaults: exposeCallerId=yes, Cert_Type=TrustedForm, call_type=o.",
+          label: "D23",
+          hint: "D23 request (server-side relay).",
           required: ["phone", "zip5"],
-          headers: () => ({ "Content-Type": "application/json" }),
-          build: (v) => ({
-            kind: "json",
-            body: {
-              CID: v.phone,
-              exposeCallerId: "yes",
-              zipcode: v.zip5,
-              State: v.state,
-              SubID: v.subid || "hzn345",
-              email: v.email,
-              first_name: v.first_name,
-              last_name: v.last_name,
-              Cert_Type: "TrustedForm",
-              Cert_Id: v.cert_id_d23,
-              trusted_form_url: v.trusted_form_url,
-              call_type: "o",
-            },
-          }),
         },
         D26: {
-          label: "D26 (TrackDrive leads — FORM)",
-          type: "form",
-          method: "POST",
-          url: "https://horizons-law-consultants.trackdrive.com/api/v1/leads",
-          hint: "FORM POST. Includes hidden lead_token + traffic_source_id. accident_date must be MM/DD/YYYY.",
+          label: "D26",
+          hint: "D26 request (server-side relay).",
           required: ["phone", "first_name", "last_name", "email", "zip5", "trusted_form_cert_url", "jornaya_leadid", "accident_date_mmddyyyy"],
-          build: (v) => ({
-            kind: "form",
-            fields: {
-              lead_token: "c5af0485a9a44f8c8832bbc80ea0f618",
-              traffic_source_id: "1002",
-              caller_id: v.phone,
-              first_name: v.first_name,
-              last_name: v.last_name,
-              email: v.email,
-              zip: v.zip5,
-              trusted_form_cert_url: v.trusted_form_cert_url,
-              jornaya_leadid: v.jornaya_leadid,
-              accident_date: v.accident_date_mmddyyyy,
-            },
-          }),
         },
         D27: {
-          label: "D27 (horizonswebform pingpost.php — JSON)",
-          type: "json",
-          method: "POST",
-          url: "https://horizonswebform.com/pingpost.php",
-          hint: "JSON POST to your ping/post proxy. Includes static fields: have_attorney/injury_occured/cited/injury_type/hospitalized_or_treated.",
+          label: "D27",
+          hint: "D27 request (server-side relay).",
           required: ["first_name", "last_name", "email", "phone", "state", "accident_state", "zip5", "source_url", "ip_address", "trusted_form_cert_url", "accident_sol", "accident_date_yyyy_mm_dd"],
-          headers: () => ({ "Content-Type": "application/json" }),
-          build: (v) => ({
-            kind: "json",
-            body: {
-              first_name: v.first_name,
-              last_name: v.last_name,
-              email: v.email,
-              caller_id: v.phone,
-              state: v.state,
-              accident_state: v.accident_state,
-              zip: v.zip5,
-              accident_date: v.accident_date_yyyy_mm_dd, // D27 PHP expects YYYY-MM-DD and converts internally
-              accident_sol: v.accident_sol,
-              source_url: v.source_url,
-              ip_address: v.ip_address,
-              trusted_form_cert_url: v.trusted_form_cert_url,
-              have_attorney: "No",
-              injury_occured: "Yes",
-              cited: "No",
-              injury_type: "Other",
-              hospitalized_or_treated: "Yes",
-            },
-          }),
         },
       };
 
@@ -659,11 +501,6 @@
       function yyyyMmDdFromDateInput(value) {
         // input[type=date] already returns YYYY-MM-DD in most browsers
         return value || "";
-      }
-
-      function getSendMode() {
-        const checked = document.querySelector('input[name="sendMode"]:checked');
-        return checked ? checked.value : "fetch";
       }
 
       function readValues() {
@@ -730,8 +567,7 @@
         const ep = endpoints[endpointId];
         const v = readValues();
         const missing = validateRequired(endpointId, v);
-        const built = ep.build(v);
-        return { endpointId, url: ep.url, method: ep.method, type: ep.type, missing, built };
+        return { endpointId, missing, data: v };
       }
 
       function renderRequiredTags() {
@@ -760,60 +596,21 @@
 
       function preview(endpointId) {
         const p = getPreviewObject(endpointId);
-        if (p.type === "form") {
-          reqPreview.textContent = JSON.stringify(
-            {
-              url: p.url,
-              method: p.method,
-              content_type: "application/x-www-form-urlencoded (or multipart/form-data)",
-              fields: toUrlEncodedFields(p.built.fields),
-              missing_required_fields: p.missing,
-            },
-            null,
-            2
-          );
-        } else {
-          const headers = endpoints[endpointId].headers ? endpoints[endpointId].headers() : { "Content-Type": "application/json" };
-          reqPreview.textContent = JSON.stringify(
-            {
-              url: p.url,
-              method: p.method,
-              headers,
-              body: p.built.body,
-              missing_required_fields: p.missing,
-            },
-            null,
-            2
-          );
-        }
+        reqPreview.textContent = JSON.stringify(
+          {
+            relay: "relay.php",
+            endpoint: p.endpointId,
+            data: p.data,
+            missing_required_fields: p.missing,
+          },
+          null,
+          2
+        );
         if (p.missing.length) setStatus(`Missing required fields: ${p.missing.join(", ")}`, "bad");
         else setStatus("Request preview ready.", "ok");
       }
 
-      function postViaHiddenForm(url, fields) {
-        const f = document.createElement("form");
-        f.method = "POST";
-        f.action = url;
-        f.target = "_blank";
-        f.acceptCharset = "UTF-8";
-        f.style.display = "none";
-
-        for (const [name, value] of Object.entries(fields)) {
-          const inp = document.createElement("input");
-          inp.type = "hidden";
-          inp.name = name;
-          inp.value = value == null ? "" : String(value);
-          f.appendChild(inp);
-        }
-
-        document.body.appendChild(f);
-        f.submit();
-        setTimeout(() => f.remove(), 0);
-      }
-
       async function send(endpointId) {
-        const ep = endpoints[endpointId];
-        const mode = getSendMode();
         const p = getPreviewObject(endpointId);
         preview(endpointId);
 
@@ -822,53 +619,31 @@
           return;
         }
 
-        if (mode === "form") {
-          if (ep.type !== "form") {
-            respPreview.textContent = "Form submit mode is intended for FORM endpoints. Switch to Fetch for JSON endpoints.";
-            return;
-          }
-          respPreview.textContent = "Opening a new tab with the POST request...";
-          postViaHiddenForm(ep.url, p.built.fields);
-          setStatus("Submitted via form (new tab).", "ok");
-          return;
-        }
-
-        // mode === "fetch"
         respPreview.textContent = "Sending...";
-        setStatus("Sending via fetch...", "ok");
+        setStatus("Sending to relay...", "ok");
 
         try {
-          let res;
-          if (ep.type === "json") {
-            res = await fetch(ep.url, {
-              method: ep.method,
-              headers: ep.headers ? ep.headers() : { "Content-Type": "application/json" },
-              body: JSON.stringify(p.built.body),
-            });
-          } else {
-            // FORM endpoint via fetch (may be blocked by CORS)
-            const fd = new FormData();
-            for (const [k, v] of Object.entries(p.built.fields)) fd.append(k, v == null ? "" : String(v));
-            res = await fetch(ep.url, { method: ep.method, body: fd });
-          }
+          const res = await fetch("relay.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint: endpointId, data: p.data }),
+          });
 
-          const ct = (res.headers.get("content-type") || "").toLowerCase();
           const text = await res.text();
+          let json = null;
+          try { json = JSON.parse(text); } catch { /* ignore */ }
 
-          if (ct.includes("application/json")) {
-            try {
-              const json = JSON.parse(text);
-              respPreview.textContent = JSON.stringify({ status: res.status, ok: res.ok, json }, null, 2);
-            } catch {
-              respPreview.textContent = JSON.stringify({ status: res.status, ok: res.ok, raw: text }, null, 2);
-            }
+          if (json) {
+            respPreview.textContent = JSON.stringify(json, null, 2);
+            const ok = json && json.upstream && json.upstream.ok === true;
+            const status = json && json.upstream && typeof json.upstream.status === "number" ? json.upstream.status : res.status;
+            setStatus(ok ? "Request completed." : `Request completed (HTTP ${status}).`, ok ? "ok" : "bad");
           } else {
-            respPreview.textContent = `status=${res.status} ok=${res.ok}\n\n` + text;
+            respPreview.textContent = text;
+            setStatus(res.ok ? "Request completed." : `Request completed (HTTP ${res.status}).`, res.ok ? "ok" : "bad");
           }
-
-          setStatus(res.ok ? "Request completed." : `Request completed (HTTP ${res.status}).`, res.ok ? "ok" : "bad");
         } catch (err) {
-          respPreview.textContent = "Error (often CORS for cross-domain endpoints):\n" + (err && err.message ? err.message : String(err));
+          respPreview.textContent = "Error:\n" + (err && err.message ? err.message : String(err));
           setStatus("Request failed.", "bad");
         }
       }
