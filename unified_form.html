@@ -319,18 +319,18 @@
             <div class="row" style="margin-top: 8px;">
               <div>
                 <label for="cert_url">Certificate URL (TrustedForm cert URL) <span class="reqTag" data-required-for="D2,D6,D23,D26,D27">required</span></label>
-                <input id="cert_url" name="cert_url" type="text" placeholder="https://cert.trustedform.com/xxxxx" />
+                <input id="cert_url" name="cert_url" type="text" placeholder="https://cert.trustedform.com/xxxxx" required />
               </div>
               <div>
                 <label for="cert_id">Certificate ID <span class="reqTag" data-required-for="D1,D2,D23,D26">required</span></label>
-                <input id="cert_id" name="cert_id" type="text" placeholder="e.g. 910cdaf2501d44585c03731a7b72fc4ed0c650ae" />
+                <input id="cert_id" name="cert_id" type="text" placeholder="e.g. 910cdaf2501d44585c03731a7b72fc4ed0c650ae" required />
               </div>
             </div>
 
             <div class="row">
               <div>
                 <label for="jornaya_leadid">Jornaya leadid</label>
-                <input id="jornaya_leadid" name="jornaya_leadid" type="text" placeholder="Optional" />
+                <input id="jornaya_leadid" name="jornaya_leadid" type="text" placeholder="Required" required />
               </div>
               <div>
                 <label for="notes">Notes (not sent)</label>
@@ -370,21 +370,6 @@
           </div>
           <label style="margin-top: 12px;">Response</label>
           <pre id="respPreview" class="mono">---</pre>
-
-          <details style="margin-top: 12px;">
-            <summary>Endpoint field names (for verification)</summary>
-            <div class="small">These are the exact keys this page sends to each endpoint.</div>
-            <div class="twoColList">
-              <ul class="mono">
-                <li><b>D1</b>: lp_campaign_id, lp_campaign_key, first_name, last_name, zip_code, phone_home, trusted_form_cert_id, lp_caller_id</li>
-                <li><b>D2</b>: arrived_at, test_mode, deal, lead_first_name, lead_last_name, lead_phone, case_type, zip_code, certificate_type, certificate_id, certificate_url, source_url, ip_address, fields[]</li>
-                <li><b>D6</b>: phone_1, trustedform_cert_url, first_name, last_name, email, state_of_accident_qmark, date_of_accident_qmark</li>
-                <li><b>D23</b>: CID, exposeCallerId, zipcode, State, SubID, email, first_name, last_name, Cert_Type, Cert_Id, trusted_form_url, call_type</li>
-                <li><b>D26</b>: lead_token, traffic_source_id, caller_id, first_name, last_name, email, zip, trusted_form_cert_url, jornaya_leadid, accident_date</li>
-                <li><b>D27</b>: first_name, last_name, email, caller_id, state, accident_state, zip, accident_date, accident_sol, source_url, ip_address, trusted_form_cert_url, have_attorney, injury_occured, cited, injury_type, hospitalized_or_treated</li>
-              </ul>
-            </div>
-          </details>
         </div>
       </div>
     </div>
