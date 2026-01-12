@@ -266,43 +266,10 @@
                 </select>
               </div>
             </div>
-          </details>
-
-          <details style="margin-top:12px;">
-            <summary>Certificates / tracking fields</summary>
-            <div class="row" style="margin-top: 8px;">
-              <div>
-                <label for="cert_id">Certificate ID (TrustedForm Cert ID / Jornaya LeadID) <span class="reqTag" data-required-for="D1,D2,D23,D26">required</span></label>
-                <input id="cert_id" name="cert_id" type="text" placeholder="e.g. 910cdaf2501d44585c03731a7b72fc4ed0c650ae" />
-                <div class="hint">Enter once. Relay will send this as the exact ID field each D# expects (e.g. D1 trusted_form_cert_id, D23 Cert_Id, D2 certificate_id).</div>
-              </div>
-              <div>
-                <label for="certificate_type">Certificate Type (D2) <span class="reqTag" data-required-for="D2">required</span></label>
-                <select id="certificate_type" name="certificate_type">
-                  <option value="TrustedForm">TrustedForm</option>
-                  <option value="Jornaya">Jornaya</option>
-                </select>
-              </div>
-            </div>
 
             <div class="row">
               <div>
-                <label for="cert_url">Certificate URL (TrustedForm cert URL) <span class="reqTag" data-required-for="D2,D6,D23,D26,D27">required</span></label>
-                <input id="cert_url" name="cert_url" type="text" placeholder="https://cert.trustedform.com/xxxxx" />
-                <div class="hint">Enter once. Relay will send this as the exact URL field each D# expects (e.g. D6 trustedform_cert_url, D26 trusted_form_cert_url).</div>
-              </div>
-              <div>
-                <label for="notes">Notes (not sent)</label>
-                <input id="notes" name="notes" type="text" placeholder="Optional" />
-              </div>
-            </div>
-          </details>
-
-          <details style="margin-top:12px;">
-            <summary>D2 question fields (used only for D2)</summary>
-            <div class="row" style="margin-top: 8px;">
-              <div>
-                <label for="incident_date_option_b">When did the accident happen? <span class="reqTag" data-required-for="D2">required</span></label>
+                <label for="incident_date_option_b">When did the accident happen?</label>
                 <select id="incident_date_option_b" name="incident_date_option_b">
                   <option value="">Select...</option>
                   <option value="Less than 1 year">Less than 1 year</option>
@@ -311,7 +278,7 @@
                 </select>
               </div>
               <div>
-                <label for="injury_cause">What caused your injury? <span class="reqTag" data-required-for="D2">required</span></label>
+                <label for="injury_cause">What caused your injury?</label>
                 <select id="injury_cause" name="injury_cause">
                   <option value="">Select...</option>
                   <option value="Motorcycle Accident">Motorcycle Accident</option>
@@ -322,9 +289,10 @@
                 </select>
               </div>
             </div>
+
             <div class="row">
               <div>
-                <label for="primary_injury">Did you sustain any of the following? <span class="reqTag" data-required-for="D2">required</span></label>
+                <label for="primary_injury">Did you sustain any of the following?</label>
                 <select id="primary_injury" name="primary_injury">
                   <option value="">Select...</option>
                   <option value="Headaches">Headaches</option>
@@ -335,13 +303,38 @@
                 </select>
               </div>
               <div>
-                <label for="role_in_accident">Driver / passenger / pedestrian? <span class="reqTag" data-required-for="D2">required</span></label>
+                <label for="role_in_accident">Were you the driver, passenger or pedestrian?</label>
                 <select id="role_in_accident" name="role_in_accident">
                   <option value="">Select...</option>
                   <option value="Driver">Driver</option>
                   <option value="Passenger">Passenger</option>
                   <option value="Pedestrian">Pedestrian</option>
                 </select>
+              </div>
+            </div>
+          </details>
+
+          <details style="margin-top:12px;">
+            <summary>Certificates / tracking fields</summary>
+            <div class="row" style="margin-top: 8px;">
+              <div>
+                <label for="cert_url">Certificate URL (TrustedForm cert URL) <span class="reqTag" data-required-for="D2,D6,D23,D26,D27">required</span></label>
+                <input id="cert_url" name="cert_url" type="text" placeholder="https://cert.trustedform.com/xxxxx" />
+              </div>
+              <div>
+                <label for="cert_id">Certificate ID <span class="reqTag" data-required-for="D1,D2,D23,D26">required</span></label>
+                <input id="cert_id" name="cert_id" type="text" placeholder="e.g. 910cdaf2501d44585c03731a7b72fc4ed0c650ae" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="jornaya_leadid">Jornaya leadid</label>
+                <input id="jornaya_leadid" name="jornaya_leadid" type="text" placeholder="Optional" />
+              </div>
+              <div>
+                <label for="notes">Notes (not sent)</label>
+                <input id="notes" name="notes" type="text" placeholder="Optional" />
               </div>
             </div>
           </details>
@@ -411,7 +404,6 @@
             "last_name",
             "phone",
             "zip5",
-            "certificate_type",
             "cert_id",
             "cert_url",
             "source_url",
@@ -491,7 +483,7 @@
 
           cert_id: $("cert_id").value.trim(),
           cert_url: $("cert_url").value.trim(),
-          certificate_type: $("certificate_type").value,
+          jornaya_leadid: $("jornaya_leadid").value.trim(),
           notes: $("notes").value.trim(),
 
           incident_date_option_b: $("incident_date_option_b").value,
@@ -533,7 +525,7 @@
 
         set("cert_id", v.cert_id);
         set("cert_url", v.cert_url);
-        set("certificate_type", v.certificate_type || "TrustedForm");
+        set("jornaya_leadid", v.jornaya_leadid);
         set("notes", v.notes);
 
         set("incident_date_option_b", v.incident_date_option_b);
