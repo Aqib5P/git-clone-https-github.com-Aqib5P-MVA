@@ -139,13 +139,13 @@ $acc_date_mmddyyyy   = trim(val($d, "accident_date_mmddyyyy", ""));
 if (!$acc_date_mmddyyyy && $acc_date_yyyy_mm_dd) {
   $acc_date_mmddyyyy = mmddyyyy_from_date_input($acc_date_yyyy_mm_dd);
 }
-$trusted_form = trim(val($d, "trusted_form", ""));
+$cert_id = trim(val($d, "cert_id", ""));
+$cert_url = trim(val($d, "cert_url", ""));
 
 // Route table: keep URLs + secrets here only (NOT in HTML).
 switch ($endpoint) {
   case "D1": {
     $url = "https://growmyfirmonline.leadspediatrack.com/post.do";
-    $tf = trim(val($d, "trusted_form_cert_id", "")) ?: $trusted_form;
     $payload = [
       "lp_campaign_id" => "64c953e483f75",
       "lp_campaign_key" => "NxjrqXwd9cZgKBPLHhGD",
@@ -153,7 +153,7 @@ switch ($endpoint) {
       "last_name" => $last_name,
       "zip_code" => $zip5,
       "phone_home" => $phone,
-      "trusted_form_cert_id" => $tf,
+      "trusted_form_cert_id" => $cert_id,
       "lp_caller_id" => $phone,
     ];
 
@@ -167,10 +167,6 @@ switch ($endpoint) {
       "api-key: UuVb26nX-IPCa-kEOT-uW6a-L6DfTVOvyx2Z",
       "api-secret: 1a11d1621d4476240c21ad0bd92e2972da21117e",
     ];
-
-    // User enters certificate once in trusted_form; send it to both certificate_id and certificate_url unless explicitly provided.
-    $cert_id = trim(val($d, "certificate_id", "")) ?: $trusted_form;
-    $cert_url = trim(val($d, "certificate_url", "")) ?: $trusted_form;
 
     $payload = [
       "arrived_at" => gmdate("c"),
@@ -195,10 +191,9 @@ switch ($endpoint) {
 
   case "D6": {
     $url = "https://app.leadconduit.com/flows/661eeb850ebe9b2e4e22ca05/sources/681e2bfa616414d18349203e/submit";
-    $tf = trim(val($d, "trustedform_cert_url", "")) ?: $trusted_form;
     $payload = [
       "phone_1" => $phone,
-      "trustedform_cert_url" => $tf,
+      "trustedform_cert_url" => $cert_url,
       "first_name" => $first_name,
       "last_name" => $last_name,
       "email" => $email,
@@ -212,8 +207,6 @@ switch ($endpoint) {
 
   case "D23": {
     $url = "https://rtb.ringba.com/v1/production/dece46cdd8064609a5dfec17da7cb010.json";
-    $tf_url = trim(val($d, "trusted_form_url", "")) ?: $trusted_form;
-    $cert_id = trim(val($d, "cert_id_d23", "")) ?: $trusted_form;
     $payload = [
       "CID" => $phone,
       "exposeCallerId" => "yes",
@@ -225,7 +218,7 @@ switch ($endpoint) {
       "last_name" => $last_name,
       "Cert_Type" => "TrustedForm",
       "Cert_Id" => $cert_id,
-      "trusted_form_url" => $tf_url,
+      "trusted_form_url" => $cert_url,
       "call_type" => "o",
     ];
 
@@ -235,7 +228,7 @@ switch ($endpoint) {
 
   case "D26": {
     $url = "https://horizons-law-consultants.trackdrive.com/api/v1/leads";
-    $tf = trim(val($d, "trusted_form_cert_url", "")) ?: $trusted_form;
+    $jornaya = trim(val($d, "jornaya_leadid", "")) ?: $cert_id;
     $payload = [
       "lead_token" => "c5af0485a9a44f8c8832bbc80ea0f618",
       "traffic_source_id" => "1002",
@@ -244,8 +237,8 @@ switch ($endpoint) {
       "last_name" => $last_name,
       "email" => $email,
       "zip" => $zip5,
-      "trusted_form_cert_url" => $tf,
-      "jornaya_leadid" => trim(val($d, "jornaya_leadid", "")),
+      "trusted_form_cert_url" => $cert_url,
+      "jornaya_leadid" => $jornaya,
       "accident_date" => $acc_date_mmddyyyy,
     ];
 
@@ -255,7 +248,6 @@ switch ($endpoint) {
 
   case "D27": {
     $url = "https://horizonswebform.com/pingpost.php";
-    $tf = trim(val($d, "trusted_form_cert_url", "")) ?: $trusted_form;
     $payload = [
       "first_name" => $first_name,
       "last_name" => $last_name,
@@ -268,7 +260,7 @@ switch ($endpoint) {
       "accident_sol" => val($d, "accident_sol", ""),
       "source_url" => trim(val($d, "source_url", "")),
       "ip_address" => trim(val($d, "ip_address", "")),
-      "trusted_form_cert_url" => $tf,
+      "trusted_form_cert_url" => $cert_url,
       // Hidden static fields
       "have_attorney" => "No",
       "injury_occured" => "Yes",
