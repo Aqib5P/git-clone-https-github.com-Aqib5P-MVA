@@ -52,6 +52,8 @@
         grid-template-columns: 1fr 1fr;
         gap: 14px;
       }
+      /* Allow grid children to shrink even with long content (pre/JSON) */
+      .grid > * { min-width: 0; }
       @media (max-width: 920px) {
         .grid { grid-template-columns: 1fr; }
       }
@@ -148,6 +150,10 @@
         color: rgba(255, 255, 255, 0.92);
         overflow: auto;
         max-height: 420px;
+        /* Prevent long tokens from widening the column */
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
       .status {
         margin-top: 10px;
