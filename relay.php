@@ -88,37 +88,31 @@ function curl_post($url, $body, $headers = [], $is_json = false) {
   if ($is_json) {
     $final_headers[] = "Content-Type: application/json";
   } else {
-    // mimic standard browser form post
     $final_headers[] = "Content-Type: application/x-www-form-urlencoded";
   }
 
   curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HEADER => true,
+    CURLOPT_HEADER => false, // do NOT return upstream headers (reduces leakage)
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => $is_json ? json_encode($body) : http_build_query($body),
     CURLOPT_HTTPHEADER => $final_headers,
     CURLOPT_TIMEOUT => 30,
   ]);
 
-  $resp = curl_exec($ch);
-  if ($resp === false) {
+  $raw_body = curl_exec($ch);
+  if ($raw_body === false) {
     $err = curl_error($ch);
     curl_close($ch);
     return ["ok" => false, "error" => $err];
   }
 
   $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-  $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
   curl_close($ch);
-
-  $raw_headers = substr($resp, 0, $header_size);
-  $raw_body = substr($resp, $header_size);
 
   return [
     "ok" => ($status >= 200 && $status < 300),
     "status" => $status,
-    "headers" => $raw_headers,
     "body" => $raw_body,
   ];
 }
@@ -145,11 +139,13 @@ $acc_date_mmddyyyy   = trim(val($d, "accident_date_mmddyyyy", ""));
 if (!$acc_date_mmddyyyy && $acc_date_yyyy_mm_dd) {
   $acc_date_mmddyyyy = mmddyyyy_from_date_input($acc_date_yyyy_mm_dd);
 }
+$trusted_form = trim(val($d, "trusted_form", ""));
 
 // Route table: keep URLs + secrets here only (NOT in HTML).
 switch ($endpoint) {
   case "D1": {
     $url = "https://growmyfirmonline.leadspediatrack.com/post.do";
+    $tf = trim(val($d, "trusted_form_cert_id", "")) ?: $trusted_form;
     $payload = [
       "lp_campaign_id" => "64c953e483f75",
       "lp_campaign_key" => "NxjrqXwd9cZgKBPLHhGD",
@@ -157,7 +153,7 @@ switch ($endpoint) {
       "last_name" => $last_name,
       "zip_code" => $zip5,
       "phone_home" => $phone,
-      "trusted_form_cert_id" => trim(val($d, "trusted_form_cert_id", "")),
+      "trusted_form_cert_id" => $tf,
       "lp_caller_id" => $phone,
     ];
 
@@ -172,6 +168,10 @@ switch ($endpoint) {
       "api-secret: 1a11d1621d4476240c21ad0bd92e2972da21117e",
     ];
 
+    // User enters certificate once in trusted_form; send it to both certificate_id and certificate_url unless explicitly provided.
+    $cert_id = trim(val($d, "certificate_id", "")) ?: $trusted_form;
+    $cert_url = trim(val($d, "certificate_url", "")) ?: $trusted_form;
+
     $payload = [
       "arrived_at" => gmdate("c"),
       "test_mode" => "false",
@@ -182,8 +182,8 @@ switch ($endpoint) {
       "case_type" => "Auto Accident",
       "zip_code" => $zip5,
       "certificate_type" => val($d, "certificate_type", "TrustedForm"),
-      "certificate_id" => trim(val($d, "certificate_id", "")),
-      "certificate_url" => trim(val($d, "certificate_url", "")),
+      "certificate_id" => $cert_id,
+      "certificate_url" => $cert_url,
       "source_url" => trim(val($d, "source_url", "")),
       "ip_address" => trim(val($d, "ip_address", "")),
       "fields" => build_d2_fields($d),
@@ -195,9 +195,10 @@ switch ($endpoint) {
 
   case "D6": {
     $url = "https://app.leadconduit.com/flows/661eeb850ebe9b2e4e22ca05/sources/681e2bfa616414d18349203e/submit";
+    $tf = trim(val($d, "trustedform_cert_url", "")) ?: $trusted_form;
     $payload = [
       "phone_1" => $phone,
-      "trustedform_cert_url" => trim(val($d, "trustedform_cert_url", "")),
+      "trustedform_cert_url" => $tf,
       "first_name" => $first_name,
       "last_name" => $last_name,
       "email" => $email,
@@ -211,18 +212,20 @@ switch ($endpoint) {
 
   case "D23": {
     $url = "https://rtb.ringba.com/v1/production/dece46cdd8064609a5dfec17da7cb010.json";
+    $tf_url = trim(val($d, "trusted_form_url", "")) ?: $trusted_form;
+    $cert_id = trim(val($d, "cert_id_d23", "")) ?: $trusted_form;
     $payload = [
       "CID" => $phone,
       "exposeCallerId" => "yes",
       "zipcode" => $zip5,
       "State" => $state,
-      "SubID" => trim(val($d, "subid", "hzn345")),
+      "SubID" => "hzn345",
       "email" => $email,
       "first_name" => $first_name,
       "last_name" => $last_name,
       "Cert_Type" => "TrustedForm",
-      "Cert_Id" => trim(val($d, "cert_id_d23", "")),
-      "trusted_form_url" => trim(val($d, "trusted_form_url", "")),
+      "Cert_Id" => $cert_id,
+      "trusted_form_url" => $tf_url,
       "call_type" => "o",
     ];
 
@@ -232,6 +235,7 @@ switch ($endpoint) {
 
   case "D26": {
     $url = "https://horizons-law-consultants.trackdrive.com/api/v1/leads";
+    $tf = trim(val($d, "trusted_form_cert_url", "")) ?: $trusted_form;
     $payload = [
       "lead_token" => "c5af0485a9a44f8c8832bbc80ea0f618",
       "traffic_source_id" => "1002",
@@ -240,7 +244,7 @@ switch ($endpoint) {
       "last_name" => $last_name,
       "email" => $email,
       "zip" => $zip5,
-      "trusted_form_cert_url" => trim(val($d, "trusted_form_cert_url", "")),
+      "trusted_form_cert_url" => $tf,
       "jornaya_leadid" => trim(val($d, "jornaya_leadid", "")),
       "accident_date" => $acc_date_mmddyyyy,
     ];
@@ -251,6 +255,7 @@ switch ($endpoint) {
 
   case "D27": {
     $url = "https://horizonswebform.com/pingpost.php";
+    $tf = trim(val($d, "trusted_form_cert_url", "")) ?: $trusted_form;
     $payload = [
       "first_name" => $first_name,
       "last_name" => $last_name,
@@ -263,7 +268,7 @@ switch ($endpoint) {
       "accident_sol" => val($d, "accident_sol", ""),
       "source_url" => trim(val($d, "source_url", "")),
       "ip_address" => trim(val($d, "ip_address", "")),
-      "trusted_form_cert_url" => trim(val($d, "trusted_form_cert_url", "")),
+      "trusted_form_cert_url" => $tf,
       // Hidden static fields
       "have_attorney" => "No",
       "injury_occured" => "Yes",

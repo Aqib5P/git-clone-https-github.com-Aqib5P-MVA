@@ -174,36 +174,18 @@
     <div class="wrap">
       <header>
         <h1>Unified Lead Form</h1>
-        <p class="sub">Fill once → choose endpoint (D1/D2/D6/D23/D26/D27) → submit with exact field names preserved.</p>
+        <p class="sub">Step 1: save lead once. Step 2: pick D# and send (repeat without retyping).</p>
       </header>
 
       <div class="grid">
         <form id="unifiedForm" class="card" autocomplete="on">
-          <h2>1) Choose endpoint + enter lead details</h2>
-
-          <div class="row">
-            <div>
-              <label for="endpointSelect">Endpoint</label>
-              <select id="endpointSelect">
-                <option value="D1">D1</option>
-                <option value="D2">D2</option>
-                <option value="D6">D6</option>
-                <option value="D23">D23</option>
-                <option value="D26">D26</option>
-                <option value="D27">D27</option>
-              </select>
-              <div class="hint" id="endpointHint"></div>
-            </div>
-
-            <div>
-              <label>Send</label>
-              <div class="pill">
-                Server-side relay (keys + buyer URLs hidden)
-              </div>
-              <div class="hint">
-                The browser sends to <b>relay.php</b> only. The relay forwards to the selected D# and returns the upstream response here.
-              </div>
-            </div>
+          <h2>Step 1 — Fill & save lead (no buyers contacted)</h2>
+          <div class="pill">Browser → <b>relay.php</b> only (keys + buyer URLs hidden)</div>
+          <div class="hint">After you save the lead, you can send it to any D# multiple times without re-filling.</div>
+          <div id="savedBanner" class="status" style="display:none;">
+            <span class="ok">✅ Lead data saved</span>
+            <span class="mono">|</span>
+            <span class="small">No buyer contacted yet.</span>
           </div>
 
           <details style="margin-top:12px;" open>
@@ -291,27 +273,10 @@
             <summary>Certificates / tracking fields</summary>
             <div class="row" style="margin-top: 8px;">
               <div>
-                <label for="trusted_form_cert_id">TrustedForm Cert ID (D1) <span class="reqTag" data-required-for="D1">required</span></label>
-                <input id="trusted_form_cert_id" name="trusted_form_cert_id" type="text" placeholder="D1 trusted_form_cert_id" />
+                <label for="trusted_form">TrustedForm / Certificate (paste once) <span class="reqTag" data-required-for="D1,D2,D6,D26,D27">required</span></label>
+                <input id="trusted_form" name="trusted_form" type="text" placeholder="TrustedForm URL/ID (used for all where needed)" />
+                <div class="hint">We map this single value to the exact field name each D# expects (trusted_form_url / trusted_form_cert_url / trustedform_cert_url / trusted_form_cert_id, etc.).</div>
               </div>
-              <div>
-                <label for="trusted_form_cert_url">TrustedForm Cert URL (D26/D27) <span class="reqTag" data-required-for="D26,D27">required</span></label>
-                <input id="trusted_form_cert_url" name="trusted_form_cert_url" type="text" placeholder="https://cert.trustedform.com/xxxxx" />
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label for="trustedform_cert_url">TrustedForm Cert URL (D6) <span class="reqTag" data-required-for="D6">required</span></label>
-                <input id="trustedform_cert_url" name="trustedform_cert_url" type="url" placeholder="https://cert.trustedform.com/xxxxx" />
-              </div>
-              <div>
-                <label for="trusted_form_url">Trusted Form URL (D23)</label>
-                <input id="trusted_form_url" name="trusted_form_url" type="text" />
-              </div>
-            </div>
-
-            <div class="row">
               <div>
                 <label for="certificate_type">Certificate Type (D2) <span class="reqTag" data-required-for="D2">required</span></label>
                 <select id="certificate_type" name="certificate_type">
@@ -319,31 +284,16 @@
                   <option value="Jornaya">Jornaya</option>
                 </select>
               </div>
-              <div>
-                <label for="certificate_id">Certificate ID (D2)</label>
-                <input id="certificate_id" name="certificate_id" type="text" />
-              </div>
             </div>
 
             <div class="row">
               <div>
-                <label for="certificate_url">Certificate URL (D2) <span class="reqTag" data-required-for="D2">required</span></label>
-                <input id="certificate_url" name="certificate_url" type="url" />
-              </div>
-              <div>
-                <label for="cert_id_d23">TrustedCert ID (D23 → Cert_Id)</label>
-                <input id="cert_id_d23" name="cert_id_d23" type="text" placeholder="910cdaf2501d44585c03731a7b72fc4ed0c650ae" />
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label for="jornaya_leadid">Jornaya Lead ID (D26) <span class="reqTag" data-required-for="D26">required</span></label>
+                <label for="jornaya_leadid">Jornaya Lead ID (if available)</label>
                 <input id="jornaya_leadid" name="jornaya_leadid" type="text" />
               </div>
               <div>
-                <label for="subid">SubID (D23 static default)</label>
-                <input id="subid" name="subid" type="text" value="hzn345" />
+                <label for="notes">Notes (not sent)</label>
+                <input id="notes" name="notes" type="text" placeholder="Optional" />
               </div>
             </div>
           </details>
@@ -397,16 +347,32 @@
           </details>
 
           <div class="actions">
-            <button type="button" id="previewBtn" class="secondary">Preview request</button>
-            <button type="submit" id="sendBtn">Send to selected endpoint</button>
-            <button type="button" id="resetBtn" class="danger">Reset form</button>
+            <button type="submit" id="saveBtn">Save / Submit Lead</button>
+            <button type="button" id="editBtn" class="secondary" style="display:none;">Edit Lead</button>
+            <button type="button" id="clearBtn" class="danger">Clear</button>
           </div>
 
           <div class="status" id="statusLine"></div>
         </form>
 
         <div class="card">
-          <h2>2) Request + response</h2>
+          <h2>Step 2 — Choose destination + send</h2>
+          <div id="sendPanel">
+            <label for="endpointSelect">Select destination</label>
+            <select id="endpointSelect" disabled>
+              <option value="D1">D1</option>
+              <option value="D2">D2</option>
+              <option value="D6">D6</option>
+              <option value="D23">D23</option>
+              <option value="D26">D26</option>
+              <option value="D27">D27</option>
+            </select>
+            <div class="hint" id="endpointHint">Save the lead first to enable sending.</div>
+            <div class="actions">
+              <button type="button" id="sendBtn" disabled>Send to Selected</button>
+              <button type="button" id="previewBtn" class="secondary" disabled>Preview payload</button>
+            </div>
+          </div>
           <div class="hint">
             This shows the response returned by <b>relay.php</b> (including the upstream HTTP status + body).
           </div>
@@ -438,7 +404,7 @@
         D1: {
           label: "D1",
           hint: "D1 request (server-side relay).",
-          required: ["first_name", "last_name", "zip5", "phone", "trusted_form_cert_id"],
+          required: ["first_name", "last_name", "zip5", "phone", "trusted_form"],
         },
         D2: {
           label: "D2",
@@ -449,8 +415,7 @@
             "phone",
             "zip5",
             "certificate_type",
-            "certificate_id",
-            "certificate_url",
+            "trusted_form",
             "source_url",
             "ip_address",
             "incident_date_option_b",
@@ -462,7 +427,7 @@
         D6: {
           label: "D6",
           hint: "D6 request (server-side relay).",
-          required: ["phone", "trustedform_cert_url", "first_name", "last_name", "email", "state", "accident_date_mmddyyyy"],
+          required: ["phone", "trusted_form", "first_name", "last_name", "email", "state", "accident_date_mmddyyyy"],
         },
         D23: {
           label: "D23",
@@ -472,12 +437,12 @@
         D26: {
           label: "D26",
           hint: "D26 request (server-side relay).",
-          required: ["phone", "first_name", "last_name", "email", "zip5", "trusted_form_cert_url", "jornaya_leadid", "accident_date_mmddyyyy"],
+          required: ["phone", "first_name", "last_name", "email", "zip5", "trusted_form", "jornaya_leadid", "accident_date_mmddyyyy"],
         },
         D27: {
           label: "D27",
           hint: "D27 request (server-side relay).",
-          required: ["first_name", "last_name", "email", "phone", "state", "accident_state", "zip5", "source_url", "ip_address", "trusted_form_cert_url", "accident_sol", "accident_date_yyyy_mm_dd"],
+          required: ["first_name", "last_name", "email", "phone", "state", "accident_state", "zip5", "source_url", "ip_address", "trusted_form", "accident_sol", "accident_date_yyyy_mm_dd"],
         },
       };
 
@@ -487,6 +452,16 @@
       const respPreview = $("respPreview");
       const endpointSelect = $("endpointSelect");
       const endpointHint = $("endpointHint");
+      const saveBtn = $("saveBtn");
+      const editBtn = $("editBtn");
+      const clearBtn = $("clearBtn");
+      const sendBtn = $("sendBtn");
+      const previewBtn = $("previewBtn");
+      const savedBanner = $("savedBanner");
+
+      const STORAGE_KEY = "UNIFIED_LEAD_V1";
+      let savedLead = null;
+      let leadLocked = false;
 
       function mmddyyyyFromDateInput(value) {
         if (!value) return "";
@@ -519,16 +494,10 @@
           source_url: $("source_url").value.trim(),
           accident_sol: $("accident_sol").value,
 
-          trusted_form_cert_id: $("trusted_form_cert_id").value.trim(),
-          trusted_form_cert_url: $("trusted_form_cert_url").value.trim(),
-          trustedform_cert_url: $("trustedform_cert_url").value.trim(),
-          trusted_form_url: $("trusted_form_url").value.trim(),
+          trusted_form: $("trusted_form").value.trim(),
           certificate_type: $("certificate_type").value,
-          certificate_id: $("certificate_id").value.trim(),
-          certificate_url: $("certificate_url").value.trim(),
-          cert_id_d23: $("cert_id_d23").value.trim(),
           jornaya_leadid: $("jornaya_leadid").value.trim(),
-          subid: $("subid").value.trim(),
+          notes: $("notes").value.trim(),
 
           incident_date_option_b: $("incident_date_option_b").value,
           injury_cause: $("injury_cause").value,
@@ -543,6 +512,57 @@
         }
 
         return v;
+      }
+
+      function fillForm(v) {
+        if (!v || typeof v !== "object") return;
+        const set = (id, val) => {
+          const el = $(id);
+          if (!el) return;
+          if (el.tagName === "SELECT") el.value = val ?? "";
+          else el.value = val ?? "";
+        };
+
+        set("first_name", v.first_name);
+        set("last_name", v.last_name);
+        set("email", v.email);
+        set("phone", v.phone);
+        set("zip5", v.zip5);
+        set("state", v.state);
+        set("accident_state", v.accident_state);
+        set("accident_date_raw", v.accident_date_raw || v.accident_date_yyyy_mm_dd);
+        set("accident_date_mmddyyyy", v.accident_date_mmddyyyy);
+        set("ip_address", v.ip_address);
+        set("source_url", v.source_url);
+        set("accident_sol", v.accident_sol);
+
+        set("trusted_form", v.trusted_form);
+        set("certificate_type", v.certificate_type || "TrustedForm");
+        set("jornaya_leadid", v.jornaya_leadid);
+        set("notes", v.notes);
+
+        set("incident_date_option_b", v.incident_date_option_b);
+        set("injury_cause", v.injury_cause);
+        set("primary_injury", v.primary_injury);
+        set("role_in_accident", v.role_in_accident);
+      }
+
+      function setLeadLocked(locked) {
+        leadLocked = locked;
+        // disable all inputs/selects/textareas inside the lead form (not buttons)
+        document.querySelectorAll("#unifiedForm input, #unifiedForm select, #unifiedForm textarea").forEach((el) => {
+          el.disabled = locked;
+        });
+        // allow Clear/Edit buttons even when locked
+        clearBtn.disabled = false;
+        editBtn.disabled = false;
+      }
+
+      function setSendEnabled(enabled) {
+        endpointSelect.disabled = !enabled;
+        sendBtn.disabled = !enabled;
+        previewBtn.disabled = !enabled;
+        endpointHint.textContent = enabled ? (endpoints[endpointSelect.value]?.hint || "") : "Save the lead first to enable sending.";
       }
 
       function setStatus(text, kind) {
@@ -564,8 +584,7 @@
       }
 
       function getPreviewObject(endpointId) {
-        const ep = endpoints[endpointId];
-        const v = readValues();
+        const v = savedLead ? savedLead : readValues();
         const missing = validateRequired(endpointId, v);
         return { endpointId, missing, data: v };
       }
@@ -584,14 +603,7 @@
         endpointHint.textContent = ep.hint || "";
         renderRequiredTags();
         respPreview.textContent = "---";
-        setStatus(`Selected: ${ep.label}`, "ok");
-      }
-
-      function toUrlEncodedFields(fieldsObj) {
-        // For preview purposes (not used for sending).
-        const out = {};
-        for (const [k, v] of Object.entries(fieldsObj)) out[k] = v == null ? "" : String(v);
-        return out;
+        if (savedLead) setStatus(`Destination selected: ${ep.label}`, "ok");
       }
 
       function preview(endpointId) {
@@ -611,6 +623,11 @@
       }
 
       async function send(endpointId) {
+        if (!savedLead) {
+          respPreview.textContent = "Save the lead first (Step 1), then send (Step 2).";
+          setStatus("Lead not saved yet.", "bad");
+          return;
+        }
         const p = getPreviewObject(endpointId);
         preview(endpointId);
 
@@ -650,23 +667,71 @@
 
       // Wire events
       endpointSelect.addEventListener("change", updateEndpointUi);
-      $("previewBtn").addEventListener("click", () => preview(endpointSelect.value));
-      $("resetBtn").addEventListener("click", () => {
-        $("unifiedForm").reset();
-        reqPreview.textContent = "{}";
-        respPreview.textContent = "---";
-        updateEndpointUi();
-      });
+      previewBtn.addEventListener("click", () => preview(endpointSelect.value));
+      sendBtn.addEventListener("click", () => send(endpointSelect.value));
+
       $("accident_date_raw").addEventListener("change", () => {
         const mmdd = mmddyyyyFromDateInput($("accident_date_raw").value);
         if (mmdd) $("accident_date_mmddyyyy").value = mmdd;
       });
       $("unifiedForm").addEventListener("submit", (e) => {
         e.preventDefault();
-        send(endpointSelect.value);
+        // Save lead only (no send)
+        const v = readValues();
+        savedLead = v;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(v)); } catch { /* ignore */ }
+        setLeadLocked(true);
+        savedBanner.style.display = "flex";
+        editBtn.style.display = "inline-block";
+        setSendEnabled(true);
+        updateEndpointUi();
+        preview(endpointSelect.value);
+        setStatus("Lead saved. Now choose a D# and click Send.", "ok");
+      });
+
+      editBtn.addEventListener("click", () => {
+        setLeadLocked(false);
+        savedBanner.style.display = "none";
+        // require re-save before sending to avoid accidental stale sends while editing
+        setSendEnabled(false);
+        setStatus("Editing enabled. Click Save / Submit Lead again when ready.", "ok");
+      });
+
+      clearBtn.addEventListener("click", () => {
+        savedLead = null;
+        try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+        $("unifiedForm").reset();
+        setLeadLocked(false);
+        savedBanner.style.display = "none";
+        editBtn.style.display = "none";
+        setSendEnabled(false);
+        reqPreview.textContent = "{}";
+        respPreview.textContent = "---";
+        setStatus("Cleared.", "ok");
       });
 
       // init
+      // load previous saved lead (optional)
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            savedLead = parsed;
+            fillForm(savedLead);
+            setLeadLocked(true);
+            savedBanner.style.display = "flex";
+            editBtn.style.display = "inline-block";
+            setSendEnabled(true);
+          } else {
+            setSendEnabled(false);
+          }
+        } else {
+          setSendEnabled(false);
+        }
+      } catch {
+        setSendEnabled(false);
+      }
       updateEndpointUi();
       preview(endpointSelect.value);
     </script>
