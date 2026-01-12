@@ -296,6 +296,51 @@
                 <input id="notes" name="notes" type="text" placeholder="Optional" />
               </div>
             </div>
+
+            <details style="margin-top:10px;">
+              <summary>Advanced (optional) — if a buyer needs a specific cert field</summary>
+              <div class="small">
+                Fill these only if you want to override how the single <span class="mono">trusted_form</span> value is mapped.
+                Outbound payload keys stay exactly as each buyer expects.
+              </div>
+              <div class="row" style="margin-top: 8px;">
+                <div>
+                  <label for="trusted_form_cert_id">D1 override: trusted_form_cert_id</label>
+                  <input id="trusted_form_cert_id" name="trusted_form_cert_id" type="text" placeholder="D1 trusted_form_cert_id (optional)" />
+                </div>
+                <div>
+                  <label for="trustedform_cert_url">D6 override: trustedform_cert_url</label>
+                  <input id="trustedform_cert_url" name="trustedform_cert_url" type="text" placeholder="D6 trustedform_cert_url (optional)" />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="trusted_form_cert_url">D26/D27 override: trusted_form_cert_url</label>
+                  <input id="trusted_form_cert_url" name="trusted_form_cert_url" type="text" placeholder="D26/D27 trusted_form_cert_url (optional)" />
+                </div>
+                <div>
+                  <label for="trusted_form_url">D23 override: trusted_form_url</label>
+                  <input id="trusted_form_url" name="trusted_form_url" type="text" placeholder="D23 trusted_form_url (optional)" />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="cert_id_d23">D23 override: Cert_Id</label>
+                  <input id="cert_id_d23" name="cert_id_d23" type="text" placeholder="D23 Cert_Id (optional)" />
+                </div>
+                <div>
+                  <label for="certificate_id">D2 override: certificate_id</label>
+                  <input id="certificate_id" name="certificate_id" type="text" placeholder="D2 certificate_id (optional)" />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="certificate_url">D2 override: certificate_url</label>
+                  <input id="certificate_url" name="certificate_url" type="text" placeholder="D2 certificate_url (optional)" />
+                </div>
+                <div></div>
+              </div>
+            </details>
           </details>
 
           <details style="margin-top:12px;">
@@ -495,6 +540,14 @@
           accident_sol: $("accident_sol").value,
 
           trusted_form: $("trusted_form").value.trim(),
+          // Optional overrides (relay prefers these if present)
+          trusted_form_cert_id: ($("trusted_form_cert_id") ? $("trusted_form_cert_id").value.trim() : ""),
+          trustedform_cert_url: ($("trustedform_cert_url") ? $("trustedform_cert_url").value.trim() : ""),
+          trusted_form_cert_url: ($("trusted_form_cert_url") ? $("trusted_form_cert_url").value.trim() : ""),
+          trusted_form_url: ($("trusted_form_url") ? $("trusted_form_url").value.trim() : ""),
+          cert_id_d23: ($("cert_id_d23") ? $("cert_id_d23").value.trim() : ""),
+          certificate_id: ($("certificate_id") ? $("certificate_id").value.trim() : ""),
+          certificate_url: ($("certificate_url") ? $("certificate_url").value.trim() : ""),
           certificate_type: $("certificate_type").value,
           jornaya_leadid: $("jornaya_leadid").value.trim(),
           notes: $("notes").value.trim(),
@@ -537,6 +590,13 @@
         set("accident_sol", v.accident_sol);
 
         set("trusted_form", v.trusted_form);
+        set("trusted_form_cert_id", v.trusted_form_cert_id);
+        set("trustedform_cert_url", v.trustedform_cert_url);
+        set("trusted_form_cert_url", v.trusted_form_cert_url);
+        set("trusted_form_url", v.trusted_form_url);
+        set("cert_id_d23", v.cert_id_d23);
+        set("certificate_id", v.certificate_id);
+        set("certificate_url", v.certificate_url);
         set("certificate_type", v.certificate_type || "TrustedForm");
         set("jornaya_leadid", v.jornaya_leadid);
         set("notes", v.notes);
