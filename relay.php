@@ -117,6 +117,24 @@ function curl_post($url, $body, $headers = [], $is_json = false) {
   ];
 }
 
+function finalize_upstream($result) {
+  $out = $result;
+  $out["effective_ok"] = isset($result["ok"]) ? (bool)$result["ok"] : false;
+  $body = isset($result["body"]) ? $result["body"] : "";
+
+  if (is_string($body) && $body !== "") {
+    $decoded = json_decode($body, true);
+    if (is_array($decoded)) {
+      $out["body_json"] = $decoded;
+      // Common pattern (LeadConduit): {"outcome":"failure", ...}
+      if (isset($decoded["outcome"]) && $decoded["outcome"] === "failure") {
+        $out["effective_ok"] = false;
+      }
+    }
+  }
+  return $out;
+}
+
 $input = get_json_input();
 if (!$input) {
   json_out(["error" => "Invalid JSON input. Expected { endpoint, data }"], 400);
@@ -157,7 +175,7 @@ switch ($endpoint) {
       "lp_caller_id" => $phone,
     ];
 
-    $result = curl_post($url, $payload, [], false);
+    $result = finalize_upstream(curl_post($url, $payload, [], false));
     json_out(["endpoint" => "D1", "upstream" => $result]);
   }
 
@@ -185,7 +203,7 @@ switch ($endpoint) {
       "fields" => build_d2_fields($d),
     ];
 
-    $result = curl_post($url, $payload, $headers, true);
+    $result = finalize_upstream(curl_post($url, $payload, $headers, true));
     json_out(["endpoint" => "D2", "upstream" => $result]);
   }
 
@@ -201,7 +219,7 @@ switch ($endpoint) {
       "date_of_accident_qmark" => $acc_date_mmddyyyy,
     ];
 
-    $result = curl_post($url, $payload, [], false);
+    $result = finalize_upstream(curl_post($url, $payload, [], false));
     json_out(["endpoint" => "D6", "upstream" => $result]);
   }
 
@@ -222,7 +240,7 @@ switch ($endpoint) {
       "call_type" => "o",
     ];
 
-    $result = curl_post($url, $payload, [], true);
+    $result = finalize_upstream(curl_post($url, $payload, [], true));
     json_out(["endpoint" => "D23", "upstream" => $result]);
   }
 
@@ -242,7 +260,7 @@ switch ($endpoint) {
       "accident_date" => $acc_date_mmddyyyy,
     ];
 
-    $result = curl_post($url, $payload, [], false);
+    $result = finalize_upstream(curl_post($url, $payload, [], false));
     json_out(["endpoint" => "D26", "upstream" => $result]);
   }
 
@@ -269,7 +287,7 @@ switch ($endpoint) {
       "hospitalized_or_treated" => "Yes",
     ];
 
-    $result = curl_post($url, $payload, [], true);
+    $result = finalize_upstream(curl_post($url, $payload, [], true));
     json_out(["endpoint" => "D27", "upstream" => $result]);
   }
 

@@ -198,44 +198,44 @@
             <div class="row" style="margin-top: 8px;">
               <div>
                 <label for="first_name">First Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D26,D27">required</span></label>
-                <input id="first_name" name="first_name" type="text" />
+                <input id="first_name" name="first_name" type="text" required />
               </div>
               <div>
                 <label for="last_name">Last Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D26,D27">required</span></label>
-                <input id="last_name" name="last_name" type="text" />
+                <input id="last_name" name="last_name" type="text" required />
               </div>
             </div>
 
             <div class="row">
               <div>
                 <label for="email">Email <span class="reqTag" data-required-for="D6,D23,D26,D27">required</span></label>
-                <input id="email" name="email" type="email" />
+                <input id="email" name="email" type="email" required />
               </div>
               <div>
                 <label for="phone">Phone / Caller ID <span class="reqTag" data-required-for="D1,D2,D6,D23,D26,D27">required</span></label>
-                <input id="phone" name="phone" type="tel" placeholder="+15642145678 or 5642145678" />
+                <input id="phone" name="phone" type="tel" placeholder="+15642145678 or 5642145678" required />
               </div>
             </div>
 
             <div class="row">
               <div>
                 <label for="zip5">ZIP (5 digits) <span class="reqTag" data-required-for="D1,D2,D23,D26,D27">required</span></label>
-                <input id="zip5" name="zip5" type="text" inputmode="numeric" maxlength="5" placeholder="90210" />
+                <input id="zip5" name="zip5" type="text" inputmode="numeric" maxlength="5" placeholder="90210" pattern="[0-9]{5}" required />
               </div>
               <div>
                 <label for="state">State <span class="reqTag" data-required-for="D6,D23,D27">required</span></label>
-                <input id="state" name="state" type="text" placeholder="CA, TX, FL" />
+                <input id="state" name="state" type="text" placeholder="CA, TX, FL" required />
               </div>
             </div>
 
             <div class="row">
               <div>
                 <label for="accident_state">Accident State <span class="reqTag" data-required-for="D27">required</span></label>
-                <input id="accident_state" name="accident_state" type="text" placeholder="CA" />
+                <input id="accident_state" name="accident_state" type="text" placeholder="CA" required />
               </div>
               <div>
                 <label for="accident_date_raw">Accident Date (picker)</label>
-                <input id="accident_date_raw" name="accident_date_raw" type="date" />
+                <input id="accident_date_raw" name="accident_date_raw" type="date" required />
                 <div class="hint">
                   Used to auto-fill MM/DD/YYYY (D6/D26) and YYYY-MM-DD (D27).
                 </div>
@@ -245,18 +245,18 @@
             <div class="row">
               <div>
                 <label for="accident_date_mmddyyyy">Accident Date (MM/DD/YYYY)</label>
-                <input id="accident_date_mmddyyyy" class="mono" name="accident_date_mmddyyyy" type="text" placeholder="MM/DD/YYYY" />
+                <input id="accident_date_mmddyyyy" class="mono" name="accident_date_mmddyyyy" type="text" placeholder="MM/DD/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required readonly />
               </div>
               <div>
                 <label for="ip_address">IP Address <span class="reqTag" data-required-for="D2,D27">required</span></label>
-                <input id="ip_address" name="ip_address" type="text" placeholder="e.g. 192.168.1.1" />
+                <input id="ip_address" name="ip_address" type="text" placeholder="e.g. 192.168.1.1" required />
               </div>
             </div>
 
             <div class="row">
               <div>
                 <label for="source_url">Source URL <span class="reqTag" data-required-for="D2,D27">required</span></label>
-                <input id="source_url" name="source_url" type="url" list="source_url_suggestions" placeholder="https://example.com/" />
+                <input id="source_url" name="source_url" type="url" list="source_url_suggestions" placeholder="https://example.com/" required />
                 <datalist id="source_url_suggestions">
                   <option value="https://motorvehicleclaim.com/"></option>
                   <option value="https://accidentclaimnow.com/"></option>
@@ -265,7 +265,7 @@
               </div>
               <div>
                 <label for="accident_sol">Accident SOL (D27)</label>
-                <select id="accident_sol" name="accident_sol">
+                <select id="accident_sol" name="accident_sol" required>
                   <option value="">Select</option>
                   <option value="1">Within 1 Year</option>
                   <option value="2">Within 2 Years</option>
@@ -276,7 +276,7 @@
             <div class="row">
               <div>
                 <label for="incident_date_option_b">When did the accident happen?</label>
-                <select id="incident_date_option_b" name="incident_date_option_b">
+                <select id="incident_date_option_b" name="incident_date_option_b" required>
                   <option value="">Select...</option>
                   <option value="Less than 1 year">Less than 1 year</option>
                   <option value="Less than 2 years">Less than 2 years</option>
@@ -285,7 +285,7 @@
               </div>
               <div>
                 <label for="injury_cause">What caused your injury?</label>
-                <select id="injury_cause" name="injury_cause">
+                <select id="injury_cause" name="injury_cause" required>
                   <option value="">Select...</option>
                   <option value="Motorcycle Accident">Motorcycle Accident</option>
                   <option value="Car Accident">Car Accident</option>
@@ -299,7 +299,7 @@
             <div class="row">
               <div>
                 <label for="primary_injury">Did you sustain any of the following?</label>
-                <select id="primary_injury" name="primary_injury">
+                <select id="primary_injury" name="primary_injury" required>
                   <option value="">Select...</option>
                   <option value="Headaches">Headaches</option>
                   <option value="Whiplash">Whiplash</option>
@@ -310,7 +310,7 @@
               </div>
               <div>
                 <label for="role_in_accident">Were you the driver, passenger or pedestrian?</label>
-                <select id="role_in_accident" name="role_in_accident">
+                <select id="role_in_accident" name="role_in_accident" required>
                   <option value="">Select...</option>
                   <option value="Driver">Driver</option>
                   <option value="Passenger">Passenger</option>
@@ -619,7 +619,7 @@
 
           if (json) {
             respPreview.textContent = JSON.stringify(json, null, 2);
-            const ok = json && json.upstream && json.upstream.ok === true;
+            const ok = json && json.upstream && json.upstream.effective_ok === true;
             const status = json && json.upstream && typeof json.upstream.status === "number" ? json.upstream.status : res.status;
             setStatus(ok ? "Request completed." : `Request completed (HTTP ${status}).`, ok ? "ok" : "bad");
           } else {
