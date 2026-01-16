@@ -13,6 +13,7 @@ $config = app_config();
 $connection = db_connect();
 $errors = [];
 $success = '';
+$search = trim($_GET['q'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
@@ -45,8 +46,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$result = $connection->query('SELECT id, ip_address, label, created_at FROM ip_whitelist ORDER BY id DESC');
-$ips = $result->fetch_all(MYSQLI_ASSOC);
+$sql = 'SELECT id, ip_address, label, created_at FROM ip_whitelist';
+if ($search !== '') {
+    $sql .= ' WHERE ip_address LIKE ? OR label LIKE ?';
+}
+$sql .= ' ORDER BY id DESC';
+
+if ($search !== '') {
+    $like = '%' . $search . '%';
+    $stmt = $connection->prepare($sql);
+    $stmt->bind_param('ss', $like, $like);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $ips = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+} else {
+    $result = $connection->query($sql);
+    $ips = $result->fetch_all(MYSQLI_ASSOC);
+}
 
 render_header('IP Whitelist');
 ?>
@@ -64,6 +81,13 @@ render_header('IP Whitelist');
         <div class="message success"><?php echo h($success); ?></div>
     </div>
 <?php endif; ?>
+
+<form method="get">
+    <label for="q">Search IPs</label>
+    <input type="text" id="q" name="q" value="<?php echo h($search); ?>" placeholder="IP or label">
+    <button type="submit">Search</button>
+    <a href="whitelist.php">Clear</a>
+</form>
 
 <form method="post">
     <input type="hidden" name="csrf_token" value="<?php echo h(csrf_token($config['security']['session_name'])); ?>">

@@ -19,9 +19,10 @@
 
 ## Admin Portal
 - Visit `/admin/login.php` to create the first admin user (if none exist).
-- Use the DIDs page to add/remove DID numbers.
-- Use the IP Whitelist page to allow trusted client IPs.
-- Use the DIDs page to upload a CSV file for bulk inserts (one DID per row, header optional).
+- Use the DIDs page to add/remove DID numbers and search by DID or area code.
+- Use the IP Whitelist page to allow trusted client IPs and search by IP or label.
+- Use the DIDs page to upload a CSV file for bulk inserts or removals (one DID per row, header optional).
+- Use the Daily Usage page to view per-day DID usage totals.
 
 ## DID Lookup API
 - GET or POST `did_lookup.php?dialed_number=2125550123`

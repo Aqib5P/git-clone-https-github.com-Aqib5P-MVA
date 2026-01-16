@@ -26,6 +26,7 @@ function render_header(string $title): void
         echo '<a href="index.php">Dashboard</a>';
         echo '<a href="dids.php">DIDs</a>';
         echo '<a href="whitelist.php">IP Whitelist</a>';
+        echo '<a href="usage.php">Daily Usage</a>';
         echo '<a href="logout.php">Logout</a>';
         echo '</nav>';
         echo '<div class="user-chip">Signed in as ' . h($user['username']) . '</div>';

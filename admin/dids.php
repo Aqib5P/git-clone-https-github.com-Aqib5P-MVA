@@ -14,6 +14,8 @@ $config = app_config();
 $connection = db_connect();
 $errors = [];
 $success = '';
+$search = trim($_GET['q'] ?? '');
+$search_digits = normalize_phone($search);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
@@ -121,6 +123,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             }
+        } elseif ($action === 'bulk_remove') {
+            if (empty($_FILES['csv_file']) || !is_uploaded_file($_FILES['csv_file']['tmp_name'])) {
+                $errors[] = 'Select a CSV file to upload.';
+            } elseif ($_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+                $errors[] = 'Upload failed. Try again.';
+            } else {
+                $removed = 0;
+                $missing = 0;
+                $invalid = 0;
+
+                $handle = fopen($_FILES['csv_file']['tmp_name'], 'r');
+                if ($handle === false) {
+                    $errors[] = 'Unable to read uploaded file.';
+                } else {
+                    $stmt = $connection->prepare('DELETE FROM dids WHERE did_number = ?');
+                    try {
+                        $connection->begin_transaction();
+                        $row_index = 0;
+                        while (($row = fgetcsv($handle)) !== false) {
+                            $row_index++;
+                            if (empty($row)) {
+                                continue;
+                            }
+
+                            $raw_row = implode(' ', $row);
+                            $has_letters = preg_match('/[a-zA-Z]/', $raw_row) === 1;
+                            $candidate = '';
+                            foreach ($row as $cell) {
+                                $cell = trim((string) $cell);
+                                if ($cell === '') {
+                                    continue;
+                                }
+                                $digits = normalize_phone($cell);
+                                if ($digits !== '') {
+                                    $candidate = $digits;
+                                    break;
+                                }
+                            }
+
+                            if ($row_index === 1 && $candidate === '' && $has_letters) {
+                                continue;
+                            }
+
+                            if ($candidate === '' || strlen($candidate) < 10) {
+                                $invalid++;
+                                continue;
+                            }
+
+                            $stmt->bind_param('s', $candidate);
+                            $stmt->execute();
+
+                            if ($stmt->affected_rows > 0) {
+                                $removed++;
+                            } else {
+                                $missing++;
+                            }
+                        }
+                        $connection->commit();
+                        fclose($handle);
+                        $stmt->close();
+
+                        $success = 'Bulk remove complete. Removed ' . $removed . ', missing ' . $missing . ', invalid ' . $invalid . '.';
+                    } catch (Throwable $e) {
+                        $connection->rollback();
+                        fclose($handle);
+                        $stmt->close();
+                        $errors[] = 'Bulk remove failed. Try again.';
+                    }
+                }
+            }
         } elseif ($action === 'delete') {
             $did_id = (int) ($_POST['did_id'] ?? 0);
             if ($did_id > 0) {
@@ -134,13 +206,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$result = $connection->query('
+$sql = '
     SELECT d.id, d.did_number, d.active, d.created_at, a.area_code
     FROM dids d
     INNER JOIN area_codes a ON d.area_code_id = a.id
-    ORDER BY d.id DESC
-');
-$dids = $result->fetch_all(MYSQLI_ASSOC);
+';
+
+if ($search_digits !== '') {
+    $sql .= ' WHERE d.did_number LIKE ? OR a.area_code LIKE ?';
+}
+
+$sql .= ' ORDER BY d.id DESC';
+
+if ($search_digits !== '') {
+    $like = '%' . $search_digits . '%';
+    $stmt = $connection->prepare($sql);
+    $stmt->bind_param('ss', $like, $like);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $dids = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+} else {
+    $result = $connection->query($sql);
+    $dids = $result->fetch_all(MYSQLI_ASSOC);
+}
 
 render_header('Manage DIDs');
 ?>
@@ -159,6 +248,13 @@ render_header('Manage DIDs');
     </div>
 <?php endif; ?>
 
+<form method="get">
+    <label for="q">Search DIDs</label>
+    <input type="text" id="q" name="q" value="<?php echo h($search); ?>" placeholder="DID or area code">
+    <button type="submit">Search</button>
+    <a href="dids.php">Clear</a>
+</form>
+
 <form method="post">
     <input type="hidden" name="csrf_token" value="<?php echo h(csrf_token($config['security']['session_name'])); ?>">
     <input type="hidden" name="action" value="add">
@@ -175,6 +271,15 @@ render_header('Manage DIDs');
     <input type="file" id="csv_file" name="csv_file" accept=".csv,text/csv" required>
     <p class="note">Use one DID per row. Header row is optional.</p>
     <button type="submit">Upload CSV</button>
+</form>
+
+<form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="<?php echo h(csrf_token($config['security']['session_name'])); ?>">
+    <input type="hidden" name="action" value="bulk_remove">
+    <label for="csv_remove">Bulk remove DIDs (CSV)</label>
+    <input type="file" id="csv_remove" name="csv_file" accept=".csv,text/csv" required>
+    <p class="note">Use one DID per row. Header row is optional.</p>
+    <button type="submit" class="secondary" onclick="return confirm('Remove all DIDs in this file?');">Remove CSV DIDs</button>
 </form>
 
 <table>
