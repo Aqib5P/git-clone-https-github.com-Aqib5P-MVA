@@ -81,7 +81,7 @@ render_header($mode === 'setup' ? 'Create Admin User' : 'Admin Login');
     </div>
 <?php endif; ?>
 
-<form method="post">
+<form method="post" class="panel">
     <input type="hidden" name="csrf_token" value="<?php echo h(csrf_token($config['security']['session_name'])); ?>">
     <label for="username">Username</label>
     <input type="text" id="username" name="username" required>
@@ -89,7 +89,7 @@ render_header($mode === 'setup' ? 'Create Admin User' : 'Admin Login');
     <label for="password">Password</label>
     <input type="password" id="password" name="password" required>
 
-    <button type="submit"><?php echo $mode === 'setup' ? 'Create Admin' : 'Sign In'; ?></button>
+    <button type="submit" class="button"><?php echo $mode === 'setup' ? 'Create Admin' : 'Sign In'; ?></button>
 </form>
 
 <?php if ($mode === 'setup') : ?>

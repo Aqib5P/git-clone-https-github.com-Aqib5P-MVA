@@ -48,13 +48,13 @@ foreach ($rows as $row) {
 render_header('Daily Usage');
 ?>
 
-<form method="get">
+<form method="get" class="panel form-inline">
     <label for="date">Date</label>
     <input type="date" id="date" name="date" value="<?php echo h($date); ?>" required>
     <label for="q">Search DID</label>
     <input type="text" id="q" name="q" value="<?php echo h($search); ?>" placeholder="DID digits">
-    <button type="submit">Filter</button>
-    <a href="usage.php">Clear</a>
+    <button type="submit" class="button">Filter</button>
+    <a class="button secondary" href="usage.php">Clear</a>
 </form>
 
 <p class="note">Total uses for selected date: <?php echo (int) $total; ?></p>

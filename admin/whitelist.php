@@ -82,21 +82,21 @@ render_header('IP Whitelist');
     </div>
 <?php endif; ?>
 
-<form method="get">
+<form method="get" class="panel form-inline">
     <label for="q">Search IPs</label>
     <input type="text" id="q" name="q" value="<?php echo h($search); ?>" placeholder="IP or label">
-    <button type="submit">Search</button>
-    <a href="whitelist.php">Clear</a>
+    <button type="submit" class="button">Search</button>
+    <a class="button secondary" href="whitelist.php">Clear</a>
 </form>
 
-<form method="post">
+<form method="post" class="panel">
     <input type="hidden" name="csrf_token" value="<?php echo h(csrf_token($config['security']['session_name'])); ?>">
     <input type="hidden" name="action" value="add">
     <label for="ip_address">Add IP</label>
     <input type="text" id="ip_address" name="ip_address" placeholder="203.0.113.10" required>
     <label for="label">Label (optional)</label>
     <input type="text" id="label" name="label" placeholder="Partner gateway">
-    <button type="submit">Add IP</button>
+    <button type="submit" class="button">Add IP</button>
 </form>
 
 <table>
@@ -126,7 +126,7 @@ render_header('IP Whitelist');
                             <input type="hidden" name="csrf_token" value="<?php echo h(csrf_token($config['security']['session_name'])); ?>">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="ip_id" value="<?php echo (int) $ip['id']; ?>">
-                            <button type="submit" class="secondary" onclick="return confirm('Remove this IP?');">Remove</button>
+                            <button type="submit" class="button danger" onclick="return confirm('Remove this IP?');">Remove</button>
                         </form>
                     </td>
                 </tr>
