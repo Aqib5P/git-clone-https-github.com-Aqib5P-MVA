@@ -39,6 +39,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $success = 'DID added.';
                 }
             }
+        } elseif ($action === 'bulk_upload') {
+            if (empty($_FILES['csv_file']) || !is_uploaded_file($_FILES['csv_file']['tmp_name'])) {
+                $errors[] = 'Select a CSV file to upload.';
+            } elseif ($_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+                $errors[] = 'Upload failed. Try again.';
+            } else {
+                $added = 0;
+                $duplicate = 0;
+                $invalid = 0;
+                $area_code_cache = [];
+
+                $handle = fopen($_FILES['csv_file']['tmp_name'], 'r');
+                if ($handle === false) {
+                    $errors[] = 'Unable to read uploaded file.';
+                } else {
+                    $stmt = $connection->prepare('INSERT IGNORE INTO dids (area_code_id, did_number) VALUES (?, ?)');
+                    try {
+                        $connection->begin_transaction();
+                        $row_index = 0;
+                        while (($row = fgetcsv($handle)) !== false) {
+                            $row_index++;
+                            if (empty($row)) {
+                                continue;
+                            }
+
+                            $raw_row = implode(' ', $row);
+                            $has_letters = preg_match('/[a-zA-Z]/', $raw_row) === 1;
+                            $candidate = '';
+                            foreach ($row as $cell) {
+                                $cell = trim((string) $cell);
+                                if ($cell === '') {
+                                    continue;
+                                }
+                                $digits = normalize_phone($cell);
+                                if ($digits !== '') {
+                                    $candidate = $digits;
+                                    break;
+                                }
+                            }
+
+                            if ($row_index === 1 && $candidate === '' && $has_letters) {
+                                continue;
+                            }
+
+                            if ($candidate === '' || strlen($candidate) < 10) {
+                                $invalid++;
+                                continue;
+                            }
+
+                            $area_code = extract_area_code($candidate);
+                            if (strlen($area_code) !== 3) {
+                                $invalid++;
+                                continue;
+                            }
+
+                            if (!isset($area_code_cache[$area_code])) {
+                                $area_code_cache[$area_code] = get_or_create_area_code_id($connection, $area_code);
+                            }
+
+                            $area_code_id = $area_code_cache[$area_code];
+                            $stmt->bind_param('is', $area_code_id, $candidate);
+                            $stmt->execute();
+
+                            if ($stmt->affected_rows === 1) {
+                                $added++;
+                            } else {
+                                $duplicate++;
+                            }
+                        }
+                        $connection->commit();
+                        fclose($handle);
+                        $stmt->close();
+
+                        $success = 'Bulk upload complete. Added ' . $added . ', skipped ' . $duplicate . ' duplicates, ' . $invalid . ' invalid.';
+                    } catch (Throwable $e) {
+                        $connection->rollback();
+                        fclose($handle);
+                        $stmt->close();
+                        $errors[] = 'Bulk upload failed. Try again.';
+                    }
+                }
+            }
         } elseif ($action === 'delete') {
             $did_id = (int) ($_POST['did_id'] ?? 0);
             if ($did_id > 0) {
@@ -84,6 +166,15 @@ render_header('Manage DIDs');
     <input type="text" id="did_number" name="did_number" placeholder="2125550199" required>
     <p class="note">Area code is derived from the last 10 digits.</p>
     <button type="submit">Add DID</button>
+</form>
+
+<form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="<?php echo h(csrf_token($config['security']['session_name'])); ?>">
+    <input type="hidden" name="action" value="bulk_upload">
+    <label for="csv_file">Bulk upload DIDs (CSV)</label>
+    <input type="file" id="csv_file" name="csv_file" accept=".csv,text/csv" required>
+    <p class="note">Use one DID per row. Header row is optional.</p>
+    <button type="submit">Upload CSV</button>
 </form>
 
 <table>

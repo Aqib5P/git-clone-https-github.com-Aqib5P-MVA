@@ -21,6 +21,7 @@
 - Visit `/admin/login.php` to create the first admin user (if none exist).
 - Use the DIDs page to add/remove DID numbers.
 - Use the IP Whitelist page to allow trusted client IPs.
+- Use the DIDs page to upload a CSV file for bulk inserts (one DID per row, header optional).
 
 ## DID Lookup API
 - GET or POST `did_lookup.php?dialed_number=2125550123`
