@@ -8,9 +8,30 @@ function decodeResponse(?string $response): ?array
         return null;
     }
 
-    $decoded = json_decode($response, true);
+    $trimmed = trim($response);
+    if ($trimmed === '') {
+        return null;
+    }
+
+    $decoded = json_decode($trimmed, true);
     if (is_array($decoded)) {
         return $decoded;
+    }
+
+    if (str_starts_with($trimmed, '<')) {
+        libxml_use_internal_errors(true);
+        $xml = simplexml_load_string($trimmed, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml !== false) {
+            $xmlJson = json_encode($xml);
+            if ($xmlJson !== false) {
+                $xmlDecoded = json_decode($xmlJson, true);
+                if (is_array($xmlDecoded)) {
+                    libxml_clear_errors();
+                    return $xmlDecoded;
+                }
+            }
+        }
+        libxml_clear_errors();
     }
 
     $fallback = [];
@@ -41,6 +62,21 @@ function maskValue(string $value): string
     return substr($value, 0, 2) . str_repeat('*', $length - 4) . substr($value, -2);
 }
 
+function payloadMaskKeys(): array
+{
+    return [
+        'phone_number',
+        'caller_id',
+        'CID',
+        'trusted_form_cert_id',
+        'trusted_form_cert_url',
+        'Terminating_Phone',
+        'Terminating_Phone.',
+        'API_Key',
+        'API Key',
+    ];
+}
+
 function maskPayload(array $payload, array $keysToMask): array
 {
     foreach ($payload as $key => $value) {
@@ -67,6 +103,79 @@ function buildPayloadBody(string $format, array $fields): string
     return http_build_query($fields);
 }
 
+function flattenArray(array $data, string $prefix): array
+{
+    $flat = [];
+    foreach ($data as $key => $value) {
+        $safeKey = is_int($key) ? (string) $key : $key;
+        $fullKey = $prefix . $safeKey;
+        if (is_array($value)) {
+            $flat = array_merge($flat, flattenArray($value, $fullKey . '_'));
+            continue;
+        }
+
+        if (is_bool($value)) {
+            $flat[$fullKey] = $value ? 'true' : 'false';
+        } elseif ($value === null) {
+            $flat[$fullKey] = '';
+        } else {
+            $flat[$fullKey] = (string) $value;
+        }
+    }
+
+    return $flat;
+}
+
+function unwrapResponse(array $decoded, string $wrapperKey): array
+{
+    if (isset($decoded[$wrapperKey]) && is_array($decoded[$wrapperKey])) {
+        return $decoded[$wrapperKey];
+    }
+
+    return $decoded;
+}
+
+function buildGoogleLogData(
+    string $phone,
+    string $buyer,
+    string $status,
+    $bid,
+    $minDuration,
+    string $rejectReason,
+    string $ip,
+    ?array $decoded,
+    ?string $rawResponse,
+    string $payloadFormat,
+    string $endpoint,
+    array $payloadFields,
+    bool $maskSensitive,
+    bool $includePayloadColumns
+): array {
+    $safeFields = $maskSensitive ? maskPayload($payloadFields, payloadMaskKeys()) : $payloadFields;
+    $payloadBody = buildPayloadBody($payloadFormat, $safeFields);
+    $payloadColumns = $includePayloadColumns ? flattenArray($safeFields, 'payload_') : [];
+    $responseColumns = $includePayloadColumns && is_array($decoded) ? flattenArray($decoded, 'response_') : [];
+
+    $logData = [
+        "number" => $phone,
+        "buyer" => $buyer,
+        "status" => $status,
+        "payout" => $bid,
+        "duration" => $minDuration,
+        "reason" => $rejectReason,
+        "ip" => $ip,
+        "api_response" => is_array($decoded) ? json_encode($decoded, JSON_PRETTY_PRINT) : $rawResponse,
+    ];
+
+    if ($includePayloadColumns) {
+        $logData["payload_format"] = $payloadFormat;
+        $logData["payload_endpoint"] = $endpoint;
+        $logData["payload_body"] = $payloadBody;
+    }
+
+    return array_merge($logData, $payloadColumns, $responseColumns);
+}
+
 function logBuyerPayload(
     bool $enabled,
     string $path,
@@ -81,7 +190,7 @@ function logBuyerPayload(
     }
 
     $safeFields = $maskSensitive
-        ? maskPayload($fields, ['phone_number', 'caller_id', 'CID', 'trusted_form_cert_id', 'trusted_form_cert_url'])
+        ? maskPayload($fields, payloadMaskKeys())
         : $fields;
     $payloadBody = buildPayloadBody($format, $safeFields);
 
@@ -113,6 +222,7 @@ function logBuyerPayload(
 $logPayloads = getenv('LOG_BUYER_PAYLOADS') === '1';
 $payloadLogPath = getenv('BUYER_PAYLOAD_LOG') ?: '/tmp/buyer_payloads.log';
 $maskPayloads = getenv('MASK_BUYER_PAYLOADS') === '1';
+$logGooglePayloads = getenv('LOG_GOOGLE_PAYLOADS') !== '0';
 
 $results = [];
 
@@ -125,6 +235,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
     $googleWebhook = "https://script.google.com/macros/s/AKfycbzA8zl5bkPPqFVcLi0GzwsLfLn27CIdXBe5apoa_A8JoHVnMrS9jgUR13Y7WhQUwCKnWQ/exec";
+    $d31ApiKey = getenv('D31_API_KEY') ?: '3fadcec3bd4409b070d6a0cabfed15ad249786ba65ad6292500ef714982da2dd';
+    $d31Src = getenv('D31_SRC') ?: 'AA_IPXQ_RTB_41';
+    $d31PingEndpoint = getenv('D31_PING_ENDPOINT') ?: '';
+    $d31PostEndpoint = getenv('D31_POST_ENDPOINT') ?: $d31PingEndpoint;
 
     // =======================
     // Buyers Array
@@ -175,6 +289,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'trusted_form_cert_url' => $trusted_form,
             ],
         ],
+        'D31 ping' => [
+            'type' => 'form',
+            'endpoint' => $d31PingEndpoint,
+            'fields' => [
+                'Return_Best_Price' => '1',
+                'API_Key' => $d31ApiKey,
+                'SRC' => $d31Src,
+                'API_Action' => 'iprSubmitLead',
+                'Mode' => 'ping',
+                'Return_Min_Duration' => '1',
+                'TYPE' => '9',
+                'Terminating_Phone' => $phone,
+            ],
+        ],
+        'D31 post' => [
+            'type' => 'form',
+            'endpoint' => $d31PostEndpoint,
+            'fields' => [
+                'Return_Best_Price' => '1',
+                'API_Key' => $d31ApiKey,
+                'SRC' => $d31Src,
+                'API_Action' => 'iprSubmitLead',
+                'Mode' => 'post',
+                'Return_Min_Duration' => '1',
+                'TYPE' => '9',
+                'Terminating_Phone' => $phone,
+            ],
+        ],
         'D25' => [
             'type' => 'form',
             'endpoint' => 'https://trueblue.leadspediatrack.com/call-preping.do',
@@ -197,6 +339,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ping_id = null;
     $ping_response = null;
     $ping_error = null;
+    $ping_data = null;
+    $d29_ping_status = 'Ping';
+    $d29_ping_reason = '';
     $post_response = null;
     $post_error = null;
 
@@ -229,6 +374,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ?? $ping_data['try_all_buyers']['ping_id']
                 ?? ($ping_data['buyers'][0]['ping_id'] ?? null);
         }
+
+        if ($ping_error || !$ping_response) {
+            $d29_ping_status = 'Error';
+            $d29_ping_reason = $ping_error ?: 'No response received';
+        } elseif (is_array($ping_data)) {
+            if (array_key_exists('status', $ping_data)) {
+                $d29_ping_status = 'Ping ' . (string) $ping_data['status'];
+            } elseif (array_key_exists('success', $ping_data)) {
+                $d29_ping_status = $ping_data['success'] ? 'Ping Accepted' : 'Ping Rejected';
+            } else {
+                $d29_ping_status = 'Ping Response';
+            }
+        } else {
+            $d29_ping_status = 'Invalid Response';
+            $d29_ping_reason = is_string($ping_response) ? substr($ping_response, 0, 80) : 'Empty response';
+        }
+
+        $d29_ping_log = buildGoogleLogData(
+            $phone,
+            'D29 ping',
+            $d29_ping_status,
+            0,
+            is_array($ping_data) ? ($ping_data['ping_ids_expiry_in_seconds'] ?? 'N/A') : 'N/A',
+            $d29_ping_reason,
+            $ip,
+            is_array($ping_data) ? $ping_data : null,
+            $ping_response,
+            'json',
+            $buyers['D29 ping']['endpoint'],
+            $buyers['D29 ping']['fields'],
+            $maskPayloads,
+            $logGooglePayloads
+        );
+        logToGoogle($googleWebhook, $d29_ping_log);
 
         if (!$ping_id) {
             error_log('D29 Ping failed: ' . ($ping_error ?: $ping_response));
@@ -265,7 +444,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Main Buyers Loop
     // =======================
     foreach ($buyers as $buyer => $info) {
-        if (in_array($buyer, ['D29 ping', 'D29 post'], true)) {
+        if (in_array($buyer, ['D29 ping', 'D29 post', 'D31 ping', 'D31 post'], true)) {
             continue;
         }
 
@@ -362,17 +541,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $rejectReason = is_string($response) ? substr($response, 0, 80) : 'Empty response';
         }
 
-        // Log to Google Sheets
-        $logData = [
-            "number" => $phone,
-            "buyer" => $buyer,
-            "status" => $status,
-            "payout" => $bid,
-            "duration" => $minDuration,
-            "reason" => $rejectReason,
-            "ip" => $ip,
-            "api_response" => is_array($decoded) ? json_encode($decoded, JSON_PRETTY_PRINT) : $response,
-        ];
+        $logData = buildGoogleLogData(
+            $phone,
+            $buyer,
+            $status,
+            $bid,
+            $minDuration,
+            $rejectReason,
+            $ip,
+            is_array($decoded) ? $decoded : null,
+            $response,
+            $payloadFormat,
+            $info['endpoint'],
+            $info['fields'],
+            $maskPayloads,
+            $logGooglePayloads
+        );
 
         logToGoogle($googleWebhook, $logData);
 
@@ -451,16 +635,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $d29_logData = [
-        "number" => $phone,
-        "buyer" => 'D29 post',
-        "status" => $d29_status,
-        "payout" => $d29_bid,
-        "duration" => $d29_minDuration,
-        "reason" => $d29_rejectReason,
-        "ip" => $ip,
-        "api_response" => is_array($d29_decoded) ? json_encode($d29_decoded, JSON_PRETTY_PRINT) : $post_response,
-    ];
+    $d29_logData = buildGoogleLogData(
+        $phone,
+        'D29 post',
+        $d29_status,
+        $d29_bid,
+        $d29_minDuration,
+        $d29_rejectReason,
+        $ip,
+        is_array($d29_decoded) ? $d29_decoded : null,
+        $post_response,
+        'json',
+        $buyers['D29 post']['endpoint'],
+        $buyers['D29 post']['fields'],
+        $maskPayloads,
+        $logGooglePayloads
+    );
     logToGoogle($googleWebhook, $d29_logData);
 
     $d29_reasonText = $d29_rejectReason ?: 'No reason given';
@@ -472,6 +662,199 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'phoneNumber' => $d29_phoneNumber,
         'minDuration' => $d29_minDuration,
     ];
+
+    // =======================
+    // D31 Ping / Post Execution (single flow)
+    // =======================
+    $d31_ping_response = null;
+    $d31_ping_error = null;
+    $d31_ping_decoded = null;
+    $d31_ping_data = null;
+    $d31_post_response = null;
+    $d31_post_error = null;
+    $d31_post_decoded = null;
+    $d31_post_data = null;
+    $d31_lead_id = null;
+    $d31_price = 0;
+    $d31_min_duration = 'N/A';
+    $d31_matched = false;
+    $d31_status = 'Rejected';
+    $d31_rejectReason = '';
+
+    if (!empty($buyers['D31 ping']['endpoint'])) {
+        logBuyerPayload(
+            $logPayloads,
+            $payloadLogPath,
+            'D31 ping',
+            $buyers['D31 ping']['endpoint'],
+            'form',
+            $buyers['D31 ping']['fields'],
+            $maskPayloads
+        );
+
+        $ch = curl_init($buyers['D31 ping']['endpoint']);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($buyers['D31 ping']['fields']),
+            CURLOPT_TIMEOUT => 12,
+        ]);
+        $d31_ping_response = curl_exec($ch);
+        $d31_ping_error = curl_error($ch);
+        curl_close($ch);
+
+        $d31_ping_decoded = decodeResponse($d31_ping_response);
+        if (is_array($d31_ping_decoded)) {
+            $d31_ping_data = unwrapResponse($d31_ping_decoded, 'response');
+        }
+
+        $d31_ping_status = 'Ping Response';
+        $d31_ping_reason = '';
+
+        if ($d31_ping_error || !$d31_ping_response) {
+            $d31_ping_status = 'Error';
+            $d31_ping_reason = $d31_ping_error ?: 'No response received';
+            $d31_status = 'Rejected — ' . $d31_ping_reason;
+            $d31_rejectReason = $d31_ping_reason;
+        } elseif (is_array($d31_ping_data)) {
+            $ping_status_value = strtolower((string) ($d31_ping_data['status'] ?? ''));
+            $d31_lead_id = $d31_ping_data['lead_id'] ?? null;
+            $d31_price = $d31_ping_data['price'] ?? 0;
+            $d31_min_duration = $d31_ping_data['min_duration'] ?? 'N/A';
+
+            if ($ping_status_value === 'matched' && !empty($d31_lead_id)) {
+                $d31_ping_status = 'Ping Matched';
+                $d31_matched = true;
+            } elseif ($ping_status_value !== '') {
+                $d31_ping_status = 'Ping ' . $ping_status_value;
+                $d31_ping_reason = $d31_ping_data['status'] ?? 'Unmatched';
+                $d31_status = 'Rejected — ' . $d31_ping_reason;
+                $d31_rejectReason = $d31_ping_reason;
+            } else {
+                $d31_ping_status = 'Ping Response';
+                $d31_ping_reason = 'Unknown ping status';
+                $d31_status = 'Rejected — ' . $d31_ping_reason;
+                $d31_rejectReason = $d31_ping_reason;
+            }
+        } else {
+            $d31_ping_status = 'Invalid Response';
+            $d31_ping_reason = is_string($d31_ping_response) ? substr($d31_ping_response, 0, 80) : 'Empty response';
+            $d31_status = 'Rejected — ' . $d31_ping_reason;
+            $d31_rejectReason = $d31_ping_reason;
+        }
+
+        $d31_ping_log = buildGoogleLogData(
+            $phone,
+            'D31 ping',
+            $d31_ping_status,
+            $d31_price,
+            $d31_min_duration,
+            $d31_ping_reason,
+            $ip,
+            is_array($d31_ping_decoded) ? $d31_ping_decoded : null,
+            $d31_ping_response,
+            'form',
+            $buyers['D31 ping']['endpoint'],
+            $buyers['D31 ping']['fields'],
+            $maskPayloads,
+            $logGooglePayloads
+        );
+        logToGoogle($googleWebhook, $d31_ping_log);
+
+        if ($d31_matched) {
+            if (!empty($buyers['D31 post']['endpoint'])) {
+                $buyers['D31 post']['fields']['Lead_ID'] = $d31_lead_id;
+
+                logBuyerPayload(
+                    $logPayloads,
+                    $payloadLogPath,
+                    'D31 post',
+                    $buyers['D31 post']['endpoint'],
+                    'form',
+                    $buyers['D31 post']['fields'],
+                    $maskPayloads
+                );
+
+                $ch = curl_init($buyers['D31 post']['endpoint']);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => http_build_query($buyers['D31 post']['fields']),
+                    CURLOPT_TIMEOUT => 12,
+                ]);
+                $d31_post_response = curl_exec($ch);
+                $d31_post_error = curl_error($ch);
+                curl_close($ch);
+
+                $d31_post_decoded = decodeResponse($d31_post_response);
+                if (is_array($d31_post_decoded)) {
+                    $d31_post_data = unwrapResponse($d31_post_decoded, 'response');
+                }
+
+                if ($d31_post_error || !$d31_post_response) {
+                    $d31_rejectReason = $d31_post_error ?: 'No response received';
+                    $d31_status = 'Rejected — ' . $d31_rejectReason;
+                } elseif (is_array($d31_post_data)) {
+                    $post_status_value = strtolower((string) ($d31_post_data['status'] ?? ''));
+                    if ($post_status_value === 'success') {
+                        $d31_status = 'Accepted';
+                    } else {
+                        $d31_rejectReason = $d31_post_data['error'] ?? 'Unknown reason';
+                        $d31_status = 'Rejected — ' . $d31_rejectReason;
+                    }
+                } else {
+                    $d31_rejectReason = is_string($d31_post_response) ? substr($d31_post_response, 0, 80) : 'Empty response';
+                    $d31_status = 'Rejected — ' . $d31_rejectReason;
+                }
+
+                $d31_post_log = buildGoogleLogData(
+                    $phone,
+                    'D31 post',
+                    $d31_status,
+                    $d31_price,
+                    $d31_min_duration,
+                    $d31_rejectReason,
+                    $ip,
+                    is_array($d31_post_decoded) ? $d31_post_decoded : null,
+                    $d31_post_response,
+                    'form',
+                    $buyers['D31 post']['endpoint'],
+                    $buyers['D31 post']['fields'],
+                    $maskPayloads,
+                    $logGooglePayloads
+                );
+                logToGoogle($googleWebhook, $d31_post_log);
+            } else {
+                $d31_rejectReason = 'D31 post endpoint not configured';
+                $d31_status = 'Rejected — ' . $d31_rejectReason;
+            }
+        }
+    } else {
+        $d31_rejectReason = 'D31 ping endpoint not configured';
+        $d31_status = 'Rejected — ' . $d31_rejectReason;
+    }
+
+    $d31_bid = is_numeric($d31_price) ? (float) $d31_price : 0;
+    if ($d31_status === 'Accepted' && $d31_bid >= 20) {
+        $results[] = [
+            'buyer' => 'D31 post',
+            'status' => 'Accepted',
+            'bid' => $d31_bid,
+            'expire' => 'N/A',
+            'phoneNumber' => 'N/A',
+            'minDuration' => $d31_min_duration,
+        ];
+    } else {
+        $d31_reasonText = $d31_rejectReason ?: ($d31_bid < 20 ? 'Bid too low' : 'No reason given');
+        $results[] = [
+            'buyer' => 'D31 post',
+            'status' => "Rejected — $d31_reasonText",
+            'bid' => $d31_bid,
+            'expire' => 'N/A',
+            'phoneNumber' => 'N/A',
+            'minDuration' => $d31_min_duration,
+        ];
+    }
 
     // Sort results by bid descending
     usort($results, fn($a, $b) => $b['bid'] <=> $a['bid']);
