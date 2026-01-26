@@ -14,6 +14,9 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
   exit;
 }
 
+// Google Sheets logging endpoint (Apps Script Web App)
+$LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbxfkW7ltasn3JKUb63PBVcp2ZQCAUe7JzV8uKvcq73RKhV1CF6jfoNclTZaCRdSj_cyEw/exec";
+
 function json_out($arr, $code = 200) {
   http_response_code($code);
   echo json_encode($arr, JSON_PRETTY_PRINT);
@@ -81,7 +84,7 @@ function build_d2_fields($d) {
   return array_merge($visibleFields, $staticFields);
 }
 
-function curl_post($url, $body, $headers = [], $is_json = false) {
+function curl_post($url, $body, $headers = [], $is_json = false, $timeout = 30) {
   $ch = curl_init($url);
 
   $final_headers = $headers;
@@ -97,7 +100,7 @@ function curl_post($url, $body, $headers = [], $is_json = false) {
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => $is_json ? json_encode($body) : http_build_query($body),
     CURLOPT_HTTPHEADER => $final_headers,
-    CURLOPT_TIMEOUT => 30,
+    CURLOPT_TIMEOUT => $timeout,
   ]);
 
   $raw_body = curl_exec($ch);
@@ -115,6 +118,23 @@ function curl_post($url, $body, $headers = [], $is_json = false) {
     "status" => $status,
     "body" => $raw_body,
   ];
+}
+
+function log_to_sheet($endpoint, $lead, $payload, $result) {
+  global $LOG_ENDPOINT;
+  if (!$LOG_ENDPOINT) return;
+
+  $body = [
+    "endpoint" => $endpoint,
+    "lead" => $lead,
+    "payload" => $payload,
+    "response" => $result,
+    "upstream_status" => val($result, "status", ""),
+    "effective_ok" => val($result, "effective_ok", ""),
+  ];
+
+  // Best-effort logging. Do not block main response if logging fails.
+  curl_post($LOG_ENDPOINT, $body, [], true, 8);
 }
 
 function finalize_upstream($result) {
@@ -183,6 +203,7 @@ switch ($endpoint) {
     ];
 
     $result = finalize_upstream(curl_post($url, $payload, [], false));
+    log_to_sheet("D1", $d, $payload, $result);
     json_out(["endpoint" => "D1", "upstream" => $result]);
   }
 
@@ -211,6 +232,7 @@ switch ($endpoint) {
     ];
 
     $result = finalize_upstream(curl_post($url, $payload, $headers, true));
+    log_to_sheet("D2", $d, $payload, $result);
     json_out(["endpoint" => "D2", "upstream" => $result]);
   }
 
@@ -227,6 +249,7 @@ switch ($endpoint) {
     ];
 
     $result = finalize_upstream(curl_post($url, $payload, [], false));
+    log_to_sheet("D6", $d, $payload, $result);
     json_out(["endpoint" => "D6", "upstream" => $result]);
   }
 
@@ -248,6 +271,7 @@ switch ($endpoint) {
     ];
 
     $result = finalize_upstream(curl_post($url, $payload, [], true));
+    log_to_sheet("D23", $d, $payload, $result);
     json_out(["endpoint" => "D23", "upstream" => $result]);
   }
 
@@ -273,6 +297,7 @@ switch ($endpoint) {
     ];
 
     $result = finalize_upstream(curl_post($url, $payload, [], false));
+    log_to_sheet("D25", $d, $payload, $result);
     json_out(["endpoint" => "D25", "upstream" => $result]);
   }
 
@@ -293,6 +318,7 @@ switch ($endpoint) {
     ];
 
     $result = finalize_upstream(curl_post($url, $payload, [], false));
+    log_to_sheet("D26", $d, $payload, $result);
     json_out(["endpoint" => "D26", "upstream" => $result]);
   }
 
@@ -320,6 +346,7 @@ switch ($endpoint) {
     ];
 
     $result = finalize_upstream(curl_post($url, $payload, [], true));
+    log_to_sheet("D27", $d, $payload, $result);
     json_out(["endpoint" => "D27", "upstream" => $result]);
   }
 
@@ -339,6 +366,7 @@ switch ($endpoint) {
     ];
 
     $result = finalize_upstream(curl_post($url, $payload, [], false));
+    log_to_sheet("D30", $d, $payload, $result);
     json_out(["endpoint" => "D30", "upstream" => $result]);
   }
 
