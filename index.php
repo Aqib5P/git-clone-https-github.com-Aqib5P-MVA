@@ -31,6 +31,89 @@ function logToGoogle(string $googleWebhook, array $logData): void
     curl_close($ch);
 }
 
+function maskValue(string $value): string
+{
+    $length = strlen($value);
+    if ($length <= 4) {
+        return str_repeat('*', $length);
+    }
+
+    return substr($value, 0, 2) . str_repeat('*', $length - 4) . substr($value, -2);
+}
+
+function maskPayload(array $payload, array $keysToMask): array
+{
+    foreach ($payload as $key => $value) {
+        if (is_array($value)) {
+            $payload[$key] = maskPayload($value, $keysToMask);
+            continue;
+        }
+
+        if (in_array($key, $keysToMask, true) && is_string($value)) {
+            $payload[$key] = maskValue($value);
+        }
+    }
+
+    return $payload;
+}
+
+function buildPayloadBody(string $format, array $fields): string
+{
+    if ($format === 'json') {
+        $encoded = json_encode($fields);
+        return $encoded === false ? '' : $encoded;
+    }
+
+    return http_build_query($fields);
+}
+
+function logBuyerPayload(
+    bool $enabled,
+    string $path,
+    string $buyer,
+    string $endpoint,
+    string $format,
+    array $fields,
+    bool $maskSensitive
+): void {
+    if (!$enabled) {
+        return;
+    }
+
+    $safeFields = $maskSensitive
+        ? maskPayload($fields, ['phone_number', 'caller_id', 'CID', 'trusted_form_cert_id', 'trusted_form_cert_url'])
+        : $fields;
+    $payloadBody = buildPayloadBody($format, $safeFields);
+
+    $entry = [
+        'time' => date('c'),
+        'buyer' => $buyer,
+        'endpoint' => $endpoint,
+        'format' => $format,
+        'fields' => $safeFields,
+        'payload_body' => $payloadBody,
+    ];
+
+    $line = json_encode($entry);
+    if ($line === false) {
+        $line = json_encode([
+            'time' => date('c'),
+            'buyer' => $buyer,
+            'endpoint' => $endpoint,
+            'format' => $format,
+            'fields' => 'json_encode_failed',
+        ]);
+    }
+
+    if (@file_put_contents($path, $line . PHP_EOL, FILE_APPEND | LOCK_EX) === false) {
+        error_log('Failed to write payload log to ' . $path);
+    }
+}
+
+$logPayloads = getenv('LOG_BUYER_PAYLOADS') === '1';
+$payloadLogPath = getenv('BUYER_PAYLOAD_LOG') ?: '/tmp/buyer_payloads.log';
+$maskPayloads = getenv('MASK_BUYER_PAYLOADS') === '1';
+
 $results = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -118,6 +201,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $post_error = null;
 
     if (!empty($buyers['D29 ping'])) {
+        logBuyerPayload(
+            $logPayloads,
+            $payloadLogPath,
+            'D29 ping',
+            $buyers['D29 ping']['endpoint'],
+            'json',
+            $buyers['D29 ping']['fields'],
+            $maskPayloads
+        );
+
         $ch = curl_init($buyers['D29 ping']['endpoint']);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -145,6 +238,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($ping_id && !empty($buyers['D29 post'])) {
         $buyers['D29 post']['fields']['ping_id'] = $ping_id;
 
+        logBuyerPayload(
+            $logPayloads,
+            $payloadLogPath,
+            'D29 post',
+            $buyers['D29 post']['endpoint'],
+            'json',
+            $buyers['D29 post']['fields'],
+            $maskPayloads
+        );
+
         $ch = curl_init($buyers['D29 post']['endpoint']);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -165,6 +268,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (in_array($buyer, ['D29 ping', 'D29 post'], true)) {
             continue;
         }
+
+        $payloadFormat = $info['type'] === 'json' ? 'json' : 'form';
+        logBuyerPayload(
+            $logPayloads,
+            $payloadLogPath,
+            $buyer,
+            $info['endpoint'],
+            $payloadFormat,
+            $info['fields'],
+            $maskPayloads
+        );
 
         $ch = curl_init($info['endpoint']);
 
