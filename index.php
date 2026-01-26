@@ -237,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $googleWebhook = "https://script.google.com/macros/s/AKfycbzA8zl5bkPPqFVcLi0GzwsLfLn27CIdXBe5apoa_A8JoHVnMrS9jgUR13Y7WhQUwCKnWQ/exec";
     $d31ApiKey = getenv('D31_API_KEY') ?: '3fadcec3bd4409b070d6a0cabfed15ad249786ba65ad6292500ef714982da2dd';
     $d31Src = getenv('D31_SRC') ?: 'AA_IPXQ_RTB_41';
-    $d31PingEndpoint = getenv('D31_PING_ENDPOINT') ?: '';
+    $d31PingEndpoint = getenv('D31_PING_ENDPOINT') ?: 'https://backping.leadportal.com/new_api/api.php';
     $d31PostEndpoint = getenv('D31_POST_ENDPOINT') ?: $d31PingEndpoint;
 
     // =======================
