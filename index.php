@@ -74,6 +74,8 @@ function payloadMaskKeys(): array
         'Terminating_Phone.',
         'API_Key',
         'API Key',
+        'email',
+        'Email',
     ];
 }
 
@@ -229,9 +231,13 @@ $results = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = trim($_POST['phone_number'] ?? '');
     $zip = trim($_POST['zip_code'] ?? '');
+    $state = trim($_POST['state'] ?? '');
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $trusted_form = trim($_POST['trusted_form_cert_id'] ?? '');
+    $have_attorney = trim($_POST['have_attorney'] ?? '');
+    $caller_id = $phone;
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
     $googleWebhook = "https://script.google.com/macros/s/AKfycbzA8zl5bkPPqFVcLi0GzwsLfLn27CIdXBe5apoa_A8JoHVnMrS9jgUR13Y7WhQUwCKnWQ/exec";
@@ -287,6 +293,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'ZIP' => $zip,
                 'caller_id' => $phone,
                 'trusted_form_cert_url' => $trusted_form,
+            ],
+        ],
+        'D12 ping' => [
+            'type' => 'form',
+            'endpoint' => 'https://horizons-law-consultants.trackdrive.com/api/v1/inbound_webhooks/ping/check_for_available_mva_cpl_buyers',
+            'fields' => [
+                'trackdrive_number' => '+18772834769',
+                'traffic_source_id' => '1002',
+                'caller_id' => $caller_id,
+                'zip' => $zip,
+                'state' => $state,
+                'trusted_form_cert_url' => $trusted_form,
+                'have_attorney' => $have_attorney,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'email' => $email,
+            ],
+        ],
+        'D12 post' => [
+            'type' => 'form',
+            'endpoint' => 'https://horizons-law-consultants.trackdrive.com/api/v1/inbound_webhooks/post/check_for_available_mva_cpl_buyers',
+            'fields' => [
+                'trackdrive_number' => '+18772834769',
+                'traffic_source_id' => '1002',
+                'caller_id' => $caller_id,
+                'zip' => $zip,
+                'state' => $state,
+                'trusted_form_cert_url' => $trusted_form,
+                'have_attorney' => $have_attorney,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'email' => $email,
             ],
         ],
         'D31 ping' => [
@@ -444,7 +482,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Main Buyers Loop
     // =======================
     foreach ($buyers as $buyer => $info) {
-        if (in_array($buyer, ['D29 ping', 'D29 post', 'D31 ping', 'D31 post'], true)) {
+        if (in_array($buyer, ['D29 ping', 'D29 post', 'D12 ping', 'D12 post', 'D31 ping', 'D31 post'], true)) {
             continue;
         }
 
@@ -664,6 +702,198 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
 
     // =======================
+    // D12 Ping / Post Execution (single flow)
+    // =======================
+    $d12_ping_response = null;
+    $d12_ping_error = null;
+    $d12_ping_decoded = null;
+    $d12_ping_data = null;
+    $d12_post_response = null;
+    $d12_post_error = null;
+    $d12_post_decoded = null;
+    $d12_post_data = null;
+    $d12_ping_id = null;
+    $d12_bid = 0;
+    $d12_minDuration = 'N/A';
+    $d12_ping_status = 'Ping Response';
+    $d12_ping_reason = '';
+    $d12_status = 'Rejected';
+    $d12_rejectReason = '';
+
+    if (!empty($buyers['D12 ping']['endpoint'])) {
+        logBuyerPayload(
+            $logPayloads,
+            $payloadLogPath,
+            'D12 ping',
+            $buyers['D12 ping']['endpoint'],
+            'form',
+            $buyers['D12 ping']['fields'],
+            $maskPayloads
+        );
+
+        $ch = curl_init($buyers['D12 ping']['endpoint']);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($buyers['D12 ping']['fields']),
+            CURLOPT_TIMEOUT => 12,
+        ]);
+        $d12_ping_response = curl_exec($ch);
+        $d12_ping_error = curl_error($ch);
+        curl_close($ch);
+
+        $d12_ping_decoded = decodeResponse($d12_ping_response);
+        if (is_array($d12_ping_decoded)) {
+            $d12_ping_data = $d12_ping_decoded;
+            $d12_ping_id = $d12_ping_data['buyers'][0]['ping_id'] ?? null;
+            $d12_bid = $d12_ping_data['buyers'][0]['offer_conversion_payout'] ?? 0;
+            $d12_minDuration = $d12_ping_data['buyers'][0]['current_conversion_duration']
+                ?? $d12_ping_data['min_duration']
+                ?? 'N/A';
+        }
+
+        if ($d12_ping_error || !$d12_ping_response) {
+            $d12_ping_status = 'Error';
+            $d12_ping_reason = $d12_ping_error ?: 'No response received';
+        } elseif (is_array($d12_ping_data)) {
+            if ($d12_ping_id) {
+                $d12_ping_status = 'Ping Accepted';
+            } elseif (!empty($d12_ping_data['errors'])) {
+                $d12_ping_status = 'Ping Rejected';
+                if (is_array($d12_ping_data['errors'])) {
+                    $d12_ping_reason = implode(' | ', $d12_ping_data['errors']);
+                } else {
+                    $d12_ping_reason = (string) $d12_ping_data['errors'];
+                }
+            } elseif (!empty($d12_ping_data['status'])) {
+                $d12_ping_status = 'Ping ' . (string) $d12_ping_data['status'];
+                $d12_ping_reason = (string) $d12_ping_data['status'];
+            } else {
+                $d12_ping_status = 'Ping Rejected';
+                $d12_ping_reason = 'No ping_id returned';
+            }
+        } else {
+            $d12_ping_status = 'Invalid Response';
+            $d12_ping_reason = is_string($d12_ping_response) ? substr($d12_ping_response, 0, 80) : 'Empty response';
+        }
+
+        $d12_ping_log = buildGoogleLogData(
+            $phone,
+            'D12 ping',
+            $d12_ping_status,
+            $d12_bid,
+            $d12_minDuration,
+            $d12_ping_reason,
+            $ip,
+            is_array($d12_ping_decoded) ? $d12_ping_decoded : null,
+            $d12_ping_response,
+            'form',
+            $buyers['D12 ping']['endpoint'],
+            $buyers['D12 ping']['fields'],
+            $maskPayloads,
+            $logGooglePayloads
+        );
+        logToGoogle($googleWebhook, $d12_ping_log);
+
+        if ($d12_ping_id) {
+            $buyers['D12 post']['fields']['ping_id'] = $d12_ping_id;
+
+            logBuyerPayload(
+                $logPayloads,
+                $payloadLogPath,
+                'D12 post',
+                $buyers['D12 post']['endpoint'],
+                'form',
+                $buyers['D12 post']['fields'],
+                $maskPayloads
+            );
+
+            $ch = curl_init($buyers['D12 post']['endpoint']);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => http_build_query($buyers['D12 post']['fields']),
+                CURLOPT_TIMEOUT => 12,
+            ]);
+            $d12_post_response = curl_exec($ch);
+            $d12_post_error = curl_error($ch);
+            curl_close($ch);
+
+            $d12_post_decoded = decodeResponse($d12_post_response);
+            if (is_array($d12_post_decoded)) {
+                $d12_post_data = $d12_post_decoded;
+            }
+
+            if ($d12_post_error || !$d12_post_response) {
+                $d12_rejectReason = $d12_post_error ?: 'No response received';
+                $d12_status = 'Rejected — ' . $d12_rejectReason;
+            } elseif (is_array($d12_post_data)) {
+                $post_status_value = strtolower((string) ($d12_post_data['status'] ?? ''));
+                if (in_array($post_status_value, ['accepted', 'success'], true)) {
+                    $d12_status = 'Accepted';
+                } else {
+                    $d12_rejectReason = $d12_post_data['error'] ?? 'Unknown reason';
+                    if (!empty($d12_post_data['errors'])) {
+                        $d12_rejectReason = is_array($d12_post_data['errors'])
+                            ? implode(' | ', $d12_post_data['errors'])
+                            : (string) $d12_post_data['errors'];
+                    }
+                    $d12_status = 'Rejected — ' . $d12_rejectReason;
+                }
+            } else {
+                $d12_rejectReason = is_string($d12_post_response) ? substr($d12_post_response, 0, 80) : 'Empty response';
+                $d12_status = 'Rejected — ' . $d12_rejectReason;
+            }
+
+            $d12_post_log = buildGoogleLogData(
+                $phone,
+                'D12 post',
+                $d12_status,
+                $d12_bid,
+                $d12_minDuration,
+                $d12_rejectReason,
+                $ip,
+                is_array($d12_post_decoded) ? $d12_post_decoded : null,
+                $d12_post_response,
+                'form',
+                $buyers['D12 post']['endpoint'],
+                $buyers['D12 post']['fields'],
+                $maskPayloads,
+                $logGooglePayloads
+            );
+            logToGoogle($googleWebhook, $d12_post_log);
+        } else {
+            $d12_rejectReason = $d12_ping_reason ?: 'No ping_id returned';
+            $d12_status = 'Rejected — ' . $d12_rejectReason;
+        }
+    } else {
+        $d12_rejectReason = 'D12 ping endpoint not configured';
+        $d12_status = 'Rejected — ' . $d12_rejectReason;
+    }
+
+    $d12_bid = is_numeric($d12_bid) ? (float) $d12_bid : 0;
+    if ($d12_status === 'Accepted' && $d12_bid >= 20) {
+        $results[] = [
+            'buyer' => 'D12 post',
+            'status' => 'Accepted',
+            'bid' => $d12_bid,
+            'expire' => 'N/A',
+            'phoneNumber' => 'N/A',
+            'minDuration' => $d12_minDuration,
+        ];
+    } else {
+        $d12_reasonText = $d12_rejectReason ?: ($d12_bid < 20 ? 'Bid too low' : 'No reason given');
+        $results[] = [
+            'buyer' => 'D12 post',
+            'status' => "Rejected — $d12_reasonText",
+            'bid' => $d12_bid,
+            'expire' => 'N/A',
+            'phoneNumber' => 'N/A',
+            'minDuration' => $d12_minDuration,
+        ];
+    }
+
+    // =======================
     // D31 Ping / Post Execution (single flow)
     // =======================
     $d31_ping_response = null;
@@ -872,6 +1102,7 @@ body {font-family: 'Poppins', sans-serif; background: #f8fafc; display: flex; ju
 h2 {text-align: center; color: #007bff; margin-bottom: 20px;}
 label {display: block; margin-top: 10px; font-weight: 500;}
 input {width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 5px;}
+select {width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 5px; background: white;}
 button {margin-top: 20px; width: 100%; padding: 12px; border: none; border-radius: 8px; background: #007bff; color: white; cursor: pointer;}
 button:hover {background: #0056b3;}
 .buyer {background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 10px;}
@@ -893,8 +1124,16 @@ function showLoader() {
 <form method="POST" onsubmit="showLoader()">
   <label>First Name</label><input type="text" name="first_name" required>
   <label>Last Name</label><input type="text" name="last_name" required>
+  <label>Email</label><input type="email" name="email" required>
   <label>Phone Number</label><input type="text" name="phone_number" required>
   <label>ZIP Code</label><input type="text" name="zip_code" required>
+  <label>State</label><input type="text" name="state" required>
+  <label>Have Attorney</label>
+  <select name="have_attorney" required>
+    <option value="" selected>Select</option>
+    <option value="yes">Yes</option>
+    <option value="no">No</option>
+  </select>
   <label>Trusted Form Cert ID</label><input type="text" name="trusted_form_cert_id" required>
   <button type="submit">Ping Buyers</button>
 </form>
