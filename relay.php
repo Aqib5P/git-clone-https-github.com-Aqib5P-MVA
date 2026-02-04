@@ -170,10 +170,13 @@ $last_name  = trim(val($d, "last_name", ""));
 $email      = trim(val($d, "email", ""));
 $phone      = trim(val($d, "phone", ""));
 $zip5       = trim(val($d, "zip5", ""));
+$address    = trim(val($d, "address", ""));
 $city       = trim(val($d, "city", ""));
 $state      = trim(val($d, "state", ""));
 $acc_state  = trim(val($d, "accident_state", ""));
+$source_url = trim(val($d, "source_url", ""));
 $ip_address = trim(val($d, "ip_address", ""));
+$dob        = trim(val($d, "dob", ""));
 $acc_date_yyyy_mm_dd = trim(val($d, "accident_date_yyyy_mm_dd", ""));
 $acc_date_mmddyyyy   = trim(val($d, "accident_date_mmddyyyy", ""));
 if (!$acc_date_mmddyyyy && $acc_date_yyyy_mm_dd) {
@@ -181,11 +184,13 @@ if (!$acc_date_mmddyyyy && $acc_date_yyyy_mm_dd) {
 }
 $cert_id = trim(val($d, "cert_id", ""));
 $cert_url = trim(val($d, "cert_url", ""));
+$cert_type = trim(val($d, "cert_type", ""));
 $incident_date_option_b = val($d, "incident_date_option_b", "");
 $attorney = val($d, "attorney", "");
 $fault = val($d, "fault", "");
 $injured = val($d, "injured", "");
 $doctor_treatment = val($d, "doctor_treatment", "");
+$role_in_accident = val($d, "role_in_accident", "");
 
 // Route table: keep URLs + secrets here only (NOT in HTML).
 switch ($endpoint) {
@@ -226,8 +231,8 @@ switch ($endpoint) {
       "certificate_type" => val($d, "certificate_type", "TrustedForm"),
       "certificate_id" => $cert_id,
       "certificate_url" => $cert_url,
-      "source_url" => trim(val($d, "source_url", "")),
-      "ip_address" => trim(val($d, "ip_address", "")),
+      "source_url" => $source_url,
+      "ip_address" => $ip_address,
       "fields" => build_d2_fields($d),
     ];
 
@@ -370,7 +375,103 @@ switch ($endpoint) {
     json_out(["endpoint" => "D30", "upstream" => $result]);
   }
 
+  case "D32": {
+    $ping_url = "https://infoworx.trackdrive.com/api/v1/inbound_webhooks/ping/check_for_buyer_availability_on_mva";
+    $post_url = "https://infoworx.trackdrive.com/api/v1/inbound_webhooks/post/check_for_buyer_availability_on_mva";
+
+    $ping_payload = [
+      "trackdrive_number" => "+18446757519",
+      "traffic_source_id" => "7785",
+      "has_insurance" => "Yes",
+      "cited" => "No",
+      "settlement" => "No",
+      "needs_attorney" => "Yes",
+      "claimant_relationship" => "SELF",
+      "caller_id" => $phone,
+      "trusted_form_token" => $cert_id,
+      "trusted_form_cert_url" => $cert_url,
+      "cert_id" => $cert_id,
+      "cert_type" => $cert_type,
+      "first_name" => $first_name,
+      "last_name" => $last_name,
+      "email" => $email,
+      "address" => $address,
+      "city" => $city,
+      "state" => $state,
+      "zip" => $zip5,
+      "accident_state" => $acc_state,
+      "date_injured" => $acc_date_yyyy_mm_dd,
+      "injury_occured" => $injured,
+      "hospitalized_or_treated" => $doctor_treatment,
+      "person_at_fault" => $fault,
+      "currently_represented" => $attorney,
+      "incident_position" => $role_in_accident,
+    ];
+
+    $ping_result = finalize_upstream(curl_post($ping_url, $ping_payload, [], false));
+    $ping_id = "";
+    if (isset($ping_result["body_json"]) && is_array($ping_result["body_json"])) {
+      $body_json = $ping_result["body_json"];
+      if (isset($body_json["ping_id"])) $ping_id = $body_json["ping_id"];
+      elseif (isset($body_json["pingId"])) $ping_id = $body_json["pingId"];
+      elseif (isset($body_json["id"])) $ping_id = $body_json["id"];
+    }
+
+    $post_payload = [
+      "trackdrive_number" => "+18446757519",
+      "traffic_source_id" => "7785",
+      "has_insurance" => "Yes",
+      "trusted_form_token" => $cert_id,
+      "trusted_form_cert_url" => $cert_url,
+      "first_name" => $first_name,
+      "last_name" => $last_name,
+      "email" => $email,
+      "address" => $address,
+      "city" => $city,
+      "state" => $state,
+      "zip" => $zip5,
+      "accident_state" => $acc_state,
+      "ip_address" => $ip_address,
+      "source_url" => $source_url,
+      "dob" => $dob,
+      "date_injured" => $acc_date_yyyy_mm_dd,
+      "injury_occured" => $injured,
+      "hospitalized_or_treated" => $doctor_treatment,
+      "person_at_fault" => $fault,
+      "currently_represented" => $attorney,
+      "ping_id" => $ping_id,
+    ];
+
+    $post_result = null;
+    if ($ping_id && val($ping_result, "effective_ok", false)) {
+      $post_result = finalize_upstream(curl_post($post_url, $post_payload, [], false));
+    }
+
+    $log_result = ["ping" => $ping_result];
+    $status = val($ping_result, "status", "");
+    $effective_ok = val($ping_result, "effective_ok", false);
+    if ($post_result) {
+      $log_result["post"] = $post_result;
+      $status = val($post_result, "status", "");
+      $effective_ok = val($post_result, "effective_ok", false);
+    }
+    $log_result["status"] = $status;
+    $log_result["effective_ok"] = $effective_ok;
+
+    log_to_sheet("D32", $d, ["ping" => $ping_payload, "post" => $post_payload], $log_result);
+
+    if ($post_result) {
+      json_out(["endpoint" => "D32", "upstream" => $post_result, "ping" => $ping_result, "post" => $post_result]);
+    }
+
+    if (!$ping_id) {
+      json_out(["endpoint" => "D32", "upstream" => $ping_result, "ping" => $ping_result, "error" => "Missing ping_id in ping response"]);
+    }
+
+    json_out(["endpoint" => "D32", "upstream" => $ping_result, "ping" => $ping_result, "error" => "Ping not accepted"]);
+  }
+
   default:
-    json_out(["error" => "Unknown endpoint. Allowed: D1, D2, D6, D23, D25, D26, D27, D30"], 400);
+    json_out(["error" => "Unknown endpoint. Allowed: D1, D2, D6, D23, D25, D26, D27, D30, D32"], 400);
 }
 

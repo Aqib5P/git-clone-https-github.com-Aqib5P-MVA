@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Unified Lead Form (D1 / D2 / D6 / D23 / D25 / D26 / D27 / D30)</title>
+    <title>Unified Lead Form (D1 / D2 / D6 / D23 / D25 / D26 / D27 / D30 / D32)</title>
     <style>
       :root {
         --bg: #f6f7fb;
@@ -197,47 +197,51 @@
             <summary>Common lead fields</summary>
             <div class="row" style="margin-top: 8px;">
               <div>
-                <label for="first_name">First Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30">required</span></label>
+                <label for="first_name">First Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30,D32">required</span></label>
                 <input id="first_name" name="first_name" type="text" required />
               </div>
               <div>
-                <label for="last_name">Last Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30">required</span></label>
+                <label for="last_name">Last Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30,D32">required</span></label>
                 <input id="last_name" name="last_name" type="text" required />
               </div>
             </div>
 
             <div class="row">
               <div>
-                <label for="email">Email <span class="reqTag" data-required-for="D6,D23,D25,D26,D27,D30">required</span></label>
+                <label for="email">Email <span class="reqTag" data-required-for="D6,D23,D25,D26,D27,D30,D32">required</span></label>
                 <input id="email" name="email" type="email" required />
               </div>
               <div>
-                <label for="phone">Phone / Caller ID <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30">required</span></label>
+                <label for="phone">Phone / Caller ID <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30,D32">required</span></label>
                 <input id="phone" name="phone" type="tel" placeholder="+15642145678 or 5642145678" required />
               </div>
             </div>
 
             <div class="row">
               <div>
-                <label for="zip5">ZIP (5 digits) <span class="reqTag" data-required-for="D1,D2,D23,D25,D26,D27,D30">required</span></label>
+                <label for="zip5">ZIP (5 digits) <span class="reqTag" data-required-for="D1,D2,D23,D25,D26,D27,D30,D32">required</span></label>
                 <input id="zip5" name="zip5" type="text" inputmode="numeric" maxlength="5" placeholder="90210" pattern="[0-9]{5}" required />
               </div>
               <div>
-                <label for="state">State <span class="reqTag" data-required-for="D6,D23,D27">required</span></label>
+                <label for="state">State <span class="reqTag" data-required-for="D6,D23,D27,D32">required</span></label>
                 <input id="state" name="state" type="text" placeholder="CA, TX, FL" required />
               </div>
             </div>
 
-            <div class="row" style="grid-template-columns: 1fr;">
+            <div class="row">
               <div>
-                <label for="city">City <span class="reqTag" data-required-for="D25">required</span></label>
+                <label for="address">Address <span class="reqTag" data-required-for="D32">required</span></label>
+                <input id="address" name="address" type="text" required />
+              </div>
+              <div>
+                <label for="city">City <span class="reqTag" data-required-for="D25,D32">required</span></label>
                 <input id="city" name="city" type="text" required />
               </div>
             </div>
 
             <div class="row">
               <div>
-                <label for="accident_state">Accident State <span class="reqTag" data-required-for="D27">required</span></label>
+                <label for="accident_state">Accident State <span class="reqTag" data-required-for="D27,D32">required</span></label>
                 <input id="accident_state" name="accident_state" type="text" placeholder="CA" required />
               </div>
               <div>
@@ -249,20 +253,28 @@
               </div>
             </div>
 
+            <div class="row" style="grid-template-columns: 1fr;">
+              <div>
+                <label for="dob">Date of Birth <span class="reqTag" data-required-for="D32">required</span></label>
+                <input id="dob" name="dob" type="date" required />
+                <div class="hint">YYYY-MM-DD</div>
+              </div>
+            </div>
+
             <div class="row">
               <div>
                 <label for="accident_date_mmddyyyy">Accident Date (MM/DD/YYYY)</label>
                 <input id="accident_date_mmddyyyy" class="mono" name="accident_date_mmddyyyy" type="text" placeholder="MM/DD/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required readonly />
               </div>
               <div>
-                <label for="ip_address">IP Address <span class="reqTag" data-required-for="D2,D25,D27,D30">required</span></label>
+                <label for="ip_address">IP Address <span class="reqTag" data-required-for="D2,D25,D27,D30,D32">required</span></label>
                 <input id="ip_address" name="ip_address" type="text" placeholder="e.g. 192.168.1.1" required />
               </div>
             </div>
 
             <div class="row">
               <div>
-                <label for="source_url">Source URL <span class="reqTag" data-required-for="D2,D27">required</span></label>
+                <label for="source_url">Source URL <span class="reqTag" data-required-for="D2,D27,D32">required</span></label>
                 <input id="source_url" name="source_url" type="url" list="source_url_suggestions" placeholder="https://example.com/" required />
                 <datalist id="source_url_suggestions">
                   <option value="https://motorvehicleclaim.com/"></option>
@@ -316,7 +328,7 @@
                 </select>
               </div>
               <div>
-                <label for="role_in_accident">Were you the driver, passenger or pedestrian?</label>
+                <label for="role_in_accident">Were you the driver, passenger or pedestrian? <span class="reqTag" data-required-for="D2,D32">required</span></label>
                 <select id="role_in_accident" name="role_in_accident" required>
                   <option value="">Select...</option>
                   <option value="Driver">Driver</option>
@@ -328,14 +340,14 @@
 
             <div class="row">
               <div>
-                <label for="attorney">Already Represented <span class="reqTag" data-required-for="D25">required</span></label>
+                <label for="attorney">Already Represented <span class="reqTag" data-required-for="D25,D32">required</span></label>
                 <select id="attorney" name="attorney" required>
                   <option value="No">No</option>
                   <option value="Yes">Yes</option>
                 </select>
               </div>
               <div>
-                <label for="fault">Were You at Fault? <span class="reqTag" data-required-for="D25">required</span></label>
+                <label for="fault">Were You at Fault? <span class="reqTag" data-required-for="D25,D32">required</span></label>
                 <select id="fault" name="fault" required>
                   <option value="No">No</option>
                   <option value="Yes">Yes</option>
@@ -345,14 +357,14 @@
 
             <div class="row">
               <div>
-                <label for="injured">Were You Injured? <span class="reqTag" data-required-for="D25">required</span></label>
+                <label for="injured">Were You Injured? <span class="reqTag" data-required-for="D25,D32">required</span></label>
                 <select id="injured" name="injured" required>
                   <option value="Yes">Yes</option>
                   <option value="No">No</option>
                 </select>
               </div>
               <div>
-                <label for="doctor_treatment">Doctor Treatment <span class="reqTag" data-required-for="D25">required</span></label>
+                <label for="doctor_treatment">Doctor Treatment <span class="reqTag" data-required-for="D25,D32">required</span></label>
                 <select id="doctor_treatment" name="doctor_treatment" required>
                   <option value="Yes">Yes</option>
                   <option value="No">No</option>
@@ -365,20 +377,30 @@
             <summary>Certificates / tracking fields</summary>
             <div class="row" style="margin-top: 8px;">
               <div>
-                <label for="cert_url">Certificate URL (TrustedForm cert URL) <span class="reqTag" data-required-for="D2,D6,D23,D26,D27">required</span></label>
+                <label for="cert_url">Certificate URL (TrustedForm cert URL) <span class="reqTag" data-required-for="D2,D6,D23,D26,D27,D32">required</span></label>
                 <input id="cert_url" name="cert_url" type="text" placeholder="https://cert.trustedform.com/xxxxx" required />
               </div>
               <div>
-                <label for="cert_id">Certificate ID <span class="reqTag" data-required-for="D1,D2,D23,D25,D26,D30">required</span></label>
+                <label for="cert_id">Certificate ID <span class="reqTag" data-required-for="D1,D2,D23,D25,D26,D30,D32">required</span></label>
                 <input id="cert_id" name="cert_id" type="text" placeholder="e.g. 910cdaf2501d44585c03731a7b72fc4ed0c650ae" required />
               </div>
             </div>
 
             <div class="row">
               <div>
+                <label for="cert_type">Certificate Type <span class="reqTag" data-required-for="D32">required</span></label>
+                <select id="cert_type" name="cert_type" required>
+                  <option value="">Select...</option>
+                  <option value="TrustedForm">TrustedForm</option>
+                  <option value="Jornaya">Jornaya</option>
+                </select>
+              </div>
+              <div>
                 <label for="jornaya_leadid">Jornaya leadid</label>
                 <input id="jornaya_leadid" name="jornaya_leadid" type="text" placeholder="Required" required />
               </div>
+            </div>
+            <div class="row" style="grid-template-columns: 1fr;">
               <div>
                 <label for="notes">Notes (not sent)</label>
                 <input id="notes" name="notes" type="text" placeholder="Optional" />
@@ -408,6 +430,7 @@
               <option value="D26">D26</option>
               <option value="D27">D27</option>
               <option value="D30">D30</option>
+              <option value="D32">D32</option>
             </select>
             <div class="hint" id="endpointHint">Save the lead first to enable sending.</div>
             <div class="actions">
@@ -492,6 +515,33 @@
           hint: "D30 request (server-side relay).",
           required: ["first_name", "last_name", "email", "phone", "zip5", "ip_address", "cert_id"],
         },
+        D32: {
+          label: "D32",
+          hint: "D32 ping/post request (server-side relay).",
+          required: [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "address",
+            "city",
+            "state",
+            "accident_state",
+            "zip5",
+            "ip_address",
+            "source_url",
+            "dob",
+            "cert_id",
+            "cert_url",
+            "cert_type",
+            "accident_date_yyyy_mm_dd",
+            "injured",
+            "doctor_treatment",
+            "fault",
+            "attorney",
+            "role_in_accident",
+          ],
+        },
       };
 
       const $ = (id) => document.getElementById(id);
@@ -530,18 +580,21 @@
           email: $("email").value.trim(),
           phone: $("phone").value.trim(),
           zip5: $("zip5").value.trim(),
+          address: $("address").value.trim(),
           city: $("city").value.trim(),
           state: $("state").value.trim(),
           accident_state: $("accident_state").value.trim(),
           accident_date_raw: $("accident_date_raw").value,
           accident_date_mmddyyyy: $("accident_date_mmddyyyy").value.trim(),
           accident_date_yyyy_mm_dd: yyyyMmDdFromDateInput($("accident_date_raw").value),
+          dob: $("dob").value,
           ip_address: $("ip_address").value.trim(),
           source_url: $("source_url").value.trim(),
           accident_sol: $("accident_sol").value,
 
           cert_id: $("cert_id").value.trim(),
           cert_url: $("cert_url").value.trim(),
+          cert_type: $("cert_type").value,
           jornaya_leadid: $("jornaya_leadid").value.trim(),
           notes: $("notes").value.trim(),
 
@@ -578,17 +631,20 @@
         set("email", v.email);
         set("phone", v.phone);
         set("zip5", v.zip5);
+        set("address", v.address);
         set("city", v.city);
         set("state", v.state);
         set("accident_state", v.accident_state);
         set("accident_date_raw", v.accident_date_raw || v.accident_date_yyyy_mm_dd);
         set("accident_date_mmddyyyy", v.accident_date_mmddyyyy);
+        set("dob", v.dob);
         set("ip_address", v.ip_address);
         set("source_url", v.source_url);
         set("accident_sol", v.accident_sol);
 
         set("cert_id", v.cert_id);
         set("cert_url", v.cert_url);
+        set("cert_type", v.cert_type);
         set("jornaya_leadid", v.jornaya_leadid);
         set("notes", v.notes);
 
