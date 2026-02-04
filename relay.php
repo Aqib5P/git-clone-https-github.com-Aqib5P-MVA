@@ -155,6 +155,30 @@ function finalize_upstream($result) {
   return $out;
 }
 
+function extract_ping_id_from_result($result) {
+  $body_json = val($result, "body_json", null);
+  if (is_array($body_json)) {
+    if (isset($body_json["ping_id"])) return $body_json["ping_id"];
+    if (isset($body_json["pingId"])) return $body_json["pingId"];
+    if (isset($body_json["id"])) return $body_json["id"];
+    if (isset($body_json["try_all_buyers_ping_id"])) return $body_json["try_all_buyers_ping_id"];
+    if (isset($body_json["try_all_buyers"]) && is_array($body_json["try_all_buyers"]) && isset($body_json["try_all_buyers"]["ping_id"])) {
+      return $body_json["try_all_buyers"]["ping_id"];
+    }
+    if (isset($body_json["buyers"]) && is_array($body_json["buyers"]) && isset($body_json["buyers"][0]) && is_array($body_json["buyers"][0]) && isset($body_json["buyers"][0]["ping_id"])) {
+      return $body_json["buyers"][0]["ping_id"];
+    }
+  }
+
+  $body = val($result, "body", "");
+  if (is_string($body) && $body !== "") {
+    if (preg_match('/"try_all_buyers_ping_id"\s*:\s*"([^"]+)"/', $body, $m)) return $m[1];
+    if (preg_match('/"ping_id"\s*:\s*"([^"]+)"/', $body, $m)) return $m[1];
+  }
+
+  return "";
+}
+
 $input = get_json_input();
 if (!$input) {
   json_out(["error" => "Invalid JSON input. Expected { endpoint, data }"], 400);
@@ -410,19 +434,7 @@ switch ($endpoint) {
     ];
 
     $ping_result = finalize_upstream(curl_post($ping_url, $ping_payload, [], false));
-    $ping_id = "";
-    if (isset($ping_result["body_json"]) && is_array($ping_result["body_json"])) {
-      $body_json = $ping_result["body_json"];
-      if (isset($body_json["ping_id"])) $ping_id = $body_json["ping_id"];
-      elseif (isset($body_json["pingId"])) $ping_id = $body_json["pingId"];
-      elseif (isset($body_json["id"])) $ping_id = $body_json["id"];
-      elseif (isset($body_json["try_all_buyers_ping_id"])) $ping_id = $body_json["try_all_buyers_ping_id"];
-      elseif (isset($body_json["try_all_buyers"]) && is_array($body_json["try_all_buyers"]) && isset($body_json["try_all_buyers"]["ping_id"])) {
-        $ping_id = $body_json["try_all_buyers"]["ping_id"];
-      } elseif (isset($body_json["buyers"]) && is_array($body_json["buyers"]) && isset($body_json["buyers"][0]) && is_array($body_json["buyers"][0]) && isset($body_json["buyers"][0]["ping_id"])) {
-        $ping_id = $body_json["buyers"][0]["ping_id"];
-      }
-    }
+    $ping_id = extract_ping_id_from_result($ping_result);
 
     $post_payload = [
       "trackdrive_number" => "+18446757519",
