@@ -155,6 +155,14 @@
         overflow-wrap: anywhere;
         word-break: break-word;
       }
+      .dynamicFields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 520px) {
+        .dynamicFields { grid-template-columns: 1fr; }
+      }
       .summaryBox {
         border: 1px solid var(--border);
         border-radius: 12px;
@@ -383,6 +391,8 @@
                 </select>
               </div>
             </div>
+
+            <div id="dynamicFields" class="dynamicFields"></div>
           </details>
 
           <details style="margin-top:12px;">
@@ -463,6 +473,8 @@
     </div>
 
     <script>
+      const FORM_CONFIG_URL = "http://138.201.138.161/api/form-config";
+      let formConfig = { fields: {}, requirements: {} };
       const endpoints = {
         D1: {
           label: "D1",
@@ -571,6 +583,7 @@
       const clearBtn = $("clearBtn");
       const sendBtn = $("sendBtn");
       const savedBanner = $("savedBanner");
+      const dynamicFields = $("dynamicFields");
 
       let savedLead = null;
       let leadLocked = false;
@@ -625,6 +638,11 @@
           doctor_treatment: $("doctor_treatment").value,
         };
 
+        document.querySelectorAll("[data-dynamic-field]").forEach((el) => {
+          if (!el.id) return;
+          v[el.id] = (el.value || "").trim();
+        });
+
         // If user picked a date but didn't type MM/DD/YYYY, auto-fill it.
         if (!v.accident_date_mmddyyyy && v.accident_date_raw) {
           v.accident_date_mmddyyyy = mmddyyyyFromDateInput(v.accident_date_raw);
@@ -673,6 +691,11 @@
         set("fault", v.fault);
         set("injured", v.injured);
         set("doctor_treatment", v.doctor_treatment);
+
+        document.querySelectorAll("[data-dynamic-field]").forEach((el) => {
+          if (!el.id) return;
+          if (v[el.id] !== undefined) el.value = v[el.id];
+        });
       }
 
       function setLeadLocked(locked) {
@@ -956,9 +979,9 @@
       }
 
       function validateRequired(endpointId, values) {
-        const ep = endpoints[endpointId];
         const missing = [];
-        for (const key of ep.required || []) {
+        const required = getRequiredFields(endpointId);
+        for (const key of required) {
           if (!values[key]) missing.push(key);
         }
         return missing;
@@ -972,17 +995,94 @@
 
       function renderRequiredTags() {
         const endpointId = endpointSelect.value;
+        const required = getRequiredFields(endpointId);
         document.querySelectorAll(".reqTag").forEach((tag) => {
+          const label = tag.closest("label");
+          const field = label ? label.getAttribute("for") : null;
+          if (required.length && field) {
+            tag.style.display = required.includes(field) ? "inline-block" : "none";
+            return;
+          }
           const list = (tag.getAttribute("data-required-for") || "").split(",").map((s) => s.trim()).filter(Boolean);
           tag.style.display = list.includes(endpointId) ? "inline-block" : "none";
         });
       }
 
+      function getRequiredFields(endpointId) {
+        if (formConfig.requirements && formConfig.requirements[endpointId]) {
+          return formConfig.requirements[endpointId];
+        }
+        const ep = endpoints[endpointId];
+        return ep && ep.required ? ep.required : [];
+      }
+
+      function applyRequiredState(endpointId) {
+        const required = getRequiredFields(endpointId);
+        if (!required.length) return;
+        document.querySelectorAll("#unifiedForm input, #unifiedForm select, #unifiedForm textarea").forEach((el) => {
+          if (!el.id) return;
+          el.required = required.includes(el.id);
+        });
+      }
+
+      function renderDynamicFields(endpointId) {
+        if (!dynamicFields) return;
+        const required = getRequiredFields(endpointId);
+        const staticFields = new Set([
+          "first_name", "last_name", "email", "phone", "zip5", "address", "city", "state",
+          "accident_state", "accident_date_raw", "accident_date_mmddyyyy", "accident_date_yyyy_mm_dd",
+          "dob", "ip_address", "source_url", "accident_sol", "incident_date_option_b", "injury_cause",
+          "primary_injury", "role_in_accident", "attorney", "fault", "injured", "doctor_treatment",
+          "cert_url", "cert_id", "cert_type", "jornaya_leadid", "notes",
+        ]);
+
+        dynamicFields.innerHTML = "";
+        const extraFields = required.filter((field) => !staticFields.has(field));
+        if (!extraFields.length) return;
+
+        extraFields.forEach((fieldName) => {
+          const meta = (formConfig.fields && formConfig.fields[fieldName]) || { label: fieldName, type: "text" };
+          const wrapper = document.createElement("div");
+          const label = document.createElement("label");
+          label.setAttribute("for", fieldName);
+          label.textContent = meta.label || fieldName;
+          const req = document.createElement("span");
+          req.className = "reqTag";
+          req.textContent = "required";
+          label.appendChild(req);
+
+          let input;
+          if (meta.type === "select" && meta.options) {
+            input = document.createElement("select");
+            Object.entries(meta.options).forEach(([value, text]) => {
+              const opt = document.createElement("option");
+              opt.value = value;
+              opt.textContent = text;
+              input.appendChild(opt);
+            });
+          } else {
+            input = document.createElement("input");
+            input.type = meta.type || "text";
+          }
+
+          input.id = fieldName;
+          input.name = fieldName;
+          input.required = true;
+          input.setAttribute("data-dynamic-field", "1");
+
+          wrapper.appendChild(label);
+          wrapper.appendChild(input);
+          dynamicFields.appendChild(wrapper);
+        });
+      }
+
       function updateEndpointUi() {
         const endpointId = endpointSelect.value;
-        const ep = endpoints[endpointId];
+        const ep = endpoints[endpointId] || { label: endpointId, hint: "" };
         endpointHint.textContent = ep.hint || "";
         renderRequiredTags();
+        applyRequiredState(endpointId);
+        renderDynamicFields(endpointId);
         respPreview.textContent = "---";
         if (savedLead) setStatus(`Destination selected: ${ep.label}`, "ok");
       }
@@ -1063,6 +1163,46 @@
         }
       }
 
+      async function loadFormConfig() {
+        if (!FORM_CONFIG_URL) return;
+        try {
+          const res = await fetch(FORM_CONFIG_URL);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && typeof data === "object") {
+            formConfig = {
+              fields: data.fields || {},
+              requirements: data.requirements || {},
+              buyers: data.buyers || [],
+            };
+            if (formConfig.requirements) {
+              Object.keys(formConfig.requirements).forEach((code) => {
+                if (!endpoints[code]) {
+                  endpoints[code] = { label: code, hint: "Configured in admin.", required: [] };
+                }
+                endpoints[code].required = formConfig.requirements[code];
+              });
+            }
+
+            if (Array.isArray(formConfig.buyers) && formConfig.buyers.length) {
+              const existing = new Set(Array.from(endpointSelect.options).map((opt) => opt.value));
+              formConfig.buyers.forEach((buyer) => {
+                if (!buyer || !buyer.code || existing.has(buyer.code)) return;
+                const opt = document.createElement("option");
+                opt.value = buyer.code;
+                opt.textContent = buyer.code;
+                endpointSelect.appendChild(opt);
+                existing.add(buyer.code);
+              });
+            }
+
+            updateEndpointUi();
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
       // Wire events
       endpointSelect.addEventListener("change", updateEndpointUi);
       sendBtn.addEventListener("click", () => send(endpointSelect.value));
@@ -1110,6 +1250,7 @@
       setSendEnabled(false);
       updateEndpointUi();
       preview(endpointSelect.value);
+      loadFormConfig();
     </script>
   </body>
 </html>
