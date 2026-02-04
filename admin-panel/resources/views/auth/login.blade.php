@@ -4,29 +4,32 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Admin Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
       body { margin: 0; font-family: Arial, sans-serif; background: #f6f7fb; color: #0f172a; }
-      .card { max-width: 420px; margin: 12vh auto; background: #fff; border: 1px solid #d9dfeb; border-radius: 12px; padding: 20px; }
-      label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; }
-      input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d9dfeb; margin-bottom: 12px; }
-      button { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d9dfeb; background: rgba(37,99,235,0.12); cursor: pointer; }
-      .error { color: #dc2626; margin-bottom: 12px; font-size: 13px; }
+      .card { max-width: 420px; margin: 12vh auto; }
     </style>
   </head>
   <body>
-    <div class="card">
-      <h2>Admin Login</h2>
-      @if ($errors->any())
-        <div class="error">{{ $errors->first() }}</div>
-      @endif
-      <form method="post" action="{{ route('login.submit') }}">
-        @csrf
-        <label for="username">Username</label>
-        <input id="username" name="username" type="text" value="{{ old('username') }}" required />
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" required />
-        <button type="submit">Login</button>
-      </form>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="card-title mb-3">Admin Login</h3>
+        @if ($errors->any())
+          <div class="alert alert-danger">{{ $errors->first() }}</div>
+        @endif
+        <form method="post" action="{{ route('login.submit') }}">
+          @csrf
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input id="username" name="username" type="text" class="form-control" value="{{ old('username') }}" required />
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input id="password" name="password" type="password" class="form-control" required />
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+      </div>
     </div>
   </body>
 </html>

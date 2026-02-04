@@ -1,38 +1,38 @@
 @extends('layouts.app')
 
 @section('content')
-  <div class="card">
+  <div class="card shadow-sm">
     <h3>Filters</h3>
     <form method="get" action="{{ route('dashboard') }}">
-      <div class="row">
-        <div>
+      <div class="row g-3">
+        <div class="col-md-3">
           <label for="start_date">Start</label>
-          <input id="start_date" name="start_date" type="date" value="{{ $filters['start_date'] }}" />
+          <input id="start_date" name="start_date" type="date" class="form-control" value="{{ $filters['start_date'] }}" />
         </div>
-        <div>
+        <div class="col-md-3">
           <label for="end_date">End</label>
-          <input id="end_date" name="end_date" type="date" value="{{ $filters['end_date'] }}" />
+          <input id="end_date" name="end_date" type="date" class="form-control" value="{{ $filters['end_date'] }}" />
         </div>
-        <div>
+        <div class="col-md-3">
           <label for="status">Status</label>
-          <select id="status" name="status">
+          <select id="status" name="status" class="form-select">
             <option value="">All</option>
             <option value="accepted" @selected($filters['status'] === 'accepted')>Accepted</option>
             <option value="rejected" @selected($filters['status'] === 'rejected')>Rejected</option>
             <option value="unknown" @selected($filters['status'] === 'unknown')>Unknown</option>
           </select>
         </div>
-        <div>
+        <div class="col-md-3">
           <label for="buyer">Buyer</label>
-          <select id="buyer" name="buyer">
+          <select id="buyer" name="buyer" class="form-select">
             <option value="">All</option>
             @foreach ($buyers as $buyer)
               <option value="{{ $buyer->code }}" @selected($filters['buyer'] === $buyer->code)>{{ $buyer->code }} - {{ $buyer->name }}</option>
             @endforeach
           </select>
         </div>
-        <div style="align-self: flex-end;">
-          <button type="submit">Apply</button>
+        <div class="col-md-2" style="align-self: flex-end;">
+          <button type="submit" class="btn btn-primary">Apply</button>
         </div>
       </div>
     </form>
@@ -45,19 +45,19 @@
     $total = $accepted + $rejected + $unknown;
   @endphp
 
-  <div class="card">
+  <div class="card shadow-sm">
     <h3>Summary</h3>
-    <div class="row">
-      <div>✅ Accepted: <strong>{{ $accepted }}</strong></div>
-      <div>❌ Rejected: <strong>{{ $rejected }}</strong></div>
-      <div>⚪ Unknown: <strong>{{ $unknown }}</strong></div>
-      <div>📦 Total: <strong>{{ $total }}</strong></div>
+    <div class="row g-3">
+      <div class="col-md-3">✅ Accepted: <strong>{{ $accepted }}</strong></div>
+      <div class="col-md-3">❌ Rejected: <strong>{{ $rejected }}</strong></div>
+      <div class="col-md-3">⚪ Unknown: <strong>{{ $unknown }}</strong></div>
+      <div class="col-md-3">📦 Total: <strong>{{ $total }}</strong></div>
     </div>
   </div>
 
-  <div class="card">
+  <div class="card shadow-sm">
     <h3>Buyer Stats</h3>
-    <table>
+    <table class="table table-sm">
       <thead>
         <tr>
           <th>Buyer</th>
@@ -83,9 +83,9 @@
     </table>
   </div>
 
-  <div class="card">
+  <div class="card shadow-sm">
     <h3>Recent Attempts</h3>
-    <table>
+    <table class="table table-sm">
       <thead>
         <tr>
           <th>Time</th>

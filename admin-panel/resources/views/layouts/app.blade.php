@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ $title ?? 'Lead Admin' }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
       :root {
         --bg: #f6f7fb;
@@ -16,38 +17,33 @@
         --ok: #16a34a;
       }
       body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
-      header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
-      header a { color: var(--accent); text-decoration: none; margin-right: 12px; }
-      .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+      .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
       .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
       .muted { color: var(--muted); }
-      .row { display: flex; gap: 12px; flex-wrap: wrap; }
-      label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-      input, select, button { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); }
-      button { background: rgba(37, 99, 235, 0.12); cursor: pointer; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { border-bottom: 1px solid var(--border); padding: 8px; font-size: 13px; text-align: left; }
+      label { font-size: 12px; color: var(--muted); }
+      table th, table td { font-size: 13px; }
       .badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; }
       .badge.ok { background: rgba(22, 163, 74, 0.1); color: var(--ok); border: 1px solid rgba(22, 163, 74, 0.3); }
       .badge.bad { background: rgba(220, 38, 38, 0.1); color: var(--danger); border: 1px solid rgba(220, 38, 38, 0.3); }
       .badge.unknown { background: rgba(148, 163, 184, 0.1); color: var(--muted); border: 1px solid rgba(148, 163, 184, 0.3); }
-      .nav-right form { display: inline; }
     </style>
   </head>
   <body>
-    <header>
-      <div>
-        <strong>Lead Admin</strong>
-        <a href="{{ route('dashboard') }}">Dashboard</a>
-        <a href="{{ route('buyers.index') }}">Buyers</a>
+    <nav class="navbar navbar-expand-lg bg-white border-bottom">
+      <div class="container-fluid px-4">
+        <a class="navbar-brand" href="{{ route('dashboard') }}">Lead Admin</a>
+        <div class="collapse navbar-collapse show">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ route('buyers.index') }}">Buyers</a></li>
+          </ul>
+          <form method="post" action="{{ route('logout') }}" class="d-inline">
+            @csrf
+            <button class="btn btn-outline-primary btn-sm" type="submit">Logout</button>
+          </form>
+        </div>
       </div>
-      <div class="nav-right">
-        <form method="post" action="{{ route('logout') }}">
-          @csrf
-          <button type="submit">Logout</button>
-        </form>
-      </div>
-    </header>
+    </nav>
 
     <div class="wrap">
       @if ($errors->any())
