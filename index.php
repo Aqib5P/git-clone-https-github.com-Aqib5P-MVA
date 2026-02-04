@@ -230,6 +230,14 @@ $results = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = trim($_POST['phone_number'] ?? '');
+    $caller_id_input = trim($_POST['caller_id'] ?? '');
+    $cid_input = trim($_POST['CID'] ?? '');
+    if ($phone === '' && $caller_id_input !== '') {
+        $phone = $caller_id_input;
+    }
+    if ($phone === '' && $cid_input !== '') {
+        $phone = $cid_input;
+    }
     $zip = trim($_POST['zip_code'] ?? '');
     $state = trim($_POST['state'] ?? '');
     $first_name = trim($_POST['first_name'] ?? '');
@@ -237,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $trusted_form = trim($_POST['trusted_form_cert_id'] ?? '');
     $have_attorney = trim($_POST['have_attorney'] ?? '');
-    $caller_id = $phone;
+    $caller_id = $phone !== '' ? $phone : $caller_id_input;
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
     $googleWebhook = "https://script.google.com/macros/s/AKfycbzA8zl5bkPPqFVcLi0GzwsLfLn27CIdXBe5apoa_A8JoHVnMrS9jgUR13Y7WhQUwCKnWQ/exec";
@@ -496,6 +504,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $info['fields'],
             $maskPayloads
         );
+
+        if ($info['type'] === 'json' && array_key_exists('CID', $info['fields'])) {
+            $cidValue = trim((string) $info['fields']['CID']);
+            if ($cidValue === '') {
+                $status = 'Rejected — Missing CID';
+                $rejectReason = 'Missing CID';
+                $bid = 0;
+                $expire = 'N/A';
+                $phoneNumber = 'N/A';
+                $minDuration = 'N/A';
+
+                $logData = buildGoogleLogData(
+                    $phone,
+                    $buyer,
+                    $status,
+                    $bid,
+                    $minDuration,
+                    $rejectReason,
+                    $ip,
+                    null,
+                    null,
+                    $payloadFormat,
+                    $info['endpoint'],
+                    $info['fields'],
+                    $maskPayloads,
+                    $logGooglePayloads
+                );
+                logToGoogle($googleWebhook, $logData);
+
+                $results[] = [
+                    'buyer' => $buyer,
+                    'status' => $status,
+                    'bid' => $bid,
+                    'expire' => $expire,
+                    'phoneNumber' => $phoneNumber,
+                    'minDuration' => $minDuration,
+                ];
+                continue;
+            }
+        }
 
         $ch = curl_init($info['endpoint']);
 
