@@ -155,6 +155,18 @@
         overflow-wrap: anywhere;
         word-break: break-word;
       }
+      .summaryBox {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #ffffff;
+        padding: 10px 12px;
+        font-size: 12px;
+        color: var(--text);
+      }
+      .summaryBox ul {
+        margin: 0;
+        padding-left: 18px;
+      }
       .status {
         margin-top: 10px;
         font-size: 12px;
@@ -438,10 +450,14 @@
             </div>
           </div>
           <div class="hint">
-            This shows the response returned by <b>relay.php</b> (including the upstream HTTP status + body).
+            This shows a clean summary. Raw response is available below.
           </div>
-          <label style="margin-top: 12px;">Response</label>
-          <pre id="respPreview" class="mono">---</pre>
+          <label style="margin-top: 12px;">Summary</label>
+          <div id="respSummary" class="summaryBox">---</div>
+          <details style="margin-top: 10px;">
+            <summary>Raw response (JSON)</summary>
+            <pre id="respPreview" class="mono">---</pre>
+          </details>
         </div>
       </div>
     </div>
@@ -547,6 +563,7 @@
       const $ = (id) => document.getElementById(id);
       const statusLine = $("statusLine");
       const respPreview = $("respPreview");
+      const respSummary = $("respSummary");
       const endpointSelect = $("endpointSelect");
       const endpointHint = $("endpointHint");
       const saveBtn = $("saveBtn");
@@ -684,6 +701,72 @@
         statusLine.appendChild(span);
       }
 
+      function extractPingId(bodyJson) {
+        if (!bodyJson || typeof bodyJson !== "object") return "";
+        if (bodyJson.ping_id) return String(bodyJson.ping_id);
+        if (bodyJson.pingId) return String(bodyJson.pingId);
+        if (bodyJson.id) return String(bodyJson.id);
+        if (bodyJson.try_all_buyers_ping_id) return String(bodyJson.try_all_buyers_ping_id);
+        if (bodyJson.try_all_buyers && bodyJson.try_all_buyers.ping_id) return String(bodyJson.try_all_buyers.ping_id);
+        if (Array.isArray(bodyJson.buyers) && bodyJson.buyers[0] && bodyJson.buyers[0].ping_id) return String(bodyJson.buyers[0].ping_id);
+        return "";
+      }
+
+      function normalizeErrors(errors) {
+        const out = [];
+        if (!errors) return out;
+        if (Array.isArray(errors)) return errors.map((e) => String(e));
+        if (typeof errors === "string") return [errors];
+        if (typeof errors === "object") {
+          Object.keys(errors).forEach((key) => {
+            const val = errors[key];
+            if (Array.isArray(val)) val.forEach((msg) => out.push(`${key}: ${msg}`));
+            else out.push(`${key}: ${String(val)}`);
+          });
+        }
+        return out;
+      }
+
+      function summarizeResult(label, result, extra = {}) {
+        const lines = [];
+        if (!result || typeof result !== "object") return lines;
+        const ok = typeof result.effective_ok === "boolean" ? result.effective_ok : result.ok;
+        const status = typeof result.status === "number" ? result.status : "";
+        let text = ok === true ? "Accepted" : ok === false ? "Rejected" : "Unknown";
+        if (status) text += ` (HTTP ${status})`;
+        lines.push(`${label}: ${text}`);
+
+        const body = result.body_json;
+        if (body && typeof body.status === "string") {
+          lines.push(`${label} buyer status: ${body.status}`);
+        }
+        if (extra.showPingId) {
+          const pingId = extractPingId(body);
+          if (pingId) lines.push(`Ping ID: ${pingId}`);
+        }
+
+        const errors = normalizeErrors(body && body.errors);
+        if (errors.length) errors.forEach((err) => lines.push(`${label} error: ${err}`));
+        if (body && body.error) lines.push(`${label} error: ${body.error}`);
+        if (body && body.message) lines.push(`${label} message: ${body.message}`);
+        return lines;
+      }
+
+      function setSummary(lines) {
+        respSummary.textContent = "";
+        if (!lines.length) {
+          respSummary.textContent = "---";
+          return;
+        }
+        const ul = document.createElement("ul");
+        lines.forEach((line) => {
+          const li = document.createElement("li");
+          li.textContent = line;
+          ul.appendChild(li);
+        });
+        respSummary.appendChild(ul);
+      }
+
       function validateRequired(endpointId, values) {
         const ep = endpoints[endpointId];
         const missing = [];
@@ -725,6 +808,7 @@
       async function send(endpointId) {
         if (!savedLead) {
           respPreview.textContent = "Save the lead first (Step 1), then send (Step 2).";
+          respSummary.textContent = "Save the lead first (Step 1), then send (Step 2).";
           setStatus("Lead not saved yet.", "bad");
           return;
         }
@@ -737,6 +821,7 @@
         }
 
         respPreview.textContent = "Sending...";
+        respSummary.textContent = "Sending...";
         setStatus("Sending to relay...", "ok");
 
         try {
@@ -755,12 +840,26 @@
             const ok = json && json.upstream && json.upstream.effective_ok === true;
             const status = json && json.upstream && typeof json.upstream.status === "number" ? json.upstream.status : res.status;
             setStatus(ok ? "Request completed." : `Request completed (HTTP ${status}).`, ok ? "ok" : "bad");
+
+            const summary = [];
+            const endpoint = json.endpoint || endpointId;
+            if (endpoint) summary.push(`Endpoint: ${endpoint}`);
+            summary.push(...summarizeResult("Upstream", json.upstream || {}, {}));
+            if (json.ping) summary.push(...summarizeResult("Ping", json.ping, { showPingId: true }));
+            if (json.post) summary.push(...summarizeResult("Post", json.post, {}));
+            if (json.post_attempted === false && json.post_skipped_reason) {
+              summary.push(`Post: skipped (${json.post_skipped_reason})`);
+            }
+            if (json.error) summary.push(`Error: ${json.error}`);
+            setSummary(summary);
           } else {
             respPreview.textContent = text;
             setStatus(res.ok ? "Request completed." : `Request completed (HTTP ${res.status}).`, res.ok ? "ok" : "bad");
+            setSummary([`HTTP ${res.status}`, "Non-JSON response received."]);
           }
         } catch (err) {
           respPreview.textContent = "Error:\n" + (err && err.message ? err.message : String(err));
+          setSummary(["Request failed.", err && err.message ? err.message : String(err)]);
           setStatus("Request failed.", "bad");
         }
       }
@@ -803,6 +902,7 @@
         editBtn.style.display = "none";
         setSendEnabled(false);
         respPreview.textContent = "---";
+        respSummary.textContent = "---";
         setStatus("Cleared.", "ok");
       });
 
