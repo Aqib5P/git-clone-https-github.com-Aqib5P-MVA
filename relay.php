@@ -16,6 +16,9 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 
 // Google Sheets logging endpoint (Apps Script Web App)
 $LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbxfkW7ltasn3JKUb63PBVcp2ZQCAUe7JzV8uKvcq73RKhV1CF6jfoNclTZaCRdSj_cyEw/exec";
+// Laravel admin intake endpoint (set to your server when ready)
+$DB_LOG_ENDPOINT = "http://138.201.138.161/api/lead-intake";
+$DB_LOG_TOKEN = "";
 
 function json_out($arr, $code = 200) {
   http_response_code($code);
@@ -122,8 +125,6 @@ function curl_post($url, $body, $headers = [], $is_json = false, $timeout = 30) 
 
 function log_to_sheet($endpoint, $lead, $payload, $result) {
   global $LOG_ENDPOINT;
-  if (!$LOG_ENDPOINT) return;
-
   $body = [
     "endpoint" => $endpoint,
     "lead" => $lead,
@@ -134,7 +135,34 @@ function log_to_sheet($endpoint, $lead, $payload, $result) {
   ];
 
   // Best-effort logging. Do not block main response if logging fails.
-  curl_post($LOG_ENDPOINT, $body, [], true, 8);
+  if ($LOG_ENDPOINT) {
+    curl_post($LOG_ENDPOINT, $body, [], true, 8);
+  }
+
+  // Also log to the admin DB if configured.
+  log_to_db($endpoint, $lead, $payload, $result);
+}
+
+function log_to_db($endpoint, $lead, $payload, $result) {
+  global $DB_LOG_ENDPOINT, $DB_LOG_TOKEN;
+  if (!$DB_LOG_ENDPOINT) return;
+
+  $body = [
+    "endpoint" => $endpoint,
+    "lead" => $lead,
+    "payload" => $payload,
+    "response" => $result,
+    "upstream_status" => val($result, "status", ""),
+    "effective_ok" => val($result, "effective_ok", ""),
+  ];
+
+  $headers = [];
+  if ($DB_LOG_TOKEN) {
+    $headers[] = "X-Api-Token: " . $DB_LOG_TOKEN;
+  }
+
+  // Best-effort logging. Do not block main response if logging fails.
+  curl_post($DB_LOG_ENDPOINT, $body, $headers, true, 8);
 }
 
 function finalize_upstream($result) {
