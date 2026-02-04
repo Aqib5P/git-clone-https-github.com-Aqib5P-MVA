@@ -36,6 +36,7 @@
           <ul class="navbar-nav me-auto">
             <li class="nav-item"><a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ route('buyers.index') }}">Buyers</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ route('fields.index') }}">Lead Fields</a></li>
           </ul>
           <form method="post" action="{{ route('logout') }}" class="d-inline">
             @csrf

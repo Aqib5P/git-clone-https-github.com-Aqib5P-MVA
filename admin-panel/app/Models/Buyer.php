@@ -13,8 +13,21 @@ class Buyer extends Model
         "code",
         "name",
         "type",
+        "scope",
+        "payload_format",
+        "ping_url",
+        "post_url",
+        "headers_json",
+        "public_token",
+        "public_enabled",
         "active",
         "notes",
+    ];
+
+    protected $casts = [
+        "headers_json" => "array",
+        "public_enabled" => "boolean",
+        "active" => "boolean",
     ];
 
     public function fields()

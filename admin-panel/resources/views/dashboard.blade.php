@@ -45,13 +45,83 @@
     $total = $accepted + $rejected + $unknown;
   @endphp
 
-  <div class="card shadow-sm">
-    <h3>Summary</h3>
-    <div class="row g-3">
-      <div class="col-md-3">✅ Accepted: <strong>{{ $accepted }}</strong></div>
-      <div class="col-md-3">❌ Rejected: <strong>{{ $rejected }}</strong></div>
-      <div class="col-md-3">⚪ Unknown: <strong>{{ $unknown }}</strong></div>
-      <div class="col-md-3">📦 Total: <strong>{{ $total }}</strong></div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-success-subtle">
+        <div class="card-body">
+          <div class="text-muted">Accepted</div>
+          <h3 class="mb-0">{{ $accepted }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-danger-subtle">
+        <div class="card-body">
+          <div class="text-muted">Rejected</div>
+          <h3 class="mb-0">{{ $rejected }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-light">
+        <div class="card-body">
+          <div class="text-muted">Unknown</div>
+          <h3 class="mb-0">{{ $unknown }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-primary-subtle">
+        <div class="card-body">
+          <div class="text-muted">Total</div>
+          <h3 class="mb-0">{{ $total }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted">Acceptance Rate</div>
+          <h3 class="mb-2">{{ $acceptRate }}%</h3>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ $acceptRate }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted">Top Buyer (Accepted)</div>
+          <h5 class="mb-0">{{ $topBuyer?->endpoint ?? '—' }}</h5>
+          <div class="text-muted">{{ $topBuyer?->accepted ?? 0 }} accepted</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted">Top Payout Buyer</div>
+          <h5 class="mb-0">{{ $topPayoutBuyer?->endpoint ?? '—' }}</h5>
+          <div class="text-muted">${{ $topPayoutBuyer?->max_payout ?? 0 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="text-muted">Rejected %</div>
+      @php
+        $rejectRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
+      @endphp
+      <h3 class="mb-2">{{ $rejectRate }}%</h3>
+      <div class="progress" style="height: 8px;">
+        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ $rejectRate }}%"></div>
+      </div>
     </div>
   </div>
 

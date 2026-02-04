@@ -6,11 +6,11 @@
     <form method="post" action="{{ route('buyers.store') }}">
       @csrf
       <div class="row g-3">
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label for="code">Code (D#)</label>
           <input id="code" name="code" type="text" class="form-control" required />
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label for="name">Name</label>
           <input id="name" name="name" type="text" class="form-control" required />
         </div>
@@ -20,6 +20,15 @@
             <option value="single">Single</option>
             <option value="ping_post">Ping/Post</option>
             <option value="rtb">RTB</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label for="scope">Scope</label>
+          <select id="scope" name="scope" class="form-select" required>
+            <option value="single">Single</option>
+            <option value="unified">Unified</option>
+            <option value="rtb">RTB</option>
+            <option value="all">All</option>
           </select>
         </div>
         <div class="col-md-2">
@@ -33,6 +42,31 @@
           <button type="submit" class="btn btn-primary">Add</button>
         </div>
       </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-md-3">
+          <label for="payload_format">Payload</label>
+          <select id="payload_format" name="payload_format" class="form-select" required>
+            <option value="form">Form</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="ping_url">Ping URL</label>
+          <input id="ping_url" name="ping_url" type="text" class="form-control" />
+        </div>
+        <div class="col-md-4">
+          <label for="post_url">Post URL</label>
+          <input id="post_url" name="post_url" type="text" class="form-control" />
+        </div>
+        <div class="col-md-1">
+          <label for="public_enabled">Public</label>
+          <select id="public_enabled" name="public_enabled" class="form-select">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+      </div>
     </form>
   </div>
 
@@ -44,6 +78,7 @@
           <th>Code</th>
           <th>Name</th>
           <th>Type</th>
+          <th>Scope</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -54,6 +89,7 @@
             <td>{{ $buyer->code }}</td>
             <td>{{ $buyer->name }}</td>
             <td>{{ $buyer->type }}</td>
+            <td>{{ $buyer->scope }}</td>
             <td>{{ $buyer->active ? 'Active' : 'Inactive' }}</td>
             <td>
               <a class="btn btn-link btn-sm" href="{{ route('buyers.edit', $buyer) }}">Edit</a>

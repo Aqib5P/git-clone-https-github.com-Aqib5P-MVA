@@ -45,13 +45,21 @@ class DashboardController extends Controller
         $buyerStats = Attempt::query()
             ->selectRaw("endpoint, count(*) as total,
                 sum(case when status = 'accepted' then 1 else 0 end) as accepted,
-                sum(case when status = 'rejected' then 1 else 0 end) as rejected")
+                sum(case when status = 'rejected' then 1 else 0 end) as rejected,
+                max(payout) as max_payout")
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($status, fn ($q) => $q->where("status", $status))
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
             ->groupBy("endpoint")
             ->orderBy("endpoint")
             ->get();
+
+        $topBuyer = $buyerStats->sortByDesc("accepted")->first();
+        $topPayoutBuyer = $buyerStats->sortByDesc("max_payout")->first();
+        $totalAttempts = array_sum($statusCounts);
+        $accepted = $statusCounts["accepted"] ?? 0;
+        $rejected = $statusCounts["rejected"] ?? 0;
+        $acceptRate = $totalAttempts > 0 ? round(($accepted / $totalAttempts) * 100, 1) : 0;
 
         $buyers = Buyer::orderBy("code")->get();
 
@@ -60,6 +68,9 @@ class DashboardController extends Controller
             "statusCounts" => $statusCounts,
             "buyerStats" => $buyerStats,
             "buyers" => $buyers,
+            "acceptRate" => $acceptRate,
+            "topBuyer" => $topBuyer,
+            "topPayoutBuyer" => $topPayoutBuyer,
             "filters" => [
                 "start_date" => $startDate->toDateString(),
                 "end_date" => $endDate->toDateString(),

@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Buyer;
 use App\Models\BuyerField;
+use App\Models\LeadField;
 
 class FormConfigController extends Controller
 {
     public function index()
     {
         $buyers = Buyer::orderBy("code")
-            ->get(["code", "name", "active", "type"]);
+            ->where("active", true)
+            ->whereIn("scope", ["unified", "all"])
+            ->get(["code", "name", "active", "type", "scope"]);
 
         $required = BuyerField::query()
             ->where("required", true)
@@ -22,16 +25,41 @@ class FormConfigController extends Controller
         $requirements = [];
         foreach ($buyers as $buyer) {
             $fields = $required->get($buyer->id, collect())
-                ->pluck("field_name")
+                ->map(function ($field) {
+                    return $field->source_key ?: $field->field_name;
+                })
                 ->unique()
                 ->values()
                 ->all();
             $requirements[$buyer->code] = $fields;
         }
 
+        $leadFieldsCollection = LeadField::where("active", true)
+            ->orderBy("key")
+            ->get();
+
+        if ($leadFieldsCollection->isEmpty()) {
+            $leadFields = collect(config("lead_fields"))
+                ->map(function ($meta) {
+                    return [
+                        "label" => $meta["label"] ?? "",
+                        "type" => $meta["type"] ?? "text",
+                        "options" => $meta["options"] ?? null,
+                    ];
+                });
+        } else {
+            $leadFields = $leadFieldsCollection->mapWithKeys(function ($field) {
+                return [$field->key => [
+                    "label" => $field->label,
+                    "type" => $field->type,
+                    "options" => $field->options,
+                ]];
+            });
+        }
+
         $response = response()->json([
             "buyers" => $buyers,
-            "fields" => config("lead_fields"),
+            "fields" => $leadFields,
             "requirements" => $requirements,
         ]);
 
