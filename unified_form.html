@@ -747,6 +747,16 @@
         if (!info.json && text && (text.startsWith("{") || text.startsWith("["))) {
           try { info.json = JSON.parse(text); } catch { /* ignore */ }
         }
+        if (!info.json && text && text.startsWith("\"")) {
+          try {
+            const inner = JSON.parse(text);
+            if (inner && typeof inner === "string") {
+              try { info.json = JSON.parse(inner); } catch { /* ignore */ }
+            } else if (inner && typeof inner === "object") {
+              info.json = inner;
+            }
+          } catch { /* ignore */ }
+        }
         if (!info.xml && text && text.startsWith("<")) {
           info.xml = parseXmlBody(text);
         }
@@ -775,6 +785,24 @@
       function addDetail(lines, label, value) {
         if (value === undefined || value === null || value === "") return;
         lines.push(`${label}: ${value}`);
+      }
+
+      function normalizePhone(value) {
+        if (value === undefined || value === null) return "";
+        const raw = String(value).trim();
+        if (!raw) return "";
+        if (raw.startsWith("+")) return raw;
+        if (/^[0-9]+$/.test(raw)) return `+${raw}`;
+        return raw;
+      }
+
+      function pickFirst(obj, keys) {
+        if (!obj || typeof obj !== "object") return "";
+        for (const key of keys) {
+          const value = obj[key];
+          if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+        }
+        return "";
       }
 
       function getBuyerStatusInfo(result) {
@@ -809,6 +837,8 @@
           addDetail(details, "Lead ID", leadId);
           addDetail(details, "Price", data.price);
           addDetail(details, "Payout", data.offer_conversion_payout);
+          addDetail(details, "Bid amount", pickFirst(data, ["bidAmount", "bid_amount"]));
+          addDetail(details, "Bid ID", pickFirst(data, ["bidId", "bid_id"]));
           addDetail(details, "Tracking", data.tracking_type);
           addDetail(details, "Call Router ID", data.call_router_id);
           addDetail(details, "Webhook Lead ID", data.inbound_webhook_lead_id);
@@ -826,6 +856,21 @@
             }
           }
 
+          const forwardNumber = pickFirst(data, [
+            "phoneNumber",
+            "phone_number",
+            "phoneNumberNoPlus",
+            "forwarding_number",
+            "forwardingNumber",
+            "transfer_number",
+            "transferNumber",
+            "did",
+            "destination_number",
+            "call_router_number",
+          ]);
+          addDetail(details, "Forwarding number", normalizePhone(forwardNumber));
+          addDetail(details, "SIP address", pickFirst(data, ["sipAddress", "sip_address"]));
+
           const errors = normalizeErrors(data.errors);
           if (errors.length) {
             errors.forEach((err) => details.push(`Error: ${err}`));
@@ -842,6 +887,18 @@
           if (!reason && msgVal && status === "Rejected") reason = msgVal;
           addDetail(details, "Lead ID", getXmlValue(info.xml, ["lead_id", "leadid"]));
           addDetail(details, "Price", getXmlValue(info.xml, ["price", "payout"]));
+          const xmlForward = getXmlValue(info.xml, [
+            "phone_number",
+            "phoneNumber",
+            "forwarding_number",
+            "forwardingNumber",
+            "transfer_number",
+            "transferNumber",
+            "did",
+            "destination_number",
+            "call_router_number",
+          ]);
+          addDetail(details, "Forwarding number", normalizePhone(xmlForward));
         }
 
         if (!status && info.text) status = inferStatusFromText(info.text);
