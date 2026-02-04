@@ -416,6 +416,12 @@ switch ($endpoint) {
       if (isset($body_json["ping_id"])) $ping_id = $body_json["ping_id"];
       elseif (isset($body_json["pingId"])) $ping_id = $body_json["pingId"];
       elseif (isset($body_json["id"])) $ping_id = $body_json["id"];
+      elseif (isset($body_json["try_all_buyers_ping_id"])) $ping_id = $body_json["try_all_buyers_ping_id"];
+      elseif (isset($body_json["try_all_buyers"]) && is_array($body_json["try_all_buyers"]) && isset($body_json["try_all_buyers"]["ping_id"])) {
+        $ping_id = $body_json["try_all_buyers"]["ping_id"];
+      } elseif (isset($body_json["buyers"]) && is_array($body_json["buyers"]) && isset($body_json["buyers"][0]) && is_array($body_json["buyers"][0]) && isset($body_json["buyers"][0]["ping_id"])) {
+        $ping_id = $body_json["buyers"][0]["ping_id"];
+      }
     }
 
     $post_payload = [
