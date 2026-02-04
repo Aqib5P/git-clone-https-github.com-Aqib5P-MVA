@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\LeadField;
 use App\Services\BuyerRequestService;
 use App\Services\BuyerResponseParser;
+use App\Services\GoogleLogger;
 use Illuminate\Http\Request;
 
 class PublicFormController extends Controller
@@ -31,7 +32,7 @@ class PublicFormController extends Controller
         ]);
     }
 
-    public function submit(string $token, Request $request, BuyerRequestService $service, BuyerResponseParser $parser)
+    public function submit(string $token, Request $request, BuyerRequestService $service, BuyerResponseParser $parser, GoogleLogger $googleLogger)
     {
         $buyer = Buyer::where("public_token", $token)
             ->where("public_enabled", true)
@@ -74,6 +75,13 @@ class PublicFormController extends Controller
             "payload_json" => $leadData,
             "response_json" => $parsed["body_json"] ?? null,
             "response_raw" => $parsed["body_raw"] ?? null,
+        ]);
+
+        $googleLogger->log([
+            "endpoint" => $buyer->code,
+            "lead" => $leadData,
+            "payload" => $result,
+            "response" => $result,
         ]);
 
         return view("forms.result", [

@@ -8,11 +8,12 @@ use App\Models\Buyer;
 use App\Models\Lead;
 use App\Services\BuyerRequestService;
 use App\Services\BuyerResponseParser;
+use App\Services\GoogleLogger;
 use Illuminate\Http\Request;
 
 class BuyerSubmitController extends Controller
 {
-    public function submit(Request $request, BuyerRequestService $service, BuyerResponseParser $parser)
+    public function submit(Request $request, BuyerRequestService $service, BuyerResponseParser $parser, GoogleLogger $googleLogger)
     {
         $data = $request->json()->all();
         $endpoint = $data["endpoint"] ?? "";
@@ -64,6 +65,13 @@ class BuyerSubmitController extends Controller
             "payload_json" => $leadData,
             "response_json" => $parsed["body_json"] ?? null,
             "response_raw" => $parsed["body_raw"] ?? null,
+        ]);
+
+        $googleLogger->log([
+            "endpoint" => $buyer->code,
+            "lead" => $leadData,
+            "payload" => $result,
+            "response" => $result,
         ]);
 
         $response = [
