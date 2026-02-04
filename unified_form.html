@@ -768,6 +768,7 @@
         const t = String(text).toLowerCase();
         if (t.includes("accept") || t.includes("success") || t.includes("created") || t.includes("approved")) return "Accepted";
         if (t.includes("reject") || t.includes("declin") || t.includes("fail") || t.includes("error") || t.includes("invalid")) return "Rejected";
+        if (t.includes("no matching") || t.includes("no match") || t.includes("no_matching")) return "Rejected";
         return "";
       }
 
@@ -856,10 +857,31 @@
             }
           }
 
+          const combinedText = `${message} ${reason}`.trim();
+          const inferredFromMessage = combinedText ? inferStatusFromText(combinedText) : "";
+          if (inferredFromMessage === "Rejected") status = "Rejected";
+          else if (!status && inferredFromMessage) status = inferredFromMessage;
+
+          const errors = normalizeErrors(data.errors);
+          if (errors.length) {
+            status = "Rejected";
+            errors.forEach((err) => details.push(`Error: ${err}`));
+          }
+          if (data.error) {
+            status = "Rejected";
+            details.push(`Error: ${data.error}`);
+          }
+
+          if (Array.isArray(data.buyers) && data.buyers.length === 0 && status === "Accepted") {
+            status = "Rejected";
+            details.push("Error: No matching buyers.");
+          }
+
           const forwardNumber = pickFirst(data, [
             "phoneNumber",
             "phone_number",
             "phoneNumberNoPlus",
+            "number",
             "forwarding_number",
             "forwardingNumber",
             "transfer_number",
@@ -870,12 +892,6 @@
           ]);
           addDetail(details, "Forwarding number", normalizePhone(forwardNumber));
           addDetail(details, "SIP address", pickFirst(data, ["sipAddress", "sip_address"]));
-
-          const errors = normalizeErrors(data.errors);
-          if (errors.length) {
-            errors.forEach((err) => details.push(`Error: ${err}`));
-          }
-          if (data.error) details.push(`Error: ${data.error}`);
         }
 
         if (info.xml) {
