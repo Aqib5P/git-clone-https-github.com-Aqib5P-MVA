@@ -701,17 +701,6 @@
         statusLine.appendChild(span);
       }
 
-      function extractPingId(bodyJson) {
-        if (!bodyJson || typeof bodyJson !== "object") return "";
-        if (bodyJson.ping_id) return String(bodyJson.ping_id);
-        if (bodyJson.pingId) return String(bodyJson.pingId);
-        if (bodyJson.id) return String(bodyJson.id);
-        if (bodyJson.try_all_buyers_ping_id) return String(bodyJson.try_all_buyers_ping_id);
-        if (bodyJson.try_all_buyers && bodyJson.try_all_buyers.ping_id) return String(bodyJson.try_all_buyers.ping_id);
-        if (Array.isArray(bodyJson.buyers) && bodyJson.buyers[0] && bodyJson.buyers[0].ping_id) return String(bodyJson.buyers[0].ping_id);
-        return "";
-      }
-
       function normalizeErrors(errors) {
         const out = [];
         if (!errors) return out;
@@ -727,28 +716,154 @@
         return out;
       }
 
-      function summarizeResult(label, result, extra = {}) {
+      function parseXmlBody(text) {
+        if (!text || typeof text !== "string") return null;
+        try {
+          const doc = new DOMParser().parseFromString(text, "text/xml");
+          if (doc.getElementsByTagName("parsererror").length) return null;
+          return doc;
+        } catch {
+          return null;
+        }
+      }
+
+      function getXmlValue(doc, tags) {
+        if (!doc) return "";
+        for (const tag of tags) {
+          const el = doc.getElementsByTagName(tag)[0];
+          if (el && el.textContent) return el.textContent.trim();
+        }
+        return "";
+      }
+
+      function parseBodyInfo(result) {
+        const info = { json: null, xml: null, text: "" };
+        if (!result || typeof result !== "object") return info;
+        if (result.body_json && typeof result.body_json === "object") {
+          info.json = result.body_json;
+        }
+        const text = typeof result.body === "string" ? result.body.trim() : "";
+        info.text = text;
+        if (!info.json && text && (text.startsWith("{") || text.startsWith("["))) {
+          try { info.json = JSON.parse(text); } catch { /* ignore */ }
+        }
+        if (!info.xml && text && text.startsWith("<")) {
+          info.xml = parseXmlBody(text);
+        }
+        return info;
+      }
+
+      function inferStatusFromText(text) {
+        if (!text) return "";
+        const t = String(text).toLowerCase();
+        if (t.includes("accept") || t.includes("success") || t.includes("created") || t.includes("approved")) return "Accepted";
+        if (t.includes("reject") || t.includes("declin") || t.includes("fail") || t.includes("error") || t.includes("invalid")) return "Rejected";
+        return "";
+      }
+
+      function extractPingId(bodyJson) {
+        if (!bodyJson || typeof bodyJson !== "object") return "";
+        if (bodyJson.ping_id) return String(bodyJson.ping_id);
+        if (bodyJson.pingId) return String(bodyJson.pingId);
+        if (bodyJson.id) return String(bodyJson.id);
+        if (bodyJson.try_all_buyers_ping_id) return String(bodyJson.try_all_buyers_ping_id);
+        if (bodyJson.try_all_buyers && bodyJson.try_all_buyers.ping_id) return String(bodyJson.try_all_buyers.ping_id);
+        if (Array.isArray(bodyJson.buyers) && bodyJson.buyers[0] && bodyJson.buyers[0].ping_id) return String(bodyJson.buyers[0].ping_id);
+        return "";
+      }
+
+      function addDetail(lines, label, value) {
+        if (value === undefined || value === null || value === "") return;
+        lines.push(`${label}: ${value}`);
+      }
+
+      function getBuyerStatusInfo(result) {
+        const info = parseBodyInfo(result);
+        let status = "";
+        let reason = "";
+        let message = "";
+        let pingId = "";
+        const details = [];
+
+        if (info.json) {
+          const data = info.json;
+          pingId = extractPingId(data);
+
+          if (typeof data.outcome === "string") {
+            status = data.outcome.toLowerCase() === "success" ? "Accepted" : "Rejected";
+            if (data.reason) reason = String(data.reason);
+          } else if (typeof data.status === "string") {
+            status = inferStatusFromText(data.status);
+            if (!status) message = data.status;
+          } else if (typeof data.success === "boolean") {
+            status = data.success ? "Accepted" : "Rejected";
+          } else if (typeof data.result === "string") {
+            status = inferStatusFromText(data.result);
+          }
+
+          if (!message && data.msg) message = String(data.msg);
+          if (!message && data.message) message = String(data.message);
+          if (!reason && data.reason) reason = String(data.reason);
+
+          const leadId = (data.lead && data.lead.id) || data.lead_id || data.leadId;
+          addDetail(details, "Lead ID", leadId);
+          addDetail(details, "Price", data.price);
+          addDetail(details, "Payout", data.offer_conversion_payout);
+          addDetail(details, "Tracking", data.tracking_type);
+          addDetail(details, "Call Router ID", data.call_router_id);
+          addDetail(details, "Webhook Lead ID", data.inbound_webhook_lead_id);
+          addDetail(details, "Ping expiry (sec)", data.ping_ids_expiry_in_seconds);
+
+          if (Array.isArray(data.buyers)) {
+            addDetail(details, "Buyers", data.buyers.length);
+            const buyerIds = data.buyers.map((b) => b && b.id).filter(Boolean);
+            if (buyerIds.length) {
+              addDetail(details, "Buyer IDs", buyerIds.slice(0, 3).join(", ") + (buyerIds.length > 3 ? "…" : ""));
+            }
+            const payout = data.buyers.find((b) => b && b.offer_conversion_payout !== undefined);
+            if (payout && payout.offer_conversion_payout !== undefined) {
+              addDetail(details, "Offer payout", payout.offer_conversion_payout);
+            }
+          }
+
+          const errors = normalizeErrors(data.errors);
+          if (errors.length) {
+            errors.forEach((err) => details.push(`Error: ${err}`));
+          }
+          if (data.error) details.push(`Error: ${data.error}`);
+        }
+
+        if (info.xml) {
+          const resultVal = getXmlValue(info.xml, ["result"]);
+          const statusVal = getXmlValue(info.xml, ["status"]);
+          const msgVal = getXmlValue(info.xml, ["msg", "message"]);
+          if (!status) status = inferStatusFromText(resultVal || statusVal || msgVal);
+          if (!message && msgVal) message = msgVal;
+          if (!reason && msgVal && status === "Rejected") reason = msgVal;
+          addDetail(details, "Lead ID", getXmlValue(info.xml, ["lead_id", "leadid"]));
+          addDetail(details, "Price", getXmlValue(info.xml, ["price", "payout"]));
+        }
+
+        if (!status && info.text) status = inferStatusFromText(info.text);
+        if (!status) status = "Unknown";
+
+        if (pingId) details.unshift(`Ping ID: ${pingId}`);
+        if (message) details.unshift(`Message: ${message}`);
+        if (reason && reason !== message) details.unshift(`Reason: ${reason}`);
+
+        if (result && typeof result.status === "number") {
+          details.push(`HTTP: ${result.status}`);
+        }
+
+        return { status, details };
+      }
+
+      function summarizeResult(label, result) {
         const lines = [];
         if (!result || typeof result !== "object") return lines;
-        const ok = typeof result.effective_ok === "boolean" ? result.effective_ok : result.ok;
-        const status = typeof result.status === "number" ? result.status : "";
-        let text = ok === true ? "Accepted" : ok === false ? "Rejected" : "Unknown";
-        if (status) text += ` (HTTP ${status})`;
-        lines.push(`${label}: ${text}`);
-
-        const body = result.body_json;
-        if (body && typeof body.status === "string") {
-          lines.push(`${label} buyer status: ${body.status}`);
-        }
-        if (extra.showPingId) {
-          const pingId = extractPingId(body);
-          if (pingId) lines.push(`Ping ID: ${pingId}`);
-        }
-
-        const errors = normalizeErrors(body && body.errors);
-        if (errors.length) errors.forEach((err) => lines.push(`${label} error: ${err}`));
-        if (body && body.error) lines.push(`${label} error: ${body.error}`);
-        if (body && body.message) lines.push(`${label} message: ${body.message}`);
+        const info = getBuyerStatusInfo(result);
+        lines.push(`${label} buyer status: ${info.status}`);
+        info.details.forEach((detail) => lines.push(`${label} ${detail}`));
         return lines;
       }
 
@@ -837,16 +952,27 @@
 
           if (json) {
             respPreview.textContent = JSON.stringify(json, null, 2);
-            const ok = json && json.upstream && json.upstream.effective_ok === true;
-            const status = json && json.upstream && typeof json.upstream.status === "number" ? json.upstream.status : res.status;
-            setStatus(ok ? "Request completed." : `Request completed (HTTP ${status}).`, ok ? "ok" : "bad");
+            const primary = json.post || json.upstream || json.ping;
+            const primaryInfo = primary ? getBuyerStatusInfo(primary) : null;
+            let statusText = "Request completed.";
+            let statusKind = undefined;
+            if (primaryInfo) {
+              const httpStatus = primary && typeof primary.status === "number" ? ` (HTTP ${primary.status})` : "";
+              statusText = `Buyer status: ${primaryInfo.status}${primaryInfo.status === "Unknown" ? httpStatus : ""}`;
+              if (primaryInfo.status === "Accepted") statusKind = "ok";
+              if (primaryInfo.status === "Rejected") statusKind = "bad";
+            }
+            setStatus(statusText, statusKind);
 
             const summary = [];
             const endpoint = json.endpoint || endpointId;
             if (endpoint) summary.push(`Endpoint: ${endpoint}`);
-            summary.push(...summarizeResult("Upstream", json.upstream || {}, {}));
-            if (json.ping) summary.push(...summarizeResult("Ping", json.ping, { showPingId: true }));
-            if (json.post) summary.push(...summarizeResult("Post", json.post, {}));
+            if (json.ping || json.post) {
+              if (json.ping) summary.push(...summarizeResult("Ping", json.ping));
+              if (json.post) summary.push(...summarizeResult("Post", json.post));
+            } else {
+              summary.push(...summarizeResult("Upstream", json.upstream || {}));
+            }
             if (json.post_attempted === false && json.post_skipped_reason) {
               summary.push(`Post: skipped (${json.post_skipped_reason})`);
             }
