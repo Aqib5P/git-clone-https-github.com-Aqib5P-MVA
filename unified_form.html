@@ -474,6 +474,7 @@
 
     <script>
       const FORM_CONFIG_URL = "http://138.201.138.161/api/form-config";
+      const SUBMIT_URL = "http://138.201.138.161/api/buyer-submit";
       let formConfig = { fields: {}, requirements: {} };
       const endpoints = {
         D1: {
@@ -1113,7 +1114,7 @@
         setStatus("Sending to relay...", "ok");
 
         try {
-          const res = await fetch("relay.php", {
+          const res = await fetch(SUBMIT_URL || "relay.php", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ endpoint: endpointId, data: p.data }),
