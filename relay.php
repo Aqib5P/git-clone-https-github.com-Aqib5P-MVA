@@ -382,6 +382,7 @@ switch ($endpoint) {
     $ping_payload = [
       "trackdrive_number" => "+18446757519",
       "traffic_source_id" => "7785",
+      "buyer_td_traffic_source_id" => "7785",
       "has_insurance" => "Yes",
       "cited" => "No",
       "settlement" => "No",
@@ -442,12 +443,22 @@ switch ($endpoint) {
       "ping_id" => $ping_id,
     ];
 
+    $post_attempted = false;
+    $post_skipped_reason = "";
     $post_result = null;
     if ($ping_id && val($ping_result, "effective_ok", false)) {
+      $post_attempted = true;
       $post_result = finalize_upstream(curl_post($post_url, $post_payload, [], false));
+    } elseif (!$ping_id) {
+      $post_skipped_reason = "Missing ping_id in ping response";
+    } else {
+      $post_skipped_reason = "Ping not accepted";
     }
 
-    $log_result = ["ping" => $ping_result];
+    $log_payload = ["ping" => $ping_payload];
+    if ($post_attempted) $log_payload["post"] = $post_payload;
+
+    $log_result = ["ping" => $ping_result, "post_attempted" => $post_attempted];
     $status = val($ping_result, "status", "");
     $effective_ok = val($ping_result, "effective_ok", false);
     if ($post_result) {
@@ -457,18 +468,21 @@ switch ($endpoint) {
     }
     $log_result["status"] = $status;
     $log_result["effective_ok"] = $effective_ok;
+    if ($post_skipped_reason) $log_result["post_skipped_reason"] = $post_skipped_reason;
 
-    log_to_sheet("D32", $d, ["ping" => $ping_payload, "post" => $post_payload], $log_result);
+    log_to_sheet("D32", $d, $log_payload, $log_result);
 
     if ($post_result) {
       json_out(["endpoint" => "D32", "upstream" => $post_result, "ping" => $ping_result, "post" => $post_result]);
     }
 
-    if (!$ping_id) {
-      json_out(["endpoint" => "D32", "upstream" => $ping_result, "ping" => $ping_result, "error" => "Missing ping_id in ping response"]);
-    }
-
-    json_out(["endpoint" => "D32", "upstream" => $ping_result, "ping" => $ping_result, "error" => "Ping not accepted"]);
+    json_out([
+      "endpoint" => "D32",
+      "upstream" => $ping_result,
+      "ping" => $ping_result,
+      "post_attempted" => $post_attempted,
+      "post_skipped_reason" => $post_skipped_reason,
+    ]);
   }
 
   default:
