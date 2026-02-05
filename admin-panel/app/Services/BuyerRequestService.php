@@ -20,10 +20,12 @@ class BuyerRequestService
             $pingPayload = $this->buildPayload($buyer, $leadData, "ping");
             $pingResult = $this->sendRequest($buyer, $buyer->ping_url, $pingPayload);
             $pingId = $this->extractPingId($pingResult);
+            $leadId = $this->extractLeadId($pingResult);
 
-            if ($pingId && $buyer->post_url) {
-                $postPayload = $this->buildPayload($buyer, $leadData, "post", ["ping_id" => $pingId]);
-                if (!array_key_exists("ping_id", $postPayload)) {
+            if (($pingId || $leadId) && $buyer->post_url) {
+                $context = ["ping_id" => $pingId, "lead_id" => $leadId];
+                $postPayload = $this->buildPayload($buyer, $leadData, "post", $context);
+                if ($pingId && !array_key_exists("ping_id", $postPayload)) {
                     $postPayload["ping_id"] = $pingId;
                 }
                 $postResult = $this->sendRequest($buyer, $buyer->post_url, $postPayload);
@@ -32,12 +34,14 @@ class BuyerRequestService
                     "ping" => $pingResult,
                     "post" => $postResult,
                     "ping_id" => $pingId,
+                    "lead_id" => $leadId,
                 ];
             }
 
             return [
                 "ping" => $pingResult,
                 "ping_id" => $pingId,
+                "lead_id" => $leadId,
             ];
         }
 
@@ -145,6 +149,7 @@ class BuyerRequestService
     private function computedValue(?string $key, array $leadData, array $context)
     {
         if ($key === "ping_id") return $context["ping_id"] ?? null;
+        if ($key === "lead_id") return $context["lead_id"] ?? null;
         if ($key === "now_iso") return gmdate("c");
         if ($key === "jornaya_or_cert") {
             return $leadData["jornaya_leadid"] ?? $leadData["cert_id"] ?? null;
@@ -184,6 +189,21 @@ class BuyerRequestService
             ?? $data["try_all_buyers_ping_id"]
             ?? ($data["try_all_buyers"]["ping_id"] ?? null)
             ?? ($data["buyers"][0]["ping_id"] ?? null);
+    }
+
+    private function extractLeadId(array $result): ?string
+    {
+        if (!isset($result["body_json"]) || !is_array($result["body_json"])) {
+            return null;
+        }
+        $data = $result["body_json"];
+        if (isset($data["lead_id"])) return (string) $data["lead_id"];
+        if (isset($data["leadId"])) return (string) $data["leadId"];
+        if (isset($data["response"]) && is_array($data["response"])) {
+            if (isset($data["response"]["lead_id"])) return (string) $data["response"]["lead_id"];
+            if (isset($data["response"]["leadId"])) return (string) $data["response"]["leadId"];
+        }
+        return null;
     }
 
     private function buildD2Payload(array $leadData): array
