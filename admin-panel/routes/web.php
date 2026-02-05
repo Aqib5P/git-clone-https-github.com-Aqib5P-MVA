@@ -5,19 +5,17 @@ use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IpValidationController;
 use App\Http\Controllers\LeadFieldController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\PublisherController;
 use App\Http\Controllers\PublicFormController;
-use App\Http\Controllers\RtbController;
 use Illuminate\Support\Facades\Route;
 
 Route::get("/ip/validate", [IpValidationController::class, "show"])->name("ip.validate");
 Route::post("/ip/validate", [IpValidationController::class, "validateIp"])->name("ip.validate.submit");
 Route::get("/f/{token}", [PublicFormController::class, "show"])->name("forms.public");
 Route::post("/f/{token}", [PublicFormController::class, "submit"])->name("forms.submit");
-Route::get("/rtb", [RtbController::class, "show"])->name("rtb.form");
-Route::post("/rtb", [RtbController::class, "submit"])->name("rtb.submit");
 
 Route::middleware(["ip.allow"])->group(function () {
     Route::get("/login", [AuthController::class, "showLogin"])->name("login.form");
@@ -53,5 +51,7 @@ Route::middleware(["ip.allow"])->group(function () {
         Route::get("/publishers", [PublisherController::class, "index"])->name("publishers.index");
         Route::post("/publishers", [PublisherController::class, "store"])->name("publishers.store");
         Route::post("/publishers/{publisher}/toggle", [PublisherController::class, "toggle"])->name("publishers.toggle");
+
+        Route::get("/leads", [LeadController::class, "index"])->name("leads.index");
     });
 });

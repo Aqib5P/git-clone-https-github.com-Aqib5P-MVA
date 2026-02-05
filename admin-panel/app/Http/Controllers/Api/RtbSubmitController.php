@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Attempt;
 use App\Models\Buyer;
 use App\Models\Lead;
-use App\Models\LeadField;
 use App\Models\RtbBid;
 use App\Services\BuyerRequestService;
 use App\Services\BuyerResponseParser;
@@ -14,21 +14,8 @@ use App\Services\GoogleLogger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-class RtbController extends Controller
+class RtbSubmitController extends Controller
 {
-    public function show()
-    {
-        $buyers = $this->rtbBuyers();
-        [$requiredKeys, $leadFields] = $this->resolveLeadFields($buyers);
-
-        return view("forms.rtb", [
-            "buyers" => $buyers,
-            "leadFields" => $leadFields,
-            "requiredKeys" => $requiredKeys,
-            "results" => [],
-        ]);
-    }
-
     public function submit(
         Request $request,
         BuyerRequestService $service,
@@ -36,33 +23,40 @@ class RtbController extends Controller
         DuplicateChecker $duplicateChecker,
         GoogleLogger $googleLogger
     ) {
-        $buyers = $this->rtbBuyers();
-        [$requiredKeys, $leadFields] = $this->resolveLeadFields($buyers);
+        $data = $request->json()->all();
+        $leadData = $data["data"] ?? $data["lead"] ?? $data;
+        if (!is_array($leadData)) $leadData = [];
+
+        $leadData = $this->normalizeLeadData($leadData);
+
+        $buyers = Buyer::query()
+            ->where("active", true)
+            ->where("scope", "rtb")
+            ->orderBy("code")
+            ->get();
 
         if ($buyers->isEmpty()) {
-            return view("forms.rtb", [
-                "buyers" => $buyers,
-                "leadFields" => $leadFields,
-                "requiredKeys" => $requiredKeys,
-                "results" => [],
-                "error" => "No active RTB buyers configured.",
-            ]);
+            return $this->cors(response()->json([
+                "error" => "No RTB buyers configured.",
+            ], 422));
         }
 
-        $leadData = $request->except(["_token"]);
         $lead = Lead::create([
+            "product_id" => $buyers->first()?->default_product_id,
+            "campaign_id" => $buyers->first()?->default_campaign_id,
+            "publisher_id" => $buyers->first()?->default_publisher_id,
             "first_name" => $leadData["first_name"] ?? null,
             "last_name" => $leadData["last_name"] ?? null,
             "email" => $leadData["email"] ?? null,
-            "phone" => $leadData["phone"] ?? ($leadData["phone_number"] ?? null),
-            "zip5" => $leadData["zip5"] ?? ($leadData["zip"] ?? ($leadData["zip_code"] ?? null)),
+            "phone" => $leadData["phone"] ?? null,
+            "zip5" => $leadData["zip5"] ?? ($leadData["zip"] ?? null),
             "city" => $leadData["city"] ?? null,
             "state" => $leadData["state"] ?? null,
             "accident_state" => $leadData["accident_state"] ?? null,
-            "ip_address" => $request->ip(),
-            "source_url" => $request->headers->get("referer"),
-            "cert_id" => $leadData["cert_id"] ?? ($leadData["trusted_form_cert_id"] ?? null),
-            "cert_url" => $leadData["cert_url"] ?? ($leadData["trusted_form_cert_url"] ?? null),
+            "ip_address" => $leadData["ip_address"] ?? $request->ip(),
+            "source_url" => $leadData["source_url"] ?? $request->headers->get("referer"),
+            "cert_id" => $leadData["cert_id"] ?? null,
+            "cert_url" => $leadData["cert_url"] ?? null,
             "lead_json" => $leadData,
         ]);
 
@@ -105,16 +99,7 @@ class RtbController extends Controller
             ]);
 
             $bidJson = $parsed["body_json"] ?? null;
-            $minDuration = $this->extractFirst($bidJson, ["callMinDuration", "min_duration", "minimumDuration"]);
-            if (!$minDuration && is_array($bidJson) && isset($bidJson["bidTerms"]) && is_array($bidJson["bidTerms"])) {
-                foreach ($bidJson["bidTerms"] as $term) {
-                    if (is_array($term) && isset($term["callMinDuration"])) {
-                        $minDuration = (string) $term["callMinDuration"];
-                        break;
-                    }
-                }
-            }
-            $rtbBid = RtbBid::create([
+            RtbBid::create([
                 "attempt_id" => $attempt->id,
                 "buyer_id" => $buyer->id,
                 "bid_id" => $this->extractFirst($bidJson, ["bidId", "bid_id", "id", "requestId"]),
@@ -130,8 +115,17 @@ class RtbController extends Controller
                 "lead" => $leadData,
                 "payload" => $result,
                 "response" => $result,
-                "rtb_bid" => $rtbBid->toArray(),
             ]);
+
+            $minDuration = $this->extractFirst($bidJson, ["callMinDuration", "min_duration", "minimumDuration"]);
+            if (!$minDuration && is_array($bidJson) && isset($bidJson["bidTerms"]) && is_array($bidJson["bidTerms"])) {
+                foreach ($bidJson["bidTerms"] as $term) {
+                    if (is_array($term) && isset($term["callMinDuration"])) {
+                        $minDuration = (string) $term["callMinDuration"];
+                        break;
+                    }
+                }
+            }
 
             $results[] = [
                 "buyer" => $buyer->code,
@@ -142,62 +136,41 @@ class RtbController extends Controller
                 "min_duration" => $minDuration,
                 "expires" => $this->extractFirst($bidJson, ["expireInSeconds", "expires_in", "expiresInSeconds"]),
                 "duplicate" => $duplicate !== null,
+                "response_raw" => $parsed["body_raw"] ?? null,
+                "response_json" => $parsed["body_json"] ?? null,
             ];
         }
 
         usort($results, fn ($a, $b) => ($b["bid"] ?? 0) <=> ($a["bid"] ?? 0));
 
-        return view("forms.rtb", [
-            "buyers" => $buyers,
-            "leadFields" => $leadFields,
-            "requiredKeys" => $requiredKeys,
+        $response = response()->json([
+            "lead_id" => $lead->id,
             "results" => $results,
         ]);
+
+        return $this->cors($response);
     }
 
-    private function rtbBuyers()
+    private function normalizeLeadData(array $leadData): array
     {
-        return Buyer::query()
-            ->where("active", true)
-            ->where("scope", "rtb")
-            ->orderBy("code")
-            ->get();
-    }
-
-    private function resolveLeadFields($buyers): array
-    {
-        $requiredKeys = $buyers
-            ->flatMap(function ($buyer) {
-                return $buyer->fields()
-                    ->where("required", true)
-                    ->where("source_type", "lead")
-                    ->pluck("source_key");
-            })
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
-
-        if (count($requiredKeys) === 0) {
-            $requiredKeys = [
-                "first_name",
-                "last_name",
-                "email",
-                "phone",
-                "zip5",
-                "state",
-                "attorney",
-                "cert_id",
-            ];
+        if (!isset($leadData["phone"]) && isset($leadData["phone_number"])) {
+            $leadData["phone"] = $leadData["phone_number"];
+        }
+        if (!isset($leadData["zip5"])) {
+            $leadData["zip5"] = $leadData["zip_code"] ?? ($leadData["zip"] ?? null);
+        }
+        if (!isset($leadData["cert_id"])) {
+            $leadData["cert_id"] = $leadData["trusted_form_cert_id"] ?? null;
+        }
+        if (!isset($leadData["cert_url"]) && isset($leadData["trusted_form_cert_url"])) {
+            $leadData["cert_url"] = $leadData["trusted_form_cert_url"];
+        }
+        if (!isset($leadData["attorney"]) && isset($leadData["have_attorney"])) {
+            $value = strtolower((string) $leadData["have_attorney"]);
+            $leadData["attorney"] = in_array($value, ["yes", "y", "1", "true"], true) ? "Yes" : "No";
         }
 
-        $leadFields = LeadField::where("active", true)
-            ->whereIn("key", $requiredKeys)
-            ->orderBy("key")
-            ->get()
-            ->keyBy("key");
-
-        return [$requiredKeys, $leadFields];
+        return $leadData;
     }
 
     private function extractFirst(?array $data, array $keys): ?string
@@ -227,5 +200,12 @@ class RtbController extends Controller
             }
         }
         return null;
+    }
+
+    private function cors($response)
+    {
+        return $response->header("Access-Control-Allow-Origin", "*")
+            ->header("Access-Control-Allow-Headers", "Content-Type")
+            ->header("Access-Control-Allow-Methods", "POST, OPTIONS");
     }
 }

@@ -14,10 +14,10 @@
           <a class="text-slate-600 hover:text-slate-900" href="{{ route('dashboard') }}">Dashboard</a>
           <a class="text-slate-600 hover:text-slate-900" href="{{ route('buyers.index') }}">Buyers</a>
           <a class="text-slate-600 hover:text-slate-900" href="{{ route('fields.index') }}">Lead Fields</a>
+          <a class="text-slate-600 hover:text-slate-900" href="{{ route('leads.index') }}">Leads</a>
           <a class="text-slate-600 hover:text-slate-900" href="{{ route('products.index') }}">Products</a>
           <a class="text-slate-600 hover:text-slate-900" href="{{ route('campaigns.index') }}">Campaigns</a>
           <a class="text-slate-600 hover:text-slate-900" href="{{ route('publishers.index') }}">Publishers</a>
-          <a class="text-slate-600 hover:text-slate-900" href="{{ route('rtb.form') }}">RTB Form</a>
         </div>
         <form method="post" action="{{ route('logout') }}" class="ml-auto">
           @csrf

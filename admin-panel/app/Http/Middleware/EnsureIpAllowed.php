@@ -11,7 +11,7 @@ class EnsureIpAllowed
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->is("ip/validate") || $request->is("f/*") || $request->is("rtb")) {
+        if ($request->is("ip/validate") || $request->is("f/*")) {
             return $next($request);
         }
 
