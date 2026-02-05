@@ -14,7 +14,7 @@ class BuyerSeeder extends Seeder
     {
         $product = Product::where("code", "MVA")->first();
         $campaign = Campaign::where("code", "MVA-DEFAULT")->first();
-        $rtbCodes = ["D4", "D4One", "D5", "D9", "D12", "D20", "D22", "D23", "D25", "D29", "D31"];
+        $rtbCodes = ["D4", "D4One", "D5", "D9", "D12", "D20", "D22", "D25", "D29", "D31"];
 
         $buyers = [
             "D1" => ["name" => "Buyer D1", "type" => "single"],
@@ -40,7 +40,7 @@ class BuyerSeeder extends Seeder
             "D20" => ["name" => "Buyer D20", "type" => "rtb"],
             "D21" => ["name" => "Buyer D21", "type" => "single"],
             "D22" => ["name" => "Buyer D22", "type" => "rtb"],
-            "D23" => ["name" => "Buyer D23 (Ringba)", "type" => "rtb"],
+            "D23" => ["name" => "Buyer D23 (Ringba)", "type" => "single"],
             "D24" => ["name" => "Buyer D24", "type" => "single"],
             "D25" => ["name" => "Buyer D25", "type" => "rtb"],
             "D26" => ["name" => "Buyer D26", "type" => "single"],
@@ -314,7 +314,7 @@ class BuyerSeeder extends Seeder
                     "type" => $data["type"],
                     "scope" => in_array($code, $rtbCodes, true)
                         ? "rtb"
-                        : (in_array($code, ["D1","D2","D6","D26","D27","D30","D32"], true) ? "unified" : "single"),
+                        : (in_array($code, ["D1","D2","D6","D23","D26","D27","D30","D32"], true) ? "unified" : "single"),
                     "payload_format" => "form",
                     "platform" => in_array($code, ["D32","D26","D12","D29"], true)
                         ? "trackdrive"

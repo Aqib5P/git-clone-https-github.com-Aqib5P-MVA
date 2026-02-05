@@ -61,22 +61,44 @@ class RtbSubmitController extends Controller
         ]);
 
         $results = [];
+        $minBid = 20;
         foreach ($buyers as $buyer) {
             $duplicate = $duplicateChecker->findDuplicateAttempt($buyer->id, $lead->phone);
 
             $result = $service->submit($buyer, $leadData);
+            $pingParsed = $parser->parse(is_array($result["ping"] ?? null) ? $result["ping"] : null, $buyer->response_rules ?? []);
+            $postParsed = $parser->parse(is_array($result["post"] ?? null) ? $result["post"] : null, $buyer->response_rules ?? []);
             $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
             $parsed = $parser->parse(is_array($primary) ? $primary : null, $buyer->response_rules ?? []);
 
-            $payout = $parsed["payout"] ?? null;
+            $payout = $postParsed["payout"] ?? $pingParsed["payout"] ?? $parsed["payout"] ?? null;
             if ($buyer->payout_type === "static" && $buyer->static_payout !== null) {
                 $payout = $buyer->static_payout;
             }
-            $bidAmount = $parsed["bid_amount"] ?? $payout;
+            $bidAmount = $postParsed["bid_amount"] ?? $pingParsed["bid_amount"] ?? $parsed["bid_amount"] ?? $payout;
 
             $status = $parsed["status"] ?? "unknown";
-            if ($status === "unknown" && is_numeric($bidAmount) && $bidAmount > 0) {
-                $status = "accepted";
+            if ($buyer->type === "ping_post" && !($result["post"] ?? null)) {
+                $status = "rejected";
+            }
+
+            $rejectReason = $this->extractRejectReason($parsed["body_json"] ?? null);
+            if ($status === "accepted" && $rejectReason !== "") {
+                $status = "rejected";
+            }
+
+            if (!in_array($status, ["accepted", "rejected"], true)) {
+                $status = "rejected";
+            }
+
+            if ($status === "accepted") {
+                $numericBid = is_numeric($bidAmount) ? (float) $bidAmount : 0;
+                if ($numericBid < $minBid) {
+                    $status = "rejected";
+                    $rejectReason = "Bid too low";
+                    $bidAmount = 0;
+                    $payout = 0;
+                }
             }
 
             $attempt = Attempt::create([
@@ -88,17 +110,17 @@ class RtbSubmitController extends Controller
                 "is_duplicate" => $duplicate !== null,
                 "duplicate_of_id" => $duplicate?->id,
                 "duplicate_window" => config("admin.duplicate_window_days") . "d",
-                "http_status" => $parsed["http_status"] ?? null,
-                "ping_id" => $parsed["ping_id"] ?? null,
-                "forwarding_number" => $parsed["forwarding_number"] ?? null,
+                "http_status" => $postParsed["http_status"] ?? $pingParsed["http_status"] ?? $parsed["http_status"] ?? null,
+                "ping_id" => $pingParsed["ping_id"] ?? $parsed["ping_id"] ?? null,
+                "forwarding_number" => $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"] ?? null,
                 "payout" => $payout,
                 "bid_amount" => $bidAmount,
                 "payload_json" => $leadData,
-                "response_json" => $parsed["body_json"] ?? null,
-                "response_raw" => $parsed["body_raw"] ?? null,
+                "response_json" => $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"] ?? null,
+                "response_raw" => $postParsed["body_raw"] ?? $pingParsed["body_raw"] ?? $parsed["body_raw"] ?? null,
             ]);
 
-            $bidJson = $parsed["body_json"] ?? null;
+            $bidJson = $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"] ?? null;
             RtbBid::create([
                 "attempt_id" => $attempt->id,
                 "buyer_id" => $buyer->id,
@@ -130,18 +152,29 @@ class RtbSubmitController extends Controller
             $results[] = [
                 "buyer" => $buyer->code,
                 "status" => $status,
-                "bid" => $bidAmount ?? 0,
-                "payout" => $payout,
-                "forwarding_number" => $parsed["forwarding_number"] ?? null,
+                "sort_bid" => is_numeric($bidAmount) ? (float) $bidAmount : 0,
+                "forwarding_number" => $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"] ?? null,
                 "min_duration" => $minDuration,
                 "expires" => $this->extractFirst($bidJson, ["expireInSeconds", "expires_in", "expiresInSeconds"]),
                 "duplicate" => $duplicate !== null,
-                "response_raw" => $parsed["body_raw"] ?? null,
-                "response_json" => $parsed["body_json"] ?? null,
             ];
         }
 
-        usort($results, fn ($a, $b) => ($b["bid"] ?? 0) <=> ($a["bid"] ?? 0));
+        usort($results, fn ($a, $b) => ($b["sort_bid"] ?? 0) <=> ($a["sort_bid"] ?? 0));
+        foreach ($results as $index => &$row) {
+            if (strtolower((string) $row["status"]) === "accepted") {
+                $row["rank_label"] = match ($index) {
+                    0 => "Highest Payout",
+                    1 => "2nd Highest",
+                    2 => "3rd Highest",
+                    default => "",
+                };
+            } else {
+                $row["rank_label"] = "";
+            }
+            unset($row["sort_bid"]);
+        }
+        unset($row);
 
         $response = response()->json([
             "lead_id" => $lead->id,
@@ -207,5 +240,26 @@ class RtbSubmitController extends Controller
         return $response->header("Access-Control-Allow-Origin", "*")
             ->header("Access-Control-Allow-Headers", "Content-Type")
             ->header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    }
+
+    private function extractRejectReason(?array $data): string
+    {
+        if (!is_array($data)) return "";
+        if (!empty($data["rejectReason"])) return (string) $data["rejectReason"];
+        if (!empty($data["reject_reason"])) return (string) $data["reject_reason"];
+        if (!empty($data["error"])) return (string) $data["error"];
+        if (!empty($data["message"])) return (string) $data["message"];
+        if (!empty($data["msg"])) return (string) $data["msg"];
+        if (!empty($data["errors"])) {
+            if (is_array($data["errors"])) {
+                $flat = [];
+                foreach ($data["errors"] as $err) {
+                    $flat[] = is_array($err) ? implode(", ", $err) : (string) $err;
+                }
+                return implode(" | ", $flat);
+            }
+            return (string) $data["errors"];
+        }
+        return "";
     }
 }

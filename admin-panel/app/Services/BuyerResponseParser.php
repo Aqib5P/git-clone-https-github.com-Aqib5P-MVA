@@ -29,7 +29,7 @@ class BuyerResponseParser
         if (is_array($bodyJson)) {
             $pingId = $this->extractPingId($bodyJson);
             $forwarding = $this->extractForwardingNumber($bodyJson, $rules["forwarding_keys"] ?? []);
-            $payout = $this->extractNumber($bodyJson, $rules["payout_keys"] ?? ["payout", "price", "offer_conversion_payout"]);
+            $payout = $this->extractNumber($bodyJson, $rules["payout_keys"] ?? ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
             $bidAmount = $this->extractNumber($bodyJson, $rules["bid_keys"] ?? ["bidAmount", "bid_amount", "bidPrice"]);
             $status = $this->inferStatusFromJson($bodyJson, $rules);
         }
@@ -56,7 +56,7 @@ class BuyerResponseParser
             }
         }
 
-        if ($status === "unknown" && is_array($response) && array_key_exists("effective_ok", $response)) {
+        if ($status === "unknown" && !$bodyRaw && !$bodyJson && is_array($response) && array_key_exists("effective_ok", $response)) {
             $status = $response["effective_ok"] ? "accepted" : "rejected";
         }
 
@@ -100,6 +100,12 @@ class BuyerResponseParser
         }
         if (!empty($data["rejectReason"]) || !empty($data["reject_reason"])) {
             return "rejected";
+        }
+        if ((isset($data["bidAmount"]) || isset($data["bidPrice"])) && empty($data["rejectReason"]) && empty($data["reject_reason"])) {
+            $bid = $data["bidAmount"] ?? $data["bidPrice"];
+            if (is_numeric($bid) && (float) $bid >= 0) {
+                return "accepted";
+            }
         }
         if (!empty($data["errors"])) {
             return "rejected";
@@ -211,6 +217,20 @@ class BuyerResponseParser
         foreach ($keys as $key) {
             if (isset($data[$key]) && is_numeric($data[$key])) {
                 return (float) $data[$key];
+            }
+        }
+        if (isset($data["response"]) && is_array($data["response"])) {
+            foreach ($keys as $key) {
+                if (isset($data["response"][$key]) && is_numeric($data["response"][$key])) {
+                    return (float) $data["response"][$key];
+                }
+            }
+        }
+        if (isset($data["buyers"]) && is_array($data["buyers"]) && isset($data["buyers"][0]) && is_array($data["buyers"][0])) {
+            foreach ($keys as $key) {
+                if (isset($data["buyers"][0][$key]) && is_numeric($data["buyers"][0][$key])) {
+                    return (float) $data["buyers"][0][$key];
+                }
             }
         }
         return null;
