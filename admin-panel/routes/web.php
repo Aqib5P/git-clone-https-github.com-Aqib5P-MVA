@@ -9,12 +9,15 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\PublisherController;
 use App\Http\Controllers\PublicFormController;
+use App\Http\Controllers\RtbController;
 use Illuminate\Support\Facades\Route;
 
 Route::get("/ip/validate", [IpValidationController::class, "show"])->name("ip.validate");
 Route::post("/ip/validate", [IpValidationController::class, "validateIp"])->name("ip.validate.submit");
 Route::get("/f/{token}", [PublicFormController::class, "show"])->name("forms.public");
 Route::post("/f/{token}", [PublicFormController::class, "submit"])->name("forms.submit");
+Route::get("/rtb", [RtbController::class, "show"])->name("rtb.form");
+Route::post("/rtb", [RtbController::class, "submit"])->name("rtb.submit");
 
 Route::middleware(["ip.allow"])->group(function () {
     Route::get("/login", [AuthController::class, "showLogin"])->name("login.form");

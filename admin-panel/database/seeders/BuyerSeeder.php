@@ -217,7 +217,9 @@ class BuyerSeeder extends Seeder
                 [
                     "name" => $data["name"],
                     "type" => $data["type"],
-                    "scope" => in_array($code, ["D1","D2","D6","D23","D25","D26","D27","D30","D32"], true) ? "unified" : "single",
+                    "scope" => $data["type"] === "rtb"
+                        ? "rtb"
+                        : (in_array($code, ["D1","D2","D6","D25","D26","D27","D30","D32"], true) ? "unified" : "single"),
                     "payload_format" => "form",
                     "platform" => in_array($code, ["D32","D26"], true) ? "trackdrive" : (in_array($code, ["D23"], true) ? "ringba" : (in_array($code, ["D1","D25","D30"], true) ? "leadspedia" : "custom")),
                     "default_product_id" => $product?->id,

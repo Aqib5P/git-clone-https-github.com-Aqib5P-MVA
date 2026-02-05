@@ -15,6 +15,9 @@ class Attempt extends Model
         "endpoint",
         "direction",
         "status",
+        "is_duplicate",
+        "duplicate_of_id",
+        "duplicate_window",
         "http_status",
         "ping_id",
         "forwarding_number",
@@ -28,6 +31,7 @@ class Attempt extends Model
     protected $casts = [
         "payload_json" => "array",
         "response_json" => "array",
+        "is_duplicate" => "boolean",
     ];
 
     public function lead()

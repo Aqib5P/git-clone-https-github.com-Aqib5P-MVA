@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\LeadField;
 use App\Services\BuyerRequestService;
 use App\Services\BuyerResponseParser;
+use App\Services\DuplicateChecker;
 use App\Services\GoogleLogger;
 use Illuminate\Http\Request;
 
@@ -32,7 +33,7 @@ class PublicFormController extends Controller
         ]);
     }
 
-    public function submit(string $token, Request $request, BuyerRequestService $service, BuyerResponseParser $parser, GoogleLogger $googleLogger)
+    public function submit(string $token, Request $request, BuyerRequestService $service, BuyerResponseParser $parser, DuplicateChecker $duplicateChecker, GoogleLogger $googleLogger)
     {
         $buyer = Buyer::where("public_token", $token)
             ->where("public_enabled", true)
@@ -59,6 +60,8 @@ class PublicFormController extends Controller
             "lead_json" => $leadData,
         ]);
 
+        $duplicate = $duplicateChecker->findDuplicateAttempt($buyer->id, $lead->phone);
+
         $result = $service->submit($buyer, $leadData);
 
         $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
@@ -75,6 +78,9 @@ class PublicFormController extends Controller
             "endpoint" => $buyer->code,
             "direction" => $buyer->type === "ping_post" ? "post" : "single",
             "status" => $parsed["status"] ?? "unknown",
+            "is_duplicate" => $duplicate !== null,
+            "duplicate_of_id" => $duplicate?->id,
+            "duplicate_window" => config("admin.duplicate_window_days") . "d",
             "http_status" => $parsed["http_status"] ?? null,
             "ping_id" => $parsed["ping_id"] ?? null,
             "forwarding_number" => $parsed["forwarding_number"] ?? null,

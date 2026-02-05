@@ -67,6 +67,13 @@ class DashboardController extends Controller
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
             ->sum("payout");
         $rpm = $totalAttempts > 0 ? round(($totalRevenue / $totalAttempts) * 1000, 2) : 0;
+        $duplicateCount = Attempt::query()
+            ->whereBetween("created_at", [$startDate, $endDate])
+            ->when($status, fn ($q) => $q->where("status", $status))
+            ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
+            ->where("is_duplicate", true)
+            ->count();
+        $duplicateRate = $totalAttempts > 0 ? round(($duplicateCount / $totalAttempts) * 100, 1) : 0;
 
         $buyers = Buyer::orderBy("code")->get();
 
@@ -104,6 +111,8 @@ class DashboardController extends Controller
             "topPayoutBuyer" => $topPayoutBuyer,
             "totalRevenue" => $totalRevenue,
             "rpm" => $rpm,
+            "duplicateCount" => $duplicateCount,
+            "duplicateRate" => $duplicateRate,
             "productStats" => $productStats,
             "campaignStats" => $campaignStats,
             "publisherStats" => $publisherStats,

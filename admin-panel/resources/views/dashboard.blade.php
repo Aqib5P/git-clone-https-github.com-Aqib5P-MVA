@@ -45,7 +45,7 @@
     $total = $accepted + $rejected + $unknown;
   @endphp
 
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
     <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
       <div class="text-sm text-emerald-600">Accepted</div>
       <div class="text-2xl font-semibold">{{ $accepted }}</div>
@@ -86,6 +86,11 @@
       <div class="text-sm text-slate-500">RPM (per 1000)</div>
       <div class="text-2xl font-semibold">${{ $rpm }}</div>
       <div class="text-sm text-slate-500">Revenue: ${{ $totalRevenue }}</div>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-4">
+      <div class="text-sm text-slate-500">Duplicates</div>
+      <div class="text-2xl font-semibold">{{ $duplicateCount }}</div>
+      <div class="text-sm text-slate-500">{{ $duplicateRate }}% of attempts</div>
     </div>
   </div>
 

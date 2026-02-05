@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Attempt;
 use App\Models\Buyer;
 use App\Models\Lead;
+use App\Services\DuplicateChecker;
 use Illuminate\Http\Request;
 
 class LeadIntakeController extends Controller
 {
-    public function store(Request $request)
+    public function store(Request $request, DuplicateChecker $duplicateChecker)
     {
         $token = config("admin.intake_token");
         if ($token && $request->header("X-Api-Token") !== $token) {
@@ -49,6 +50,8 @@ class LeadIntakeController extends Controller
             "lead_json" => $leadData,
         ]);
 
+        $duplicate = $buyer ? $duplicateChecker->findDuplicateAttempt($buyer->id, $lead->phone) : null;
+
         $primaryResponse = $postData ?: ($responseData ?: $pingData);
         $direction = $postData ? "post" : ($pingData ? "ping" : "single");
 
@@ -60,6 +63,9 @@ class LeadIntakeController extends Controller
             "endpoint" => $endpoint,
             "direction" => $direction,
             "status" => $parsed["status"],
+            "is_duplicate" => $duplicate !== null,
+            "duplicate_of_id" => $duplicate?->id,
+            "duplicate_window" => config("admin.duplicate_window_days") . "d",
             "http_status" => $parsed["http_status"],
             "ping_id" => $parsed["ping_id"],
             "forwarding_number" => $parsed["forwarding_number"],

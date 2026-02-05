@@ -30,7 +30,7 @@ class BuyerResponseParser
             $pingId = $this->extractPingId($bodyJson);
             $forwarding = $this->extractForwardingNumber($bodyJson, $rules["forwarding_keys"] ?? []);
             $payout = $this->extractNumber($bodyJson, $rules["payout_keys"] ?? ["payout", "price", "offer_conversion_payout"]);
-            $bidAmount = $this->extractNumber($bodyJson, $rules["bid_keys"] ?? ["bidAmount", "bid_amount"]);
+            $bidAmount = $this->extractNumber($bodyJson, $rules["bid_keys"] ?? ["bidAmount", "bid_amount", "bidPrice"]);
             $status = $this->inferStatusFromJson($bodyJson, $rules);
         }
 
@@ -97,6 +97,9 @@ class BuyerResponseParser
         }
         if (isset($data["success"]) && is_bool($data["success"])) {
             return $data["success"] ? "accepted" : "rejected";
+        }
+        if (!empty($data["rejectReason"]) || !empty($data["reject_reason"])) {
+            return "rejected";
         }
         if (!empty($data["errors"])) {
             return "rejected";

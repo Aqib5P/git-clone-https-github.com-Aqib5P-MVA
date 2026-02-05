@@ -8,12 +8,13 @@ use App\Models\Buyer;
 use App\Models\Lead;
 use App\Services\BuyerRequestService;
 use App\Services\BuyerResponseParser;
+use App\Services\DuplicateChecker;
 use App\Services\GoogleLogger;
 use Illuminate\Http\Request;
 
 class BuyerSubmitController extends Controller
 {
-    public function submit(Request $request, BuyerRequestService $service, BuyerResponseParser $parser, GoogleLogger $googleLogger)
+    public function submit(Request $request, BuyerRequestService $service, BuyerResponseParser $parser, DuplicateChecker $duplicateChecker, GoogleLogger $googleLogger)
     {
         $data = $request->json()->all();
         $endpoint = $data["endpoint"] ?? "";
@@ -50,6 +51,8 @@ class BuyerSubmitController extends Controller
             "lead_json" => $leadData,
         ]);
 
+        $duplicate = $duplicateChecker->findDuplicateAttempt($buyer->id, $lead->phone);
+
         $result = $service->submit($buyer, $leadData);
         $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
         $parsed = $parser->parse(is_array($primary) ? $primary : null, $buyer->response_rules ?? []);
@@ -65,6 +68,9 @@ class BuyerSubmitController extends Controller
             "endpoint" => $buyer->code,
             "direction" => $buyer->type === "ping_post" ? "post" : "single",
             "status" => $parsed["status"] ?? "unknown",
+            "is_duplicate" => $duplicate !== null,
+            "duplicate_of_id" => $duplicate?->id,
+            "duplicate_window" => config("admin.duplicate_window_days") . "d",
             "http_status" => $parsed["http_status"] ?? null,
             "ping_id" => $parsed["ping_id"] ?? null,
             "forwarding_number" => $parsed["forwarding_number"] ?? null,
