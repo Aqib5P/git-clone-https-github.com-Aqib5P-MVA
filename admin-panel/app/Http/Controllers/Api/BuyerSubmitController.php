@@ -32,6 +32,9 @@ class BuyerSubmitController extends Controller
         }
 
         $lead = Lead::create([
+            "product_id" => $buyer->default_product_id,
+            "campaign_id" => $buyer->default_campaign_id,
+            "publisher_id" => $buyer->default_publisher_id,
             "first_name" => $leadData["first_name"] ?? null,
             "last_name" => $leadData["last_name"] ?? null,
             "email" => $leadData["email"] ?? null,
@@ -49,7 +52,12 @@ class BuyerSubmitController extends Controller
 
         $result = $service->submit($buyer, $leadData);
         $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
-        $parsed = $parser->parse(is_array($primary) ? $primary : null);
+        $parsed = $parser->parse(is_array($primary) ? $primary : null, $buyer->response_rules ?? []);
+
+        $payout = $parsed["payout"] ?? null;
+        if ($buyer->payout_type === "static" && $buyer->static_payout !== null) {
+            $payout = $buyer->static_payout;
+        }
 
         Attempt::create([
             "lead_id" => $lead->id,
@@ -60,7 +68,7 @@ class BuyerSubmitController extends Controller
             "http_status" => $parsed["http_status"] ?? null,
             "ping_id" => $parsed["ping_id"] ?? null,
             "forwarding_number" => $parsed["forwarding_number"] ?? null,
-            "payout" => $parsed["payout"] ?? null,
+            "payout" => $payout,
             "bid_amount" => $parsed["bid_amount"] ?? null,
             "payload_json" => $leadData,
             "response_json" => $parsed["body_json"] ?? null,

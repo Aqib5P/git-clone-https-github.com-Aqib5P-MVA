@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attempt;
 use App\Models\Buyer;
+use App\Models\Lead;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -60,8 +61,38 @@ class DashboardController extends Controller
         $accepted = $statusCounts["accepted"] ?? 0;
         $rejected = $statusCounts["rejected"] ?? 0;
         $acceptRate = $totalAttempts > 0 ? round(($accepted / $totalAttempts) * 100, 1) : 0;
+        $totalRevenue = Attempt::query()
+            ->whereBetween("created_at", [$startDate, $endDate])
+            ->when($status, fn ($q) => $q->where("status", $status))
+            ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
+            ->sum("payout");
+        $rpm = $totalAttempts > 0 ? round(($totalRevenue / $totalAttempts) * 1000, 2) : 0;
 
         $buyers = Buyer::orderBy("code")->get();
+
+        $productStats = Lead::query()
+            ->with("product")
+            ->selectRaw("product_id, count(*) as total")
+            ->whereBetween("created_at", [$startDate, $endDate])
+            ->groupBy("product_id")
+            ->orderByDesc("total")
+            ->get();
+
+        $campaignStats = Lead::query()
+            ->with("campaign")
+            ->selectRaw("campaign_id, count(*) as total")
+            ->whereBetween("created_at", [$startDate, $endDate])
+            ->groupBy("campaign_id")
+            ->orderByDesc("total")
+            ->get();
+
+        $publisherStats = Lead::query()
+            ->with("publisher")
+            ->selectRaw("publisher_id, count(*) as total")
+            ->whereBetween("created_at", [$startDate, $endDate])
+            ->groupBy("publisher_id")
+            ->orderByDesc("total")
+            ->get();
 
         return view("dashboard", [
             "attempts" => $attempts,
@@ -71,6 +102,11 @@ class DashboardController extends Controller
             "acceptRate" => $acceptRate,
             "topBuyer" => $topBuyer,
             "topPayoutBuyer" => $topPayoutBuyer,
+            "totalRevenue" => $totalRevenue,
+            "rpm" => $rpm,
+            "productStats" => $productStats,
+            "campaignStats" => $campaignStats,
+            "publisherStats" => $publisherStats,
             "filters" => [
                 "start_date" => $startDate->toDateString(),
                 "end_date" => $endDate->toDateString(),

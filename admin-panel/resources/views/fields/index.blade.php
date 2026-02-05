@@ -1,22 +1,22 @@
 @extends('layouts.app')
 
 @section('content')
-  <div class="card shadow-sm">
-    <h3>Add Lead Field</h3>
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-6">
+    <h3 class="text-lg font-semibold mb-4">Add Lead Field</h3>
     <form method="post" action="{{ route('fields.store') }}">
       @csrf
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label for="key">Key</label>
-          <input id="key" name="key" type="text" class="form-control" required />
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div>
+          <label for="key" class="text-sm text-slate-600">Key</label>
+          <input id="key" name="key" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
         </div>
-        <div class="col-md-4">
-          <label for="label">Label</label>
-          <input id="label" name="label" type="text" class="form-control" required />
+        <div class="md:col-span-2">
+          <label for="label" class="text-sm text-slate-600">Label</label>
+          <input id="label" name="label" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
         </div>
-        <div class="col-md-2">
-          <label for="type">Type</label>
-          <select id="type" name="type" class="form-select" required>
+        <div>
+          <label for="type" class="text-sm text-slate-600">Type</label>
+          <select id="type" name="type" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
             <option value="text">Text</option>
             <option value="email">Email</option>
             <option value="tel">Phone</option>
@@ -24,46 +24,46 @@
             <option value="select">Select</option>
           </select>
         </div>
-        <div class="col-md-3">
-          <label for="options">Options (JSON for select)</label>
-          <input id="options" name="options" type="text" class="form-control" placeholder='{"Yes":"Yes","No":"No"}' />
+        <div>
+          <label for="options" class="text-sm text-slate-600">Options (JSON)</label>
+          <input id="options" name="options" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder='{"Yes":"Yes","No":"No"}' />
         </div>
-        <div class="col-md-1" style="align-self: flex-end;">
-          <button type="submit" class="btn btn-primary">Add</button>
+        <div class="flex items-end">
+          <button type="submit" class="w-full rounded-lg bg-blue-600 text-white py-2 hover:bg-blue-700">Add</button>
         </div>
       </div>
     </form>
   </div>
 
-  <div class="card shadow-sm">
-    <h3>Lead Fields</h3>
-    <table class="table table-sm">
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h3 class="text-lg font-semibold mb-4">Lead Fields</h3>
+    <table class="min-w-full text-sm">
       <thead>
-        <tr>
-          <th>Key</th>
-          <th>Label</th>
-          <th>Type</th>
-          <th>Status</th>
-          <th>Actions</th>
+        <tr class="text-left text-slate-500">
+          <th class="py-2">Key</th>
+          <th class="py-2">Label</th>
+          <th class="py-2">Type</th>
+          <th class="py-2">Status</th>
+          <th class="py-2">Actions</th>
         </tr>
       </thead>
       <tbody>
         @forelse ($fields as $field)
-          <tr>
-            <td>{{ $field->key }}</td>
-            <td>{{ $field->label }}</td>
-            <td>{{ $field->type }}</td>
-            <td>{{ $field->active ? 'Active' : 'Inactive' }}</td>
-            <td>
-              <form method="post" action="{{ route('fields.toggle', $field) }}" style="display:inline;">
+          <tr class="border-t border-slate-100">
+            <td class="py-2">{{ $field->key }}</td>
+            <td class="py-2">{{ $field->label }}</td>
+            <td class="py-2">{{ $field->type }}</td>
+            <td class="py-2">{{ $field->active ? 'Active' : 'Inactive' }}</td>
+            <td class="py-2">
+              <form method="post" action="{{ route('fields.toggle', $field) }}" class="inline">
                 @csrf
-                <button type="submit" class="btn btn-outline-secondary btn-sm">{{ $field->active ? 'Disable' : 'Enable' }}</button>
+                <button type="submit" class="border border-slate-300 px-2 py-1 rounded-lg text-xs hover:bg-slate-100">{{ $field->active ? 'Disable' : 'Enable' }}</button>
               </form>
             </td>
           </tr>
         @empty
           <tr>
-            <td colspan="5" class="muted">No fields yet.</td>
+            <td colspan="5" class="text-slate-500 py-3">No fields yet.</td>
           </tr>
         @endforelse
       </tbody>

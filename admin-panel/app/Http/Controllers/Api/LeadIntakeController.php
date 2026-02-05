@@ -25,7 +25,15 @@ class LeadIntakeController extends Controller
         $pingData = $payload["ping"] ?? null;
         $postData = $payload["post"] ?? null;
 
+        $buyer = null;
+        if ($endpoint) {
+            $buyer = Buyer::where("code", strtoupper($endpoint))->first();
+        }
+
         $lead = Lead::create([
+            "product_id" => $buyer?->default_product_id,
+            "campaign_id" => $buyer?->default_campaign_id,
+            "publisher_id" => $buyer?->default_publisher_id,
             "first_name" => $leadData["first_name"] ?? null,
             "last_name" => $leadData["last_name"] ?? null,
             "email" => $leadData["email"] ?? null,
@@ -45,11 +53,6 @@ class LeadIntakeController extends Controller
         $direction = $postData ? "post" : ($pingData ? "ping" : "single");
 
         $parsed = $this->parseBuyerResponse($primaryResponse);
-
-        $buyer = null;
-        if ($endpoint) {
-            $buyer = Buyer::where("code", strtoupper($endpoint))->first();
-        }
 
         Attempt::create([
             "lead_id" => $lead->id,

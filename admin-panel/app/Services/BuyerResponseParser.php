@@ -4,7 +4,7 @@ namespace App\Services;
 
 class BuyerResponseParser
 {
-    public function parse(?array $response): array
+    public function parse(?array $response, array $rules = []): array
     {
         $status = "unknown";
         $httpStatus = null;
@@ -28,10 +28,10 @@ class BuyerResponseParser
 
         if (is_array($bodyJson)) {
             $pingId = $this->extractPingId($bodyJson);
-            $forwarding = $this->extractForwardingNumber($bodyJson);
-            $payout = $this->extractNumber($bodyJson, ["payout", "price", "offer_conversion_payout"]);
-            $bidAmount = $this->extractNumber($bodyJson, ["bidAmount", "bid_amount"]);
-            $status = $this->inferStatusFromJson($bodyJson);
+            $forwarding = $this->extractForwardingNumber($bodyJson, $rules["forwarding_keys"] ?? []);
+            $payout = $this->extractNumber($bodyJson, $rules["payout_keys"] ?? ["payout", "price", "offer_conversion_payout"]);
+            $bidAmount = $this->extractNumber($bodyJson, $rules["bid_keys"] ?? ["bidAmount", "bid_amount"]);
+            $status = $this->inferStatusFromJson($bodyJson, $rules);
         }
 
         if ($bodyRaw && $status === "unknown") {
@@ -39,7 +39,7 @@ class BuyerResponseParser
             if ($xml) {
                 $result = $this->xmlValue($xml, ["result"]);
                 $message = $this->xmlValue($xml, ["msg", "message", "status"]);
-                $statusText = $this->inferStatusFromText(trim($result . " " . $message));
+                $statusText = $this->inferStatusFromText(trim($result . " " . $message), $rules);
                 if ($statusText) $status = strtolower($statusText);
                 $forwarding = $forwarding ?: $this->xmlValue($xml, [
                     "phone_number",
@@ -60,6 +60,17 @@ class BuyerResponseParser
             $status = $response["effective_ok"] ? "accepted" : "rejected";
         }
 
+        if ($status === "unknown") {
+            $text = "";
+            if (is_array($bodyJson)) {
+                $text = json_encode($bodyJson) ?: "";
+            } elseif ($bodyRaw) {
+                $text = $bodyRaw;
+            }
+            $statusText = $this->inferStatusFromText($text, $rules);
+            if ($statusText) $status = strtolower($statusText);
+        }
+
         return [
             "status" => $status,
             "http_status" => $httpStatus,
@@ -72,7 +83,7 @@ class BuyerResponseParser
         ];
     }
 
-    private function inferStatusFromJson(array $data): string
+    private function inferStatusFromJson(array $data, array $rules = []): string
     {
         if (isset($data["outcome"]) && $data["outcome"] === "failure") {
             return "rejected";
@@ -81,7 +92,7 @@ class BuyerResponseParser
             return "accepted";
         }
         if (isset($data["status"])) {
-            $status = $this->inferStatusFromText((string) $data["status"]);
+            $status = $this->inferStatusFromText((string) $data["status"], $rules);
             if ($status) return strtolower($status);
         }
         if (isset($data["success"]) && is_bool($data["success"])) {
@@ -91,11 +102,11 @@ class BuyerResponseParser
             return "rejected";
         }
         if (isset($data["message"])) {
-            $status = $this->inferStatusFromText((string) $data["message"]);
+            $status = $this->inferStatusFromText((string) $data["message"], $rules);
             if ($status) return strtolower($status);
         }
         if (isset($data["msg"])) {
-            $status = $this->inferStatusFromText((string) $data["msg"]);
+            $status = $this->inferStatusFromText((string) $data["msg"], $rules);
             if ($status) return strtolower($status);
         }
         if (isset($data["buyers"]) && is_array($data["buyers"]) && count($data["buyers"]) === 0) {
@@ -104,9 +115,21 @@ class BuyerResponseParser
         return "unknown";
     }
 
-    private function inferStatusFromText(string $text): string
+    private function inferStatusFromText(string $text, array $rules = []): string
     {
         $t = strtolower($text);
+        $reject = array_map("strtolower", $rules["reject"] ?? []);
+        foreach ($reject as $term) {
+            if ($term !== "" && str_contains($t, $term)) {
+                return "Rejected";
+            }
+        }
+        $accept = array_map("strtolower", $rules["accept"] ?? []);
+        foreach ($accept as $term) {
+            if ($term !== "" && str_contains($t, $term)) {
+                return "Accepted";
+            }
+        }
         if (str_contains($t, "accept") || str_contains($t, "success") || str_contains($t, "created") || str_contains($t, "approved")) {
             return "Accepted";
         }
@@ -159,9 +182,9 @@ class BuyerResponseParser
         return null;
     }
 
-    private function extractForwardingNumber(array $data): ?string
+    private function extractForwardingNumber(array $data, array $keys = []): ?string
     {
-        $keys = [
+        $keys = $keys ?: [
             "phoneNumber",
             "phone_number",
             "phoneNumberNoPlus",

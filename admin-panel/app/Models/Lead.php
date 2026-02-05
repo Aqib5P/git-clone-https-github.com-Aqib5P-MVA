@@ -10,6 +10,9 @@ class Lead extends Model
     use HasFactory;
 
     protected $fillable = [
+        "product_id",
+        "campaign_id",
+        "publisher_id",
         "first_name",
         "last_name",
         "email",
@@ -32,5 +35,20 @@ class Lead extends Model
     public function attempts()
     {
         return $this->hasMany(Attempt::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function campaign()
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
+    public function publisher()
+    {
+        return $this->belongsTo(Publisher::class);
     }
 }

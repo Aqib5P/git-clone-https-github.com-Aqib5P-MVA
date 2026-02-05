@@ -96,14 +96,19 @@ class BuyerRequestService
         }
 
         $isJson = $buyer->payload_format === "json";
+        $isXml = $buyer->payload_format === "xml";
+        $body = $payload;
+        if ($isXml) {
+            $body = $this->toXml($payload);
+        }
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER => false,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $isJson ? json_encode($payload) : http_build_query($payload),
+            CURLOPT_POSTFIELDS => $isJson ? json_encode($payload) : ($isXml ? $body : http_build_query($payload)),
             CURLOPT_HTTPHEADER => array_merge($headers, [
-                $isJson ? "Content-Type: application/json" : "Content-Type: application/x-www-form-urlencoded",
+                $isJson ? "Content-Type: application/json" : ($isXml ? "Content-Type: application/xml" : "Content-Type: application/x-www-form-urlencoded"),
             ]),
             CURLOPT_TIMEOUT => 20,
         ]);
@@ -267,5 +272,14 @@ class BuyerRequestService
             "ip_address" => $leadData["ip_address"] ?? "",
             "fields" => $fields,
         ];
+    }
+
+    private function toXml(array $payload): string
+    {
+        $xml = new \SimpleXMLElement("<request/>");
+        foreach ($payload as $key => $value) {
+            $xml->addChild($key, htmlspecialchars((string) $value));
+        }
+        return $xml->asXML() ?: "";
     }
 }

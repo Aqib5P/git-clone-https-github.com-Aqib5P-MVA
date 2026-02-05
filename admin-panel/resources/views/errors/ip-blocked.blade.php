@@ -4,17 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>IP Not Allowed</title>
-    <style>
-      body { font-family: Arial, sans-serif; background: #f6f7fb; color: #0f172a; }
-      .card { max-width: 520px; margin: 12vh auto; background: #fff; border: 1px solid #d9dfeb; border-radius: 12px; padding: 20px; }
-      code { background: #eef2ff; padding: 2px 6px; border-radius: 6px; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <div class="card">
-      <h2>Access blocked</h2>
-      <p>Your IP (<code>{{ $ip }}</code>) is not on the allowlist.</p>
-      <p>If you are the admin, open <code>/ip/validate</code> with your credentials to add this IP.</p>
+  <body class="bg-slate-50 text-slate-900">
+    <div class="max-w-lg mx-auto mt-24 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      <h2 class="text-xl font-semibold mb-2">Access blocked</h2>
+      <p class="text-sm text-slate-600">Your IP (<span class="font-mono bg-slate-100 px-2 py-0.5 rounded">{{ $ip }}</span>) is not on the allowlist.</p>
+      <p class="text-sm text-slate-600 mt-2">If you are the admin, open <span class="font-mono bg-slate-100 px-2 py-0.5 rounded">/ip/validate</span> with your credentials.</p>
     </div>
   </body>
 </html>

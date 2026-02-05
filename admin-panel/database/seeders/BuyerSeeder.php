@@ -4,12 +4,17 @@ namespace Database\Seeders;
 
 use App\Models\Buyer;
 use App\Models\BuyerField;
+use App\Models\Campaign;
+use App\Models\Product;
 use Illuminate\Database\Seeder;
 
 class BuyerSeeder extends Seeder
 {
     public function run(): void
     {
+        $product = Product::where("code", "MVA")->first();
+        $campaign = Campaign::where("code", "MVA-DEFAULT")->first();
+
         $buyers = [
             "D1" => ["name" => "Buyer D1", "type" => "single"],
             "D2" => ["name" => "Buyer D2", "type" => "single"],
@@ -214,6 +219,9 @@ class BuyerSeeder extends Seeder
                     "type" => $data["type"],
                     "scope" => in_array($code, ["D1","D2","D6","D23","D25","D26","D27","D30","D32"], true) ? "unified" : "single",
                     "payload_format" => "form",
+                    "platform" => in_array($code, ["D32","D26"], true) ? "trackdrive" : (in_array($code, ["D23"], true) ? "ringba" : (in_array($code, ["D1","D25","D30"], true) ? "leadspedia" : "custom")),
+                    "default_product_id" => $product?->id,
+                    "default_campaign_id" => $campaign?->id,
                     "active" => true,
                 ]
             );
