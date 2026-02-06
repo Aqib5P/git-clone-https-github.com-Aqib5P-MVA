@@ -75,30 +75,29 @@ class RtbSubmitController extends Controller
             if ($buyer->payout_type === "static" && $buyer->static_payout !== null) {
                 $payout = $buyer->static_payout;
             }
-            $bidAmount = $postParsed["bid_amount"] ?? $pingParsed["bid_amount"] ?? $parsed["bid_amount"] ?? $payout;
+            $bidAmount = $postParsed["bid_amount"] ?? $pingParsed["bid_amount"] ?? $parsed["bid_amount"];
+            $forwardingNumber = $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"] ?? null;
+            $rejectReason = $this->extractRejectReason($parsed["body_json"] ?? null);
 
             $status = $parsed["status"] ?? "unknown";
-            if ($buyer->type === "ping_post" && !($result["post"] ?? null)) {
-                $status = "rejected";
+            $numericBid = is_numeric($bidAmount) ? (float) $bidAmount : null;
+            $numericPayout = is_numeric($payout) ? (float) $payout : null;
+            if ($numericBid === null && $numericPayout !== null) {
+                $numericBid = $numericPayout;
+                $bidAmount = $numericPayout;
             }
+            $hasForwarding = is_string($forwardingNumber) && trim($forwardingNumber) !== "";
 
-            $rejectReason = $this->extractRejectReason($parsed["body_json"] ?? null);
-            if ($status === "accepted" && $rejectReason !== "") {
+            if ($rejectReason === "" && (($numericBid !== null && $numericBid >= $minBid) || ($numericPayout !== null && $numericPayout >= $minBid) || $hasForwarding)) {
+                $status = "accepted";
+            } elseif (($numericBid !== null && $numericBid > 0 && $numericBid < $minBid) || ($numericPayout !== null && $numericPayout > 0 && $numericPayout < $minBid)) {
+                $status = "Bid too low";
+            } elseif ($rejectReason !== "") {
                 $status = "rejected";
-            }
-
-            if (!in_array($status, ["accepted", "rejected"], true)) {
+            } elseif ($buyer->type === "ping_post" && !($result["post"] ?? null)) {
                 $status = "rejected";
-            }
-
-            if ($status === "accepted") {
-                $numericBid = is_numeric($bidAmount) ? (float) $bidAmount : 0;
-                if ($numericBid < $minBid) {
-                    $status = "rejected";
-                    $rejectReason = "Bid too low";
-                    $bidAmount = 0;
-                    $payout = 0;
-                }
+            } elseif (!in_array($status, ["accepted", "rejected"], true)) {
+                $status = "rejected";
             }
 
             $attempt = Attempt::create([
@@ -112,7 +111,7 @@ class RtbSubmitController extends Controller
                 "duplicate_window" => config("admin.duplicate_window_days") . "d",
                 "http_status" => $postParsed["http_status"] ?? $pingParsed["http_status"] ?? $parsed["http_status"] ?? null,
                 "ping_id" => $pingParsed["ping_id"] ?? $parsed["ping_id"] ?? null,
-                "forwarding_number" => $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"] ?? null,
+                "forwarding_number" => $forwardingNumber,
                 "payout" => $payout,
                 "bid_amount" => $bidAmount,
                 "payload_json" => $leadData,
@@ -152,8 +151,8 @@ class RtbSubmitController extends Controller
             $results[] = [
                 "buyer" => $buyer->code,
                 "status" => $status,
-                "sort_bid" => is_numeric($bidAmount) ? (float) $bidAmount : 0,
-                "forwarding_number" => $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"] ?? null,
+                "sort_bid" => $numericBid ?? 0,
+                "forwarding_number" => $forwardingNumber,
                 "min_duration" => $minDuration,
                 "expires" => $this->extractFirst($bidJson, ["expireInSeconds", "expires_in", "expiresInSeconds"]),
                 "duplicate" => $duplicate !== null,
