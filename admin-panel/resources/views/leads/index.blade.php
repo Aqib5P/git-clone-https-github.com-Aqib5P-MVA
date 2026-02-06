@@ -61,25 +61,28 @@
 
     <div class="space-y-4">
       @forelse ($attempts as $attempt)
-        @php
-          $status = $attempt->status ?? 'unknown';
-          $badgeClass = $status === 'accepted'
-            ? 'bg-emerald-100 text-emerald-700'
-            : ($status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600');
-          $responseJson = is_array($attempt->response_json) ? $attempt->response_json : null;
-          $rawResponse = $attempt->response_raw ?: ($responseJson ? json_encode($responseJson, JSON_PRETTY_PRINT) : '');
-          $message = '';
-          if ($responseJson) {
-            $message = $responseJson['message'] ?? $responseJson['msg'] ?? $responseJson['error'] ?? '';
-            if ($message === '' && !empty($responseJson['errors'])) {
-              if (is_array($responseJson['errors'])) {
-                $message = implode(' | ', array_map(fn ($v) => is_array($v) ? implode(', ', $v) : $v, $responseJson['errors']));
-              } else {
-                $message = (string) $responseJson['errors'];
+          @php
+            $status = $attempt->status ?? 'unknown';
+            $badgeClass = $status === 'accepted'
+              ? 'bg-emerald-100 text-emerald-700'
+              : ($status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600');
+            $responseJson = is_array($attempt->response_json) ? $attempt->response_json : null;
+            $rawResponse = $attempt->response_raw ?: ($responseJson ? json_encode($responseJson, JSON_PRETTY_PRINT) : '');
+            $message = '';
+            if ($responseJson) {
+              $message = $responseJson['message'] ?? $responseJson['msg'] ?? $responseJson['error'] ?? '';
+              if (is_array($message)) {
+                $message = implode(', ', array_map(fn ($v) => is_array($v) ? implode(', ', $v) : (string) $v, $message));
+              }
+              if ($message === '' && !empty($responseJson['errors'])) {
+                if (is_array($responseJson['errors'])) {
+                  $message = implode(' | ', array_map(fn ($v) => is_array($v) ? implode(', ', $v) : (string) $v, $responseJson['errors']));
+                } else {
+                  $message = (string) $responseJson['errors'];
+                }
               }
             }
-          }
-        @endphp
+          @endphp
         <div class="rounded-2xl border border-slate-200 p-4">
           <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
