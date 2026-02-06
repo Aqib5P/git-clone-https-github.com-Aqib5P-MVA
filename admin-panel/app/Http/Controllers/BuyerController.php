@@ -132,9 +132,9 @@ class BuyerController extends Controller
             "products" => $products,
             "campaigns" => $campaigns,
             "publishers" => $publishers,
-            "sampleLeadSingle" => json_encode($sampleLeadSingle, JSON_PRETTY_PRINT),
-            "sampleLeadPing" => json_encode($sampleLeadPing, JSON_PRETTY_PRINT),
-            "sampleLeadPost" => json_encode($sampleLeadPost, JSON_PRETTY_PRINT),
+            "sampleLeadSingle" => $sampleLeadSingle,
+            "sampleLeadPing" => $sampleLeadPing,
+            "sampleLeadPost" => $sampleLeadPost,
         ]);
     }
 
@@ -245,7 +245,7 @@ class BuyerController extends Controller
 
     public function test(Request $request, Buyer $buyer, BuyerRequestService $service, BuyerResponseParser $parser)
     {
-        $leadData = $this->decodeLeadJson($request, $buyer, "lead_json");
+        $leadData = $this->decodeLeadData($request, "lead_json", "lead_fields_single");
         if (!$leadData) {
             return redirect()->route("buyers.edit", $buyer)->withErrors(["lead_json" => "Invalid JSON."]);
         }
@@ -262,7 +262,7 @@ class BuyerController extends Controller
 
     public function testPing(Request $request, Buyer $buyer, BuyerRequestService $service, BuyerResponseParser $parser)
     {
-        $leadData = $this->decodeLeadJson($request, $buyer, "lead_json_ping");
+        $leadData = $this->decodeLeadData($request, "lead_json_ping", "lead_fields_ping");
         if (!$leadData) {
             return redirect()->route("buyers.edit", $buyer)->withErrors(["lead_json_ping" => "Invalid JSON."]);
         }
@@ -278,7 +278,7 @@ class BuyerController extends Controller
 
     public function testPost(Request $request, Buyer $buyer, BuyerRequestService $service, BuyerResponseParser $parser)
     {
-        $leadData = $this->decodeLeadJson($request, $buyer, "lead_json_post");
+        $leadData = $this->decodeLeadData($request, "lead_json_post", "lead_fields_post");
         if (!$leadData) {
             return redirect()->route("buyers.edit", $buyer)->withErrors(["lead_json_post" => "Invalid JSON."]);
         }
@@ -416,9 +416,15 @@ class BuyerController extends Controller
         return $rules;
     }
 
-    private function decodeLeadJson(Request $request, Buyer $buyer, string $field): ?array
+    private function decodeLeadData(Request $request, string $jsonField, string $arrayField): ?array
     {
-        $raw = $request->input($field);
+        $array = $request->input($arrayField);
+        if (is_array($array)) {
+            $filtered = array_filter($array, fn ($value) => $value !== null && $value !== "");
+            if (!empty($filtered)) return $filtered;
+        }
+
+        $raw = $request->input($jsonField);
         if (!is_string($raw) || trim($raw) === "") return null;
         $decoded = json_decode($raw, true);
         if (!is_array($decoded)) return null;
