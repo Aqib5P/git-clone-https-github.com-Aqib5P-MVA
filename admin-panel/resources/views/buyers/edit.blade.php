@@ -146,7 +146,19 @@
         $payloadSingleJson = json_encode($samplePayloadSingle, JSON_PRETTY_PRINT);
         $payloadPingJson = json_encode($samplePayloadPing, JSON_PRETTY_PRINT);
         $payloadPostJson = json_encode($samplePayloadPost, JSON_PRETTY_PRINT);
+        $d31Preset = "accept: matched,accepted,success\nreject: rejected,unmatched,declined,failed,error,invalid\nforwarding_keys:\npayout_keys: price\nbid_keys: price\nduration_keys: min_duration";
       @endphp
+
+      @if ($buyer->code === 'D31')
+        <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-semibold text-slate-700">Preset Response Mapping (D31)</div>
+            <button type="button" class="text-xs text-blue-600 hover:text-blue-800" data-copy="d31-preset">Copy</button>
+          </div>
+          <textarea id="d31-preset" rows="5" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $d31Preset }}</textarea>
+          <div class="text-xs text-slate-500 mt-2">Copy these values into Ping or Post mapping inputs.</div>
+        </div>
+      @endif
       <div class="flex justify-end mt-6">
         <button type="submit" class="rounded-lg bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">Save Buyer</button>
       </div>
@@ -277,6 +289,23 @@
       updatePayloadPreview("single");
       updatePayloadPreview("ping");
       updatePayloadPreview("post");
+
+      document.querySelectorAll("[data-copy]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.getAttribute("data-copy");
+          const target = document.getElementById(targetId);
+          if (!target) return;
+          target.select();
+          target.setSelectionRange(0, target.value.length);
+          try {
+            document.execCommand("copy");
+            btn.textContent = "Copied";
+            setTimeout(() => (btn.textContent = "Copy"), 1500);
+          } catch (err) {
+            // ignore
+          }
+        });
+      });
     })();
   </script>
 
