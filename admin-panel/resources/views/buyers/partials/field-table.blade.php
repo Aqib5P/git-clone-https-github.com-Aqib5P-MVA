@@ -1,3 +1,4 @@
+<div class="overflow-x-auto">
 <table class="min-w-full text-sm">
   <thead>
     <tr class="text-left text-slate-500">
@@ -20,6 +21,7 @@
         <td class="py-2">{{ $field->required ? 'Required' : 'Optional' }}</td>
         <td class="py-2">{{ $field->direction }}</td>
         <td class="py-2">
+          <div class="flex flex-wrap items-center gap-2">
           <form method="post" action="{{ route('buyers.fields.update', $field) }}" class="inline">
             @csrf
             <input type="hidden" name="required" value="{{ $field->required ? 0 : 1 }}" />
@@ -71,6 +73,7 @@
             @csrf
             <button type="submit" class="border border-red-200 text-red-600 px-2 py-1 rounded-lg text-xs hover:bg-red-50">Delete</button>
           </form>
+          </div>
         </td>
       </tr>
     @empty
@@ -80,3 +83,4 @@
     @endforelse
   </tbody>
 </table>
+</div>

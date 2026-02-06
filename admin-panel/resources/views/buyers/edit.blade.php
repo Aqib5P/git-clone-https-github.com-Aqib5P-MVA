@@ -358,7 +358,7 @@
     @endphp
 
     @if ($isPingPost)
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="space-y-6">
         <div>
           <div class="text-sm font-semibold text-slate-700 mb-2">Ping Mapping</div>
           @include('buyers.partials.field-table', ['fieldRows' => $pingFields])
