@@ -390,14 +390,15 @@ class BuyerController extends Controller
             return $rules;
         }
 
-        return [
-            "accept" => $this->splitCsv($request->input("response_accept")),
-            "reject" => $this->splitCsv($request->input("response_reject")),
-            "forwarding_keys" => $this->splitCsv($request->input("forwarding_keys")),
-            "payout_keys" => $this->splitCsv($request->input("payout_keys")),
-            "bid_keys" => $this->splitCsv($request->input("bid_keys")),
-            "duration_keys" => $this->splitCsv($request->input("duration_keys")),
-        ];
+        $legacy = $this->buildLegacyRules($request);
+        $hasLegacy = false;
+        foreach ($legacy as $values) {
+            if (!empty($values)) {
+                $hasLegacy = true;
+                break;
+            }
+        }
+        return $hasLegacy ? $legacy : [];
     }
 
     private function buildRuleSet(Request $request, string $suffix): array
@@ -420,6 +421,18 @@ class BuyerController extends Controller
             }
         }
         return $hasValues ? $set : [];
+    }
+
+    private function buildLegacyRules(Request $request): array
+    {
+        return [
+            "accept" => $this->splitCsv($request->input("response_accept")),
+            "reject" => $this->splitCsv($request->input("response_reject")),
+            "forwarding_keys" => $this->splitCsv($request->input("forwarding_keys")),
+            "payout_keys" => $this->splitCsv($request->input("payout_keys")),
+            "bid_keys" => $this->splitCsv($request->input("bid_keys")),
+            "duration_keys" => $this->splitCsv($request->input("duration_keys")),
+        ];
     }
 
     private function rulesFor(Buyer $buyer, string $direction): array

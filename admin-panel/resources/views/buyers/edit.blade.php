@@ -425,27 +425,27 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="text-xs text-slate-600">Accept keywords</label>
-                <input name="response_accept_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['accept'] ?? []) }}" />
+                <input name="response_accept_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['accept'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Reject keywords</label>
-                <input name="response_reject_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['reject'] ?? []) }}" />
+                <input name="response_reject_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['reject'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Forwarding keys</label>
-                <input name="forwarding_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['forwarding_keys'] ?? []) }}" />
+                <input name="forwarding_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['forwarding_keys'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Payout keys</label>
-                <input name="payout_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['payout_keys'] ?? []) }}" />
+                <input name="payout_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['payout_keys'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Bid keys</label>
-                <input name="bid_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['bid_keys'] ?? []) }}" />
+                <input name="bid_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['bid_keys'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Duration keys</label>
-                <input name="duration_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['duration_keys'] ?? []) }}" />
+                <input name="duration_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['duration_keys'] ?? []) }}" form="buyer-update-form" />
               </div>
             </div>
             <div class="flex justify-end mt-4">
@@ -468,27 +468,27 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="text-xs text-slate-600">Accept keywords</label>
-                <input name="response_accept_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['accept'] ?? []) }}" />
+                <input name="response_accept_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['accept'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Reject keywords</label>
-                <input name="response_reject_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['reject'] ?? []) }}" />
+                <input name="response_reject_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['reject'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Forwarding keys</label>
-                <input name="forwarding_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['forwarding_keys'] ?? []) }}" />
+                <input name="forwarding_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['forwarding_keys'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Payout keys</label>
-                <input name="payout_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['payout_keys'] ?? []) }}" />
+                <input name="payout_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['payout_keys'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Bid keys</label>
-                <input name="bid_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['bid_keys'] ?? []) }}" />
+                <input name="bid_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['bid_keys'] ?? []) }}" form="buyer-update-form" />
               </div>
               <div>
                 <label class="text-xs text-slate-600">Duration keys</label>
-                <input name="duration_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['duration_keys'] ?? []) }}" />
+                <input name="duration_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['duration_keys'] ?? []) }}" form="buyer-update-form" />
               </div>
             </div>
             <div class="flex justify-end mt-4">
@@ -511,27 +511,27 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="text-xs text-slate-600">Accept keywords</label>
-            <input name="response_accept_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['accept'] ?? []) }}" />
+            <input name="response_accept_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['accept'] ?? []) }}" form="buyer-update-form" />
           </div>
           <div>
             <label class="text-xs text-slate-600">Reject keywords</label>
-            <input name="response_reject_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['reject'] ?? []) }}" />
+            <input name="response_reject_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['reject'] ?? []) }}" form="buyer-update-form" />
           </div>
           <div>
             <label class="text-xs text-slate-600">Forwarding keys</label>
-            <input name="forwarding_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['forwarding_keys'] ?? []) }}" />
+            <input name="forwarding_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['forwarding_keys'] ?? []) }}" form="buyer-update-form" />
           </div>
           <div>
             <label class="text-xs text-slate-600">Payout keys</label>
-            <input name="payout_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['payout_keys'] ?? []) }}" />
+            <input name="payout_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['payout_keys'] ?? []) }}" form="buyer-update-form" />
           </div>
           <div>
             <label class="text-xs text-slate-600">Bid keys</label>
-            <input name="bid_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['bid_keys'] ?? []) }}" />
+            <input name="bid_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['bid_keys'] ?? []) }}" form="buyer-update-form" />
           </div>
           <div>
             <label class="text-xs text-slate-600">Duration keys</label>
-            <input name="duration_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['duration_keys'] ?? []) }}" />
+            <input name="duration_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['duration_keys'] ?? []) }}" form="buyer-update-form" />
           </div>
         </div>
         <div class="flex justify-end mt-4">
