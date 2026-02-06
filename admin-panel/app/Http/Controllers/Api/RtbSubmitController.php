@@ -226,6 +226,30 @@ class RtbSubmitController extends Controller
         return null;
     }
 
+    private function extractNumberFromBody(array $data, array $keys): ?float
+    {
+        foreach ($keys as $key) {
+            if (isset($data[$key]) && is_numeric($data[$key])) {
+                return (float) $data[$key];
+            }
+        }
+        if (isset($data["response"]) && is_array($data["response"])) {
+            foreach ($keys as $key) {
+                if (isset($data["response"][$key]) && is_numeric($data["response"][$key])) {
+                    return (float) $data["response"][$key];
+                }
+            }
+        }
+        if (isset($data["buyers"]) && is_array($data["buyers"]) && isset($data["buyers"][0]) && is_array($data["buyers"][0])) {
+            foreach ($keys as $key) {
+                if (isset($data["buyers"][0][$key]) && is_numeric($data["buyers"][0][$key])) {
+                    return (float) $data["buyers"][0][$key];
+                }
+            }
+        }
+        return null;
+    }
+
     private function deriveExpiry(?array $data): ?Carbon
     {
         if (!is_array($data)) return null;
