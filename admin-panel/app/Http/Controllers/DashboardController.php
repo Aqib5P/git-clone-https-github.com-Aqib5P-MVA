@@ -17,6 +17,7 @@ class DashboardController extends Controller
         $end = $request->query("end_date");
         $status = $request->query("status");
         $buyer = $request->query("buyer");
+        $scope = $request->query("scope");
 
         $startDate = $start ? Carbon::parse($start)->startOfDay() : Carbon::today()->startOfDay();
         $endDate = $end ? Carbon::parse($end)->endOfDay() : Carbon::today()->endOfDay();
@@ -33,6 +34,12 @@ class DashboardController extends Controller
             $baseQuery->where("endpoint", $buyer);
         }
 
+        if ($scope) {
+            $baseQuery->whereHas("buyer", function ($query) use ($scope) {
+                $query->where("scope", $scope);
+            });
+        }
+
         $attempts = (clone $baseQuery)
             ->orderByDesc("created_at")
             ->limit(100)
@@ -44,6 +51,11 @@ class DashboardController extends Controller
                 max(case when status = 'rejected' then 1 else 0 end) as has_rejected")
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
+            ->when($scope, function ($q) use ($scope) {
+                $q->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                    $buyerQuery->where("scope", $scope);
+                });
+            })
             ->groupBy("lead_id");
 
         $leadCountsRow = DB::query()
@@ -68,6 +80,11 @@ class DashboardController extends Controller
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($status, fn ($q) => $q->where("status", $status))
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
+            ->when($scope, function ($q) use ($scope) {
+                $q->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                    $buyerQuery->where("scope", $scope);
+                });
+            })
             ->groupBy("endpoint")
             ->orderBy("endpoint")
             ->get();
@@ -80,11 +97,21 @@ class DashboardController extends Controller
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($status, fn ($q) => $q->where("status", $status))
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
+            ->when($scope, function ($q) use ($scope) {
+                $q->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                    $buyerQuery->where("scope", $scope);
+                });
+            })
             ->sum("payout");
         $duplicateAttemptCount = Attempt::query()
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($status, fn ($q) => $q->where("status", $status))
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
+            ->when($scope, function ($q) use ($scope) {
+                $q->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                    $buyerQuery->where("scope", $scope);
+                });
+            })
             ->where("is_duplicate", true)
             ->count();
         $duplicateLeadCount = Lead::query()
@@ -92,6 +119,13 @@ class DashboardController extends Controller
             ->when($buyer, function ($query) use ($buyer) {
                 $query->whereHas("attempts", function ($attemptQuery) use ($buyer) {
                     $attemptQuery->where("endpoint", $buyer);
+                });
+            })
+            ->when($scope, function ($query) use ($scope) {
+                $query->whereHas("attempts", function ($attemptQuery) use ($scope) {
+                    $attemptQuery->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                        $buyerQuery->where("scope", $scope);
+                    });
                 });
             })
             ->whereNotNull("phone")
@@ -102,12 +136,28 @@ class DashboardController extends Controller
             ->sum(fn ($row) => (int) $row->cnt - 1);
         $duplicateRate = $total > 0 ? round(($duplicateLeadCount / $total) * 100, 1) : 0;
 
-        $buyers = Buyer::orderBy("code")->get();
+        $buyers = Buyer::orderBy("code")
+            ->when($scope, fn ($q) => $q->where("scope", $scope))
+            ->get();
+        $scopeOptions = Buyer::query()
+            ->select("scope")
+            ->distinct()
+            ->orderBy("scope")
+            ->pluck("scope")
+            ->filter()
+            ->values();
 
         $productStats = Lead::query()
             ->with("product")
             ->selectRaw("product_id, count(*) as total")
             ->whereBetween("created_at", [$startDate, $endDate])
+            ->when($scope, function ($query) use ($scope) {
+                $query->whereHas("attempts", function ($attemptQuery) use ($scope) {
+                    $attemptQuery->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                        $buyerQuery->where("scope", $scope);
+                    });
+                });
+            })
             ->groupBy("product_id")
             ->orderByDesc("total")
             ->get();
@@ -116,6 +166,13 @@ class DashboardController extends Controller
             ->with("campaign")
             ->selectRaw("campaign_id, count(*) as total")
             ->whereBetween("created_at", [$startDate, $endDate])
+            ->when($scope, function ($query) use ($scope) {
+                $query->whereHas("attempts", function ($attemptQuery) use ($scope) {
+                    $attemptQuery->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                        $buyerQuery->where("scope", $scope);
+                    });
+                });
+            })
             ->groupBy("campaign_id")
             ->orderByDesc("total")
             ->get();
@@ -124,6 +181,13 @@ class DashboardController extends Controller
             ->with("publisher")
             ->selectRaw("publisher_id, count(*) as total")
             ->whereBetween("created_at", [$startDate, $endDate])
+            ->when($scope, function ($query) use ($scope) {
+                $query->whereHas("attempts", function ($attemptQuery) use ($scope) {
+                    $attemptQuery->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                        $buyerQuery->where("scope", $scope);
+                    });
+                });
+            })
             ->groupBy("publisher_id")
             ->orderByDesc("total")
             ->get();
@@ -132,6 +196,7 @@ class DashboardController extends Controller
             "attempts" => $attempts,
             "buyerStats" => $buyerStats,
             "buyers" => $buyers,
+            "scopeOptions" => $scopeOptions,
             "accepted" => $accepted,
             "rejected" => $rejected,
             "unknown" => $unknown,
@@ -152,6 +217,7 @@ class DashboardController extends Controller
                 "end_date" => $endDate->toDateString(),
                 "status" => $status,
                 "buyer" => $buyer,
+                "scope" => $scope,
             ],
         ]);
     }

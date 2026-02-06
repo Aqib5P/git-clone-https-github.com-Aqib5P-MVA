@@ -10,35 +10,49 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-slate-50 text-slate-900" style="font-family: 'Inter', system-ui, -apple-system, sans-serif;">
-    <nav class="bg-white border-b border-slate-200">
-      <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center gap-4">
-        <a class="font-semibold text-lg text-slate-900" href="{{ route('dashboard') }}">Lead Admin</a>
-        <div class="flex flex-wrap gap-3 text-sm">
-          <a class="text-slate-600 hover:text-slate-900" href="{{ route('dashboard') }}">Dashboard</a>
-          <a class="text-slate-600 hover:text-slate-900" href="{{ route('buyers.index') }}">Buyers</a>
-          <a class="text-slate-600 hover:text-slate-900" href="{{ route('fields.index') }}">Lead Fields</a>
-          <a class="text-slate-600 hover:text-slate-900" href="{{ route('leads.index') }}">Leads</a>
-          <a class="text-slate-600 hover:text-slate-900" href="{{ route('products.index') }}">Products</a>
-          <a class="text-slate-600 hover:text-slate-900" href="{{ route('campaigns.index') }}">Campaigns</a>
-          <a class="text-slate-600 hover:text-slate-900" href="{{ route('publishers.index') }}">Publishers</a>
-        </div>
-        <form method="post" action="{{ route('logout') }}" class="ml-auto">
-          @csrf
-          <button class="border border-slate-300 px-3 py-1.5 rounded-lg text-sm hover:bg-slate-100" type="submit">Logout</button>
-        </form>
-      </div>
-    </nav>
-
     @php
       $fullWidth = $fullWidth ?? false;
+      $navItems = [
+        ["label" => "Dashboard", "route" => "dashboard", "active" => request()->routeIs("dashboard")],
+        ["label" => "Buyers", "route" => "buyers.index", "active" => request()->routeIs("buyers.*")],
+        ["label" => "Lead Fields", "route" => "fields.index", "active" => request()->routeIs("fields.*")],
+        ["label" => "Leads", "route" => "leads.index", "active" => request()->routeIs("leads.*")],
+        ["label" => "Products", "route" => "products.index", "active" => request()->routeIs("products.*")],
+        ["label" => "Campaigns", "route" => "campaigns.index", "active" => request()->routeIs("campaigns.*")],
+        ["label" => "Publishers", "route" => "publishers.index", "active" => request()->routeIs("publishers.*")],
+      ];
     @endphp
-    <div class="{{ $fullWidth ? 'w-full' : 'max-w-7xl mx-auto' }} {{ $fullWidth ? '' : 'px-6' }} py-6">
-      @if ($errors->any())
-        <div class="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 mb-4">
-          {{ $errors->first() }}
+    <div class="min-h-screen flex flex-col lg:flex-row">
+      <aside class="bg-slate-900 text-white lg:w-64 w-full flex flex-col">
+        <div class="px-6 py-6 border-b border-white/10">
+          <a class="text-xl font-semibold tracking-wide" href="{{ route('dashboard') }}">Lead Admin</a>
+          <div class="text-xs text-slate-400 mt-1">Control Center</div>
         </div>
-      @endif
-      @yield('content')
+        <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+          @foreach ($navItems as $item)
+            <a
+              href="{{ route($item['route']) }}"
+              class="flex items-center gap-2 rounded-lg px-3 py-2 transition {{ $item['active'] ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white hover:bg-white/5' }}"
+            >
+              <span class="font-medium">{{ $item['label'] }}</span>
+            </a>
+          @endforeach
+        </nav>
+        <form method="post" action="{{ route('logout') }}" class="px-4 pb-6">
+          @csrf
+          <button class="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm hover:bg-white/10" type="submit">Logout</button>
+        </form>
+      </aside>
+      <main class="flex-1">
+        <div class="{{ $fullWidth ? 'w-full' : 'max-w-7xl' }} {{ $fullWidth ? '' : 'mx-auto' }} px-6 py-6">
+          @if ($errors->any())
+            <div class="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 mb-4">
+              {{ $errors->first() }}
+            </div>
+          @endif
+          @yield('content')
+        </div>
+      </main>
     </div>
   </body>
 </html>
