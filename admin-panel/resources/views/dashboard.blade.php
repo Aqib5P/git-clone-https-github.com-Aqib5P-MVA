@@ -1,7 +1,40 @@
 @extends('layouts.app')
 
 @section('content')
-  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-6">
+  @php($fullWidth = true)
+
+  <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
+    <div class="px-6 lg:px-10 py-10">
+      <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div>
+          <div class="text-xs uppercase tracking-[0.35em] text-slate-300">Dashboard</div>
+          <h1 class="text-3xl lg:text-4xl font-semibold mt-2">Lead Performance Center</h1>
+          <p class="text-sm text-slate-300 mt-2">Unified + RTB performance, payouts, and quality signals.</p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-xl bg-white/10 border border-white/10 px-4 py-3">
+            <div class="text-xs text-slate-300">Total Leads</div>
+            <div class="text-lg font-semibold">{{ $total }}</div>
+          </div>
+          <div class="rounded-xl bg-white/10 border border-white/10 px-4 py-3">
+            <div class="text-xs text-slate-300">Accepted</div>
+            <div class="text-lg font-semibold">{{ $accepted }}</div>
+          </div>
+          <div class="rounded-xl bg-white/10 border border-white/10 px-4 py-3">
+            <div class="text-xs text-slate-300">Rejected</div>
+            <div class="text-lg font-semibold">{{ $rejected }}</div>
+          </div>
+          <div class="rounded-xl bg-white/10 border border-white/10 px-4 py-3">
+            <div class="text-xs text-slate-300">Revenue</div>
+            <div class="text-lg font-semibold">${{ number_format($totalRevenue, 2) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-6 lg:px-10 -mt-6 space-y-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h3 class="text-lg font-semibold mb-4">Filters</h3>
     <form method="get" action="{{ route('dashboard') }}">
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
@@ -64,7 +97,7 @@
     </div>
   </div>
 
-  <div class="mb-6">
+  <div>
     <div class="text-sm text-slate-500 uppercase tracking-wide mb-3">Performance</div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 text-white p-5 shadow-sm">
@@ -87,7 +120,7 @@
     </div>
   </div>
 
-  <div class="mb-6">
+  <div>
     <div class="text-sm text-slate-500 uppercase tracking-wide mb-3">Highlights</div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -103,7 +136,7 @@
     </div>
   </div>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-4 mb-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-4">
     <div class="text-sm text-slate-500">Rejected %</div>
     @php
       $rejectRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
@@ -114,7 +147,7 @@
     </div>
   </div>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-4 mb-6">
+  <div class="rounded-2xl border border-slate-200 bg-white p-4">
     <h3 class="text-lg font-semibold mb-3">Buyer Stats</h3>
     <table class="min-w-full text-sm">
       <thead>
@@ -146,7 +179,7 @@
     </table>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div class="rounded-2xl border border-slate-200 bg-white p-4">
       <h3 class="text-lg font-semibold mb-3">Products</h3>
       <table class="min-w-full text-sm">
@@ -250,5 +283,6 @@
         @endforelse
       </tbody>
     </table>
+  </div>
   </div>
 @endsection

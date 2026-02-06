@@ -4,9 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ $title ?? 'Lead Admin' }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-slate-50 text-slate-900">
+  <body class="bg-slate-50 text-slate-900" style="font-family: 'Inter', system-ui, -apple-system, sans-serif;">
     <nav class="bg-white border-b border-slate-200">
       <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center gap-4">
         <a class="font-semibold text-lg text-slate-900" href="{{ route('dashboard') }}">Lead Admin</a>
@@ -26,7 +29,8 @@
       </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-6 py-6">
+    @php($fullWidth = $fullWidth ?? false)
+    <div class="{{ $fullWidth ? 'w-full' : 'max-w-7xl mx-auto' }} {{ $fullWidth ? '' : 'px-6' }} py-6">
       @if ($errors->any())
         <div class="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 mb-4">
           {{ $errors->first() }}
