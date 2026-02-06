@@ -354,19 +354,43 @@ class RtbSubmitController extends Controller
         if (!is_array($data)) return "";
         if (!empty($data["rejectReason"])) return (string) $data["rejectReason"];
         if (!empty($data["reject_reason"])) return (string) $data["reject_reason"];
-        if (!empty($data["error"])) return (string) $data["error"];
+        if (!empty($data["error"])) return $this->stringifyValue($data["error"]);
         if (!empty($data["errors"])) {
             if (is_array($data["errors"])) {
                 $flat = [];
                 foreach ($data["errors"] as $err) {
-                    $flat[] = is_array($err) ? implode(", ", $err) : (string) $err;
+                    $flat[] = $this->stringifyValue($err);
                 }
                 return implode(" | ", $flat);
             }
-            return (string) $data["errors"];
+            return $this->stringifyValue($data["errors"]);
         }
-        if (!empty($data["message"]) && $this->isRejectText((string) $data["message"])) return (string) $data["message"];
-        if (!empty($data["msg"]) && $this->isRejectText((string) $data["msg"])) return (string) $data["msg"];
+        if (!empty($data["message"])) {
+            $message = $this->stringifyValue($data["message"]);
+            if ($this->isRejectText($message)) return $message;
+        }
+        if (!empty($data["msg"])) {
+            $message = $this->stringifyValue($data["msg"]);
+            if ($this->isRejectText($message)) return $message;
+        }
+        return "";
+    }
+
+    private function stringifyValue($value): string
+    {
+        if (is_string($value)) return $value;
+        if (is_numeric($value)) return (string) $value;
+        if (is_array($value)) {
+            $flat = [];
+            foreach ($value as $item) {
+                $flat[] = $this->stringifyValue($item);
+            }
+            return implode(", ", array_filter($flat, fn ($v) => $v !== ""));
+        }
+        if (is_object($value)) {
+            $json = json_encode($value);
+            return $json !== false ? $json : "";
+        }
         return "";
     }
 
