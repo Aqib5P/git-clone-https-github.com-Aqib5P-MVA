@@ -8,6 +8,25 @@ use Illuminate\Support\Arr;
 
 class BuyerRequestService
 {
+    public function submitDirection(Buyer $buyer, array $leadData, string $direction, array $context = []): array
+    {
+        if ($direction === "ping") {
+            $payload = $this->buildPayload($buyer, $leadData, "ping", $context);
+            $result = $this->sendRequest($buyer, $buyer->ping_url, $payload);
+            return ["ping" => $result];
+        }
+
+        if ($direction === "post") {
+            $payload = $this->buildPayload($buyer, $leadData, "post", $context);
+            $result = $this->sendRequest($buyer, $buyer->post_url, $payload);
+            return ["post" => $result];
+        }
+
+        $payload = $this->buildPayload($buyer, $leadData, "single", $context);
+        $result = $this->sendRequest($buyer, $buyer->post_url, $payload);
+        return ["upstream" => $result];
+    }
+
     public function submit(Buyer $buyer, array $leadData): array
     {
         if ($buyer->code === "D2") {

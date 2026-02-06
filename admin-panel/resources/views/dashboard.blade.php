@@ -111,9 +111,10 @@
         <div class="text-xs text-blue-600">Revenue</div>
         <div class="text-2xl font-semibold">${{ number_format($totalRevenue, 2) }}</div>
       </div>
-      <div class="w-36 h-36 rounded-full bg-amber-50 border border-amber-100 shadow-sm flex flex-col items-center justify-center">
-        <div class="text-xs text-amber-600">Duplicates</div>
+      <div class="w-36 h-36 rounded-full bg-amber-50 border border-amber-100 shadow-sm flex flex-col items-center justify-center text-center px-2">
+        <div class="text-xs text-amber-600">Duplicate Leads</div>
         <div class="text-xl font-semibold">{{ $duplicateCount }}</div>
+        <div class="text-[10px] text-amber-600">Buyer dupes: {{ $duplicateAttemptCount }}</div>
       </div>
     </div>
   </div>

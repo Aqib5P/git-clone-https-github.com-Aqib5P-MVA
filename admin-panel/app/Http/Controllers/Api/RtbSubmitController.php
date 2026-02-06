@@ -66,10 +66,10 @@ class RtbSubmitController extends Controller
             $duplicate = $duplicateChecker->findDuplicateAttempt($buyer->id, $lead->phone);
 
             $result = $service->submit($buyer, $leadData);
-            $pingParsed = $parser->parse(is_array($result["ping"] ?? null) ? $result["ping"] : null, $buyer->response_rules ?? []);
-            $postParsed = $parser->parse(is_array($result["post"] ?? null) ? $result["post"] : null, $buyer->response_rules ?? []);
+            $pingParsed = $parser->parse(is_array($result["ping"] ?? null) ? $result["ping"] : null, $this->rulesFor($buyer, "ping"));
+            $postParsed = $parser->parse(is_array($result["post"] ?? null) ? $result["post"] : null, $this->rulesFor($buyer, "post"));
             $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
-            $parsed = $parser->parse(is_array($primary) ? $primary : null, $buyer->response_rules ?? []);
+            $parsed = $parser->parse(is_array($primary) ? $primary : null, $this->rulesFor($buyer, "single"));
 
             $bodyData = $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"] ?? null;
             $payout = $postParsed["payout"] ?? $pingParsed["payout"] ?? $parsed["payout"] ?? null;
@@ -294,6 +294,15 @@ class RtbSubmitController extends Controller
         return $response->header("Access-Control-Allow-Origin", "*")
             ->header("Access-Control-Allow-Headers", "Content-Type")
             ->header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    }
+
+    private function rulesFor(Buyer $buyer, string $direction): array
+    {
+        $rules = $buyer->response_rules ?? [];
+        if (!is_array($rules)) return [];
+        if ($direction === "single" && isset($rules["single"])) return $rules["single"];
+        if (isset($rules[$direction])) return $rules[$direction];
+        return $rules;
     }
 
     private function extractRejectReason(?array $data): string

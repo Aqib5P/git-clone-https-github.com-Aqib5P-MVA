@@ -63,10 +63,10 @@ class PublicFormController extends Controller
         $duplicate = $duplicateChecker->findDuplicateAttempt($buyer->id, $lead->phone);
 
         $result = $service->submit($buyer, $leadData);
-        $pingParsed = $parser->parse(is_array($result["ping"] ?? null) ? $result["ping"] : null, $buyer->response_rules ?? []);
-        $postParsed = $parser->parse(is_array($result["post"] ?? null) ? $result["post"] : null, $buyer->response_rules ?? []);
+        $pingParsed = $parser->parse(is_array($result["ping"] ?? null) ? $result["ping"] : null, $this->rulesFor($buyer, "ping"));
+        $postParsed = $parser->parse(is_array($result["post"] ?? null) ? $result["post"] : null, $this->rulesFor($buyer, "post"));
         $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
-        $parsed = $parser->parse(is_array($primary) ? $primary : null, $buyer->response_rules ?? []);
+        $parsed = $parser->parse(is_array($primary) ? $primary : null, $this->rulesFor($buyer, "single"));
 
         $payout = $postParsed["payout"] ?? $pingParsed["payout"] ?? $parsed["payout"] ?? null;
         if ($buyer->payout_type === "static" && $buyer->static_payout !== null) {
@@ -145,7 +145,35 @@ class PublicFormController extends Controller
             }
         }
 
-        return array_values($map);
+        $ordered = array_values($map);
+        $priority = [
+            "first_name",
+            "last_name",
+            "phone",
+            "phone_number",
+            "email",
+            "zip5",
+            "zip",
+            "state",
+            "city",
+            "address",
+        ];
+        $priorityIndex = array_flip($priority);
+        $fallbackIndex = 100;
+        $i = 0;
+        foreach ($ordered as &$item) {
+            $key = $item["key"];
+            $item["_order"] = $priorityIndex[$key] ?? ($fallbackIndex + $i);
+            $i++;
+        }
+        unset($item);
+        usort($ordered, fn ($a, $b) => $a["_order"] <=> $b["_order"]);
+        foreach ($ordered as &$item) {
+            unset($item["_order"]);
+        }
+        unset($item);
+
+        return $ordered;
     }
 
     private function extractRejectReason(?array $data): string
@@ -167,5 +195,14 @@ class PublicFormController extends Controller
             return (string) $data["errors"];
         }
         return "";
+    }
+
+    private function rulesFor(Buyer $buyer, string $direction): array
+    {
+        $rules = $buyer->response_rules ?? [];
+        if (!is_array($rules)) return [];
+        if ($direction === "single" && isset($rules["single"])) return $rules["single"];
+        if (isset($rules[$direction])) return $rules[$direction];
+        return $rules;
     }
 }

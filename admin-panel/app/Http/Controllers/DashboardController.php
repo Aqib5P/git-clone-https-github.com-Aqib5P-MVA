@@ -7,6 +7,7 @@ use App\Models\Buyer;
 use App\Models\Lead;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -37,11 +38,26 @@ class DashboardController extends Controller
             ->limit(100)
             ->get();
 
-        $statusCounts = (clone $baseQuery)
-            ->selectRaw("status, count(*) as total")
-            ->groupBy("status")
-            ->pluck("total", "status")
-            ->toArray();
+        $leadStatusSub = Attempt::query()
+            ->selectRaw("lead_id,
+                max(case when status = 'accepted' then 1 else 0 end) as has_accepted,
+                max(case when status = 'rejected' then 1 else 0 end) as has_rejected")
+            ->whereBetween("created_at", [$startDate, $endDate])
+            ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
+            ->groupBy("lead_id");
+
+        $leadCountsRow = DB::query()
+            ->fromSub($leadStatusSub, "ls")
+            ->selectRaw("count(*) as total,
+                sum(case when has_accepted = 1 then 1 else 0 end) as accepted,
+                sum(case when has_accepted = 0 and has_rejected = 1 then 1 else 0 end) as rejected,
+                sum(case when has_accepted = 0 and has_rejected = 0 then 1 else 0 end) as unknown")
+            ->first();
+
+        $accepted = (int) ($leadCountsRow->accepted ?? 0);
+        $rejected = (int) ($leadCountsRow->rejected ?? 0);
+        $unknown = (int) ($leadCountsRow->unknown ?? 0);
+        $total = (int) ($leadCountsRow->total ?? 0);
 
         $buyerStats = Attempt::query()
             ->selectRaw("endpoint, count(*) as total,
@@ -57,27 +73,34 @@ class DashboardController extends Controller
             ->get();
 
         $topBuyer = $buyerStats->sortByDesc("accepted")->first();
-        $topPayoutBuyer = $buyerStats->sortByDesc("max_payout")->first();
-        $totalAttempts = array_sum($statusCounts);
-        $accepted = $statusCounts["accepted"] ?? 0;
-        $rejected = $statusCounts["rejected"] ?? 0;
-        $unknown = $statusCounts["unknown"] ?? 0;
-        $total = $accepted + $rejected + $unknown;
-        $acceptRate = $totalAttempts > 0 ? round(($accepted / $totalAttempts) * 100, 1) : 0;
+        $topPayoutBuyer = $buyerStats->sortByDesc("total_payout")->first();
+        $acceptRate = $total > 0 ? round(($accepted / $total) * 100, 1) : 0;
         $rejectRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
         $totalRevenue = Attempt::query()
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($status, fn ($q) => $q->where("status", $status))
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
             ->sum("payout");
-        $rpm = $totalAttempts > 0 ? round(($totalRevenue / $totalAttempts) * 1000, 2) : 0;
-        $duplicateCount = Attempt::query()
+        $duplicateAttemptCount = Attempt::query()
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($status, fn ($q) => $q->where("status", $status))
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
             ->where("is_duplicate", true)
             ->count();
-        $duplicateRate = $totalAttempts > 0 ? round(($duplicateCount / $totalAttempts) * 100, 1) : 0;
+        $duplicateLeadCount = Lead::query()
+            ->whereBetween("created_at", [$startDate, $endDate])
+            ->when($buyer, function ($query) use ($buyer) {
+                $query->whereHas("attempts", function ($attemptQuery) use ($buyer) {
+                    $attemptQuery->where("endpoint", $buyer);
+                });
+            })
+            ->whereNotNull("phone")
+            ->selectRaw("phone, count(*) as cnt")
+            ->groupBy("phone")
+            ->havingRaw("count(*) > 1")
+            ->get()
+            ->sum(fn ($row) => (int) $row->cnt - 1);
+        $duplicateRate = $total > 0 ? round(($duplicateLeadCount / $total) * 100, 1) : 0;
 
         $buyers = Buyer::orderBy("code")->get();
 
@@ -107,7 +130,6 @@ class DashboardController extends Controller
 
         return view("dashboard", [
             "attempts" => $attempts,
-            "statusCounts" => $statusCounts,
             "buyerStats" => $buyerStats,
             "buyers" => $buyers,
             "accepted" => $accepted,
@@ -119,8 +141,8 @@ class DashboardController extends Controller
             "topBuyer" => $topBuyer,
             "topPayoutBuyer" => $topPayoutBuyer,
             "totalRevenue" => $totalRevenue,
-            "rpm" => $rpm,
-            "duplicateCount" => $duplicateCount,
+            "duplicateCount" => $duplicateLeadCount,
+            "duplicateAttemptCount" => $duplicateAttemptCount,
             "duplicateRate" => $duplicateRate,
             "productStats" => $productStats,
             "campaignStats" => $campaignStats,

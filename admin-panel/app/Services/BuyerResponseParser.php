@@ -14,6 +14,7 @@ class BuyerResponseParser
         $forwarding = null;
         $payout = null;
         $bidAmount = null;
+        $duration = null;
 
         if (is_array($response)) {
             $httpStatus = $response["status"] ?? null;
@@ -31,6 +32,7 @@ class BuyerResponseParser
             $forwarding = $this->extractForwardingNumber($bodyJson, $rules["forwarding_keys"] ?? []);
             $payout = $this->extractNumber($bodyJson, $rules["payout_keys"] ?? ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
             $bidAmount = $this->extractNumber($bodyJson, $rules["bid_keys"] ?? ["bidAmount", "bid_amount", "bidPrice"]);
+            $duration = $this->extractNumber($bodyJson, $rules["duration_keys"] ?? ["duration", "current_conversion_duration", "min_duration", "callMinDuration"]);
             $status = $this->inferStatusFromJson($bodyJson, $rules);
         }
 
@@ -53,6 +55,7 @@ class BuyerResponseParser
                     "call_router_number",
                 ]);
                 $payout = $payout ?? $this->xmlValue($xml, ["price", "payout"]);
+                $duration = $duration ?? $this->xmlValue($xml, ["duration", "call_duration", "min_duration"]);
             }
         }
 
@@ -78,6 +81,7 @@ class BuyerResponseParser
             "forwarding_number" => $this->normalizePhone($forwarding),
             "payout" => $payout,
             "bid_amount" => $bidAmount,
+            "duration" => $duration,
             "body_json" => $bodyJson,
             "body_raw" => $bodyRaw,
         ];

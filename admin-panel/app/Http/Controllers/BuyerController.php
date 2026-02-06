@@ -19,7 +19,22 @@ class BuyerController extends Controller
     public function index()
     {
         $buyers = Buyer::orderBy("code")->get();
-        return view("buyers.index", ["buyers" => $buyers]);
+        $stats = BuyerField::query()
+            ->selectRaw("buyer_id, count(*) as total_fields")
+            ->groupBy("buyer_id")
+            ->get()
+            ->keyBy("buyer_id");
+        $payouts = \App\Models\Attempt::query()
+            ->selectRaw("buyer_id, sum(payout) as total_payout, max(payout) as max_payout, count(*) as attempts")
+            ->groupBy("buyer_id")
+            ->get()
+            ->keyBy("buyer_id");
+
+        return view("buyers.index", [
+            "buyers" => $buyers,
+            "stats" => $stats,
+            "payouts" => $payouts,
+        ]);
     }
 
     public function store(Request $request)
@@ -38,6 +53,25 @@ class BuyerController extends Controller
             "forwarding_keys" => ["nullable", "string"],
             "payout_keys" => ["nullable", "string"],
             "bid_keys" => ["nullable", "string"],
+            "duration_keys" => ["nullable", "string"],
+            "response_accept_single" => ["nullable", "string"],
+            "response_reject_single" => ["nullable", "string"],
+            "forwarding_keys_single" => ["nullable", "string"],
+            "payout_keys_single" => ["nullable", "string"],
+            "bid_keys_single" => ["nullable", "string"],
+            "duration_keys_single" => ["nullable", "string"],
+            "response_accept_ping" => ["nullable", "string"],
+            "response_reject_ping" => ["nullable", "string"],
+            "forwarding_keys_ping" => ["nullable", "string"],
+            "payout_keys_ping" => ["nullable", "string"],
+            "bid_keys_ping" => ["nullable", "string"],
+            "duration_keys_ping" => ["nullable", "string"],
+            "response_accept_post" => ["nullable", "string"],
+            "response_reject_post" => ["nullable", "string"],
+            "forwarding_keys_post" => ["nullable", "string"],
+            "payout_keys_post" => ["nullable", "string"],
+            "bid_keys_post" => ["nullable", "string"],
+            "duration_keys_post" => ["nullable", "string"],
             "default_product_id" => ["nullable", "integer"],
             "default_campaign_id" => ["nullable", "integer"],
             "default_publisher_id" => ["nullable", "integer"],
@@ -87,6 +121,9 @@ class BuyerController extends Controller
         $products = Product::orderBy("name")->get();
         $campaigns = Campaign::orderBy("name")->get();
         $publishers = Publisher::orderBy("name")->get();
+        $sampleLeadSingle = $this->buildSampleLeadData($buyer, "single", $leadFields);
+        $sampleLeadPing = $this->buildSampleLeadData($buyer, "ping", $leadFields);
+        $sampleLeadPost = $this->buildSampleLeadData($buyer, "post", $leadFields);
 
         return view("buyers.edit", [
             "buyer" => $buyer,
@@ -95,6 +132,9 @@ class BuyerController extends Controller
             "products" => $products,
             "campaigns" => $campaigns,
             "publishers" => $publishers,
+            "sampleLeadSingle" => json_encode($sampleLeadSingle, JSON_PRETTY_PRINT),
+            "sampleLeadPing" => json_encode($sampleLeadPing, JSON_PRETTY_PRINT),
+            "sampleLeadPost" => json_encode($sampleLeadPost, JSON_PRETTY_PRINT),
         ]);
     }
 
@@ -114,6 +154,25 @@ class BuyerController extends Controller
             "forwarding_keys" => ["nullable", "string"],
             "payout_keys" => ["nullable", "string"],
             "bid_keys" => ["nullable", "string"],
+            "duration_keys" => ["nullable", "string"],
+            "response_accept_single" => ["nullable", "string"],
+            "response_reject_single" => ["nullable", "string"],
+            "forwarding_keys_single" => ["nullable", "string"],
+            "payout_keys_single" => ["nullable", "string"],
+            "bid_keys_single" => ["nullable", "string"],
+            "duration_keys_single" => ["nullable", "string"],
+            "response_accept_ping" => ["nullable", "string"],
+            "response_reject_ping" => ["nullable", "string"],
+            "forwarding_keys_ping" => ["nullable", "string"],
+            "payout_keys_ping" => ["nullable", "string"],
+            "bid_keys_ping" => ["nullable", "string"],
+            "duration_keys_ping" => ["nullable", "string"],
+            "response_accept_post" => ["nullable", "string"],
+            "response_reject_post" => ["nullable", "string"],
+            "forwarding_keys_post" => ["nullable", "string"],
+            "payout_keys_post" => ["nullable", "string"],
+            "bid_keys_post" => ["nullable", "string"],
+            "duration_keys_post" => ["nullable", "string"],
             "default_product_id" => ["nullable", "integer"],
             "default_campaign_id" => ["nullable", "integer"],
             "default_publisher_id" => ["nullable", "integer"],
@@ -186,20 +245,53 @@ class BuyerController extends Controller
 
     public function test(Request $request, Buyer $buyer, BuyerRequestService $service, BuyerResponseParser $parser)
     {
-        $data = $request->validate([
-            "lead_json" => ["required", "string"],
-        ]);
-
-        $leadData = json_decode($data["lead_json"], true);
-        if (!is_array($leadData)) {
+        $leadData = $this->decodeLeadJson($request, $buyer, "lead_json");
+        if (!$leadData) {
             return redirect()->route("buyers.edit", $buyer)->withErrors(["lead_json" => "Invalid JSON."]);
         }
 
-        $result = $service->submit($buyer, $leadData);
-        $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
-        $parsed = $parser->parse(is_array($primary) ? $primary : null, $buyer->response_rules ?? []);
+        $result = $service->submitDirection($buyer, $leadData, "single");
+        $primary = $result["upstream"] ?? null;
+        $parsed = $parser->parse(is_array($primary) ? $primary : null, $this->rulesFor($buyer, "single"));
 
-        return redirect()->route("buyers.edit", $buyer)->with("test_result", [
+        return redirect()->route("buyers.edit", $buyer)->with("test_result_single", [
+            "raw" => $result,
+            "parsed" => $parsed,
+        ]);
+    }
+
+    public function testPing(Request $request, Buyer $buyer, BuyerRequestService $service, BuyerResponseParser $parser)
+    {
+        $leadData = $this->decodeLeadJson($request, $buyer, "lead_json_ping");
+        if (!$leadData) {
+            return redirect()->route("buyers.edit", $buyer)->withErrors(["lead_json_ping" => "Invalid JSON."]);
+        }
+
+        $result = $service->submitDirection($buyer, $leadData, "ping");
+        $parsed = $parser->parse(is_array($result["ping"] ?? null) ? $result["ping"] : null, $this->rulesFor($buyer, "ping"));
+
+        return redirect()->route("buyers.edit", $buyer)->with("test_result_ping", [
+            "raw" => $result,
+            "parsed" => $parsed,
+        ]);
+    }
+
+    public function testPost(Request $request, Buyer $buyer, BuyerRequestService $service, BuyerResponseParser $parser)
+    {
+        $leadData = $this->decodeLeadJson($request, $buyer, "lead_json_post");
+        if (!$leadData) {
+            return redirect()->route("buyers.edit", $buyer)->withErrors(["lead_json_post" => "Invalid JSON."]);
+        }
+
+        $context = array_filter([
+            "ping_id" => $request->input("ping_id"),
+            "lead_id" => $request->input("lead_id"),
+        ]);
+
+        $result = $service->submitDirection($buyer, $leadData, "post", $context);
+        $parsed = $parser->parse(is_array($result["post"] ?? null) ? $result["post"] : null, $this->rulesFor($buyer, "post"));
+
+        return redirect()->route("buyers.edit", $buyer)->with("test_result_post", [
             "raw" => $result,
             "parsed" => $parsed,
         ]);
@@ -269,13 +361,128 @@ class BuyerController extends Controller
 
     private function buildResponseRules(Request $request): array
     {
+        $rules = [];
+
+        $single = $this->buildRuleSet($request, "single");
+        $ping = $this->buildRuleSet($request, "ping");
+        $post = $this->buildRuleSet($request, "post");
+
+        if ($single) $rules["single"] = $single;
+        if ($ping) $rules["ping"] = $ping;
+        if ($post) $rules["post"] = $post;
+
+        if (!empty($rules)) {
+            return $rules;
+        }
+
         return [
             "accept" => $this->splitCsv($request->input("response_accept")),
             "reject" => $this->splitCsv($request->input("response_reject")),
             "forwarding_keys" => $this->splitCsv($request->input("forwarding_keys")),
             "payout_keys" => $this->splitCsv($request->input("payout_keys")),
             "bid_keys" => $this->splitCsv($request->input("bid_keys")),
+            "duration_keys" => $this->splitCsv($request->input("duration_keys")),
         ];
+    }
+
+    private function buildRuleSet(Request $request, string $suffix): array
+    {
+        $suffix = "_" . $suffix;
+        $set = [
+            "accept" => $this->splitCsv($request->input("response_accept" . $suffix)),
+            "reject" => $this->splitCsv($request->input("response_reject" . $suffix)),
+            "forwarding_keys" => $this->splitCsv($request->input("forwarding_keys" . $suffix)),
+            "payout_keys" => $this->splitCsv($request->input("payout_keys" . $suffix)),
+            "bid_keys" => $this->splitCsv($request->input("bid_keys" . $suffix)),
+            "duration_keys" => $this->splitCsv($request->input("duration_keys" . $suffix)),
+        ];
+
+        $hasValues = false;
+        foreach ($set as $values) {
+            if (!empty($values)) {
+                $hasValues = true;
+                break;
+            }
+        }
+        return $hasValues ? $set : [];
+    }
+
+    private function rulesFor(Buyer $buyer, string $direction): array
+    {
+        $rules = $buyer->response_rules ?? [];
+        if (!is_array($rules)) return [];
+        if ($direction === "single" && isset($rules["single"])) return $rules["single"];
+        if (isset($rules[$direction])) return $rules[$direction];
+        return $rules;
+    }
+
+    private function decodeLeadJson(Request $request, Buyer $buyer, string $field): ?array
+    {
+        $raw = $request->input($field);
+        if (!is_string($raw) || trim($raw) === "") return null;
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) return null;
+        return $decoded;
+    }
+
+    private function buildSampleLeadData(Buyer $buyer, string $direction, $leadFields): array
+    {
+        $fields = $buyer->fields()
+            ->where("source_type", "lead")
+            ->whereIn("direction", [$direction, "single"])
+            ->get();
+
+        if ($fields->isEmpty()) {
+            return [
+                "first_name" => "John",
+                "last_name" => "Doe",
+                "phone" => "5551234567",
+                "zip5" => "90210",
+                "email" => "john@example.com",
+            ];
+        }
+
+        $leadFieldMap = $leadFields->keyBy("key");
+        $data = [];
+        foreach ($fields as $field) {
+            $key = $field->source_key ?: $field->field_name;
+            if (!$key || isset($data[$key])) continue;
+            $meta = $leadFieldMap->get($key);
+            $data[$key] = $this->sampleValueForKey($key, $meta?->type, $meta?->options);
+        }
+
+        return $data;
+    }
+
+    private function sampleValueForKey(string $key, ?string $type, $options)
+    {
+        $defaults = [
+            "first_name" => "John",
+            "last_name" => "Doe",
+            "email" => "john@example.com",
+            "phone" => "5551234567",
+            "zip5" => "90210",
+            "zip" => "90210",
+            "state" => "CA",
+            "city" => "Los Angeles",
+            "address" => "100 Main St",
+            "cert_id" => "CERT-TEST-123",
+            "cert_url" => "https://cert.example.com/test",
+            "dob" => "1990-01-01",
+        ];
+
+        if (isset($defaults[$key])) return $defaults[$key];
+
+        if ($type === "select" && is_array($options) && count($options)) {
+            $values = array_values($options);
+            return $values[0];
+        }
+        if ($type === "email") return "john@example.com";
+        if ($type === "tel") return "5551234567";
+        if ($type === "date") return date("Y-m-d");
+        if ($type === "url") return "https://example.com";
+
+        return "Test";
     }
 
     private function splitCsv(?string $value): array

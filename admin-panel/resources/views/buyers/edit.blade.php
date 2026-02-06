@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+  @php($isPingPost = $buyer->type === 'ping_post')
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-6">
     <h3 class="text-lg font-semibold mb-4">Edit Buyer: {{ $buyer->code }}</h3>
     <form method="post" action="{{ route('buyers.update', $buyer) }}">
@@ -13,9 +14,8 @@
         <div>
           <label for="type" class="text-sm text-slate-600">Type</label>
           <select id="type" name="type" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
-            <option value="single" @selected($buyer->type === 'single')>Single</option>
+            <option value="single" @selected(in_array($buyer->type, ['single','rtb']))>Full Post</option>
             <option value="ping_post" @selected($buyer->type === 'ping_post')>Ping/Post</option>
-            <option value="rtb" @selected($buyer->type === 'rtb')>RTB</option>
           </select>
         </div>
         <div>
@@ -138,28 +138,102 @@
 
       @php
         $rules = $buyer->response_rules ?? [];
+        $singleRules = $rules['single'] ?? $rules;
+        $pingRules = $rules['ping'] ?? $rules;
+        $postRules = $rules['post'] ?? $rules;
       @endphp
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <div>
-          <label for="response_accept" class="text-sm text-slate-600">Accept keywords (comma)</label>
-          <input id="response_accept" name="response_accept" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $rules['accept'] ?? []) }}" />
-        </div>
-        <div>
-          <label for="response_reject" class="text-sm text-slate-600">Reject keywords (comma)</label>
-          <input id="response_reject" name="response_reject" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $rules['reject'] ?? []) }}" />
-        </div>
-        <div>
-          <label for="forwarding_keys" class="text-sm text-slate-600">Forwarding keys (comma)</label>
-          <input id="forwarding_keys" name="forwarding_keys" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $rules['forwarding_keys'] ?? []) }}" />
-        </div>
-        <div>
-          <label for="payout_keys" class="text-sm text-slate-600">Payout keys (comma)</label>
-          <input id="payout_keys" name="payout_keys" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $rules['payout_keys'] ?? []) }}" />
-        </div>
-        <div>
-          <label for="bid_keys" class="text-sm text-slate-600">Bid keys (comma)</label>
-          <input id="bid_keys" name="bid_keys" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $rules['bid_keys'] ?? []) }}" />
-        </div>
+      <div class="mt-4 space-y-4">
+        @if ($isPingPost)
+          <div class="rounded-xl border border-slate-200 p-4">
+            <div class="text-sm font-semibold text-slate-700 mb-3">Ping Response Mapping</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="text-xs text-slate-600">Accept keywords</label>
+                <input name="response_accept_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['accept'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Reject keywords</label>
+                <input name="response_reject_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['reject'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Forwarding keys</label>
+                <input name="forwarding_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['forwarding_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Payout keys</label>
+                <input name="payout_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['payout_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Bid keys</label>
+                <input name="bid_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['bid_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Duration keys</label>
+                <input name="duration_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['duration_keys'] ?? []) }}" />
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 p-4">
+            <div class="text-sm font-semibold text-slate-700 mb-3">Post Response Mapping</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="text-xs text-slate-600">Accept keywords</label>
+                <input name="response_accept_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['accept'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Reject keywords</label>
+                <input name="response_reject_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['reject'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Forwarding keys</label>
+                <input name="forwarding_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['forwarding_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Payout keys</label>
+                <input name="payout_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['payout_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Bid keys</label>
+                <input name="bid_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['bid_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Duration keys</label>
+                <input name="duration_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['duration_keys'] ?? []) }}" />
+              </div>
+            </div>
+          </div>
+        @else
+          <div class="rounded-xl border border-slate-200 p-4">
+            <div class="text-sm font-semibold text-slate-700 mb-3">Full Post Response Mapping</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="text-xs text-slate-600">Accept keywords</label>
+                <input name="response_accept_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['accept'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Reject keywords</label>
+                <input name="response_reject_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['reject'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Forwarding keys</label>
+                <input name="forwarding_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['forwarding_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Payout keys</label>
+                <input name="payout_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['payout_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Bid keys</label>
+                <input name="bid_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['bid_keys'] ?? []) }}" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Duration keys</label>
+                <input name="duration_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['duration_keys'] ?? []) }}" />
+              </div>
+            </div>
+          </div>
+        @endif
       </div>
     </form>
 
@@ -177,190 +251,191 @@
 
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-6">
     <h3 class="text-lg font-semibold mb-4">Add Field</h3>
-    <form method="post" action="{{ route('buyers.template', $buyer) }}" class="mb-4">
-      @csrf
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-        <div class="md:col-span-2">
-          <label for="template_key" class="text-sm text-slate-600">Apply Template</label>
-          <select id="template_key" name="template_key" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
-            @foreach (config('buyer_templates') as $key => $template)
-              <option value="{{ $key }}">{{ $template['label'] ?? $key }}</option>
-            @endforeach
-          </select>
+    <div class="grid grid-cols-1 {{ $isPingPost ? 'md:grid-cols-2' : '' }} gap-6">
+      <form method="post" action="{{ route('buyers.fields.store', $buyer) }}" class="space-y-3">
+        @csrf
+        <input type="hidden" name="direction" value="{{ $isPingPost ? 'ping' : 'single' }}" />
+        <div class="text-sm font-semibold text-slate-700">{{ $isPingPost ? 'Ping Fields' : 'Full Post Fields' }}</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-600">Buyer Field</label>
+            <input name="field_name" list="lead_field_names" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. first_name" required />
+          </div>
+          <div>
+            <label class="text-xs text-slate-600">Source Type</label>
+            <select name="source_type" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <option value="lead">Lead Field</option>
+              <option value="static">Static</option>
+              <option value="computed">Computed</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-600">Our Field</label>
+            <select name="source_key" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <option value="">Auto</option>
+              @foreach ($leadFields as $field)
+                <option value="{{ $field->key }}">{{ $field->key }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-600">Static Value</label>
+            <input name="source_value" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-600">Required</label>
+            <select name="required" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="w-full rounded-lg bg-blue-600 text-white py-2 text-sm hover:bg-blue-700">Add</button>
+          </div>
         </div>
-        <div>
-          <label for="replace" class="text-sm text-slate-600">Replace Existing</label>
-          <select id="replace" name="replace" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
-            <option value="0">No</option>
-            <option value="1">Yes</option>
-          </select>
-        </div>
-        <div class="flex items-end">
-          <button type="submit" class="w-full rounded-lg border border-slate-300 px-3 py-2 hover:bg-slate-100">Apply</button>
-        </div>
-      </div>
-    </form>
-    <form method="post" action="{{ route('buyers.fields.store', $buyer) }}">
-      @csrf
-      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <div class="md:col-span-2">
-          <label for="field_name" class="text-sm text-slate-600">Buyer Field Name</label>
-          <input id="field_name" name="field_name" list="lead_field_names" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="e.g. first_name" required />
-          <datalist id="lead_field_names">
-            @foreach ($leadFields as $field)
-              <option value="{{ $field->key }}"></option>
-            @endforeach
-          </datalist>
-        </div>
-        <div>
-          <label for="direction" class="text-sm text-slate-600">Direction</label>
-          <select id="direction" name="direction" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
-            <option value="single">Single</option>
-            <option value="ping">Ping</option>
-            <option value="post">Post</option>
-          </select>
-        </div>
-        <div>
-          <label for="source_type" class="text-sm text-slate-600">Source</label>
-          <select id="source_type" name="source_type" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
-            <option value="lead">Lead Field</option>
-            <option value="static">Static</option>
-            <option value="computed">Computed</option>
-          </select>
-        </div>
-        <div>
-          <label for="source_key" class="text-sm text-slate-600">Source Field</label>
-          <select id="source_key" name="source_key" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
-            <option value="">Auto</option>
-            @foreach ($leadFields as $field)
-              <option value="{{ $field->key }}">{{ $field->key }}</option>
-            @endforeach
-          </select>
-        </div>
-        <div>
-          <label for="source_value" class="text-sm text-slate-600">Static Value</label>
-          <input id="source_value" name="source_value" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
-        </div>
-        <div>
-          <label for="required" class="text-sm text-slate-600">Req</label>
-          <select id="required" name="required" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
-            <option value="1">Yes</option>
-            <option value="0">No</option>
-          </select>
-        </div>
-        <div class="flex items-end">
-          <button type="submit" class="w-full rounded-lg bg-blue-600 text-white py-2 hover:bg-blue-700">Add</button>
-        </div>
-      </div>
-    </form>
+      </form>
+
+      @if ($isPingPost)
+        <form method="post" action="{{ route('buyers.fields.store', $buyer) }}" class="space-y-3">
+          @csrf
+          <input type="hidden" name="direction" value="post" />
+          <div class="text-sm font-semibold text-slate-700">Post Fields</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-600">Buyer Field</label>
+              <input name="field_name" list="lead_field_names" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. first_name" required />
+            </div>
+            <div>
+              <label class="text-xs text-slate-600">Source Type</label>
+              <select name="source_type" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="lead">Lead Field</option>
+                <option value="static">Static</option>
+                <option value="computed">Computed</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-600">Our Field</label>
+              <select name="source_key" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Auto</option>
+                @foreach ($leadFields as $field)
+                  <option value="{{ $field->key }}">{{ $field->key }}</option>
+                @endforeach
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-600">Static Value</label>
+              <input name="source_value" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-600">Required</label>
+              <select name="required" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="1">Yes</option>
+                <option value="0">No</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button type="submit" class="w-full rounded-lg bg-blue-600 text-white py-2 text-sm hover:bg-blue-700">Add</button>
+            </div>
+          </div>
+        </form>
+      @endif
+    </div>
+    <datalist id="lead_field_names">
+      @foreach ($leadFields as $field)
+        <option value="{{ $field->key }}"></option>
+      @endforeach
+    </datalist>
   </div>
 
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h3 class="text-lg font-semibold mb-4">Fields</h3>
-    <table class="min-w-full text-sm">
-      <thead>
-        <tr class="text-left text-slate-500">
-          <th class="py-2">Our Field</th>
-          <th class="py-2">Buyer Field</th>
-          <th class="py-2">Value</th>
-          <th class="py-2">Source</th>
-          <th class="py-2">Required</th>
-          <th class="py-2">Direction</th>
-          <th class="py-2">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @forelse ($fields as $field)
-          <tr class="border-t border-slate-100">
-            <td class="py-2">{{ $field->source_key ?? '—' }}</td>
-            <td class="py-2">{{ $field->field_name }}</td>
-            <td class="py-2">{{ $field->source_value ?? '—' }}</td>
-            <td class="py-2">{{ $field->source_type }}</td>
-            <td class="py-2">{{ $field->required ? 'Required' : 'Optional' }}</td>
-            <td class="py-2">{{ $field->direction }}</td>
-            <td class="py-2">
-              <form method="post" action="{{ route('buyers.fields.update', $field) }}" class="inline">
-                @csrf
-                <input type="hidden" name="required" value="{{ $field->required ? 0 : 1 }}" />
-                <button type="submit" class="border border-slate-300 px-2 py-1 rounded-lg text-xs hover:bg-slate-100">{{ $field->required ? 'Make Optional' : 'Make Required' }}</button>
-              </form>
-              <details class="inline-block ml-2">
-                <summary class="cursor-pointer border border-slate-300 px-2 py-1 rounded-lg text-xs hover:bg-slate-100 inline-block">Edit</summary>
-                <div class="mt-2 p-3 border border-slate-200 rounded-lg bg-slate-50">
-                  <form method="post" action="{{ route('buyers.fields.update', $field) }}" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    @csrf
-                    <div>
-                      <label class="text-xs text-slate-600">Direction</label>
-                      <select name="direction" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1 text-xs">
-                        <option value="single" @selected($field->direction === 'single')>Single</option>
-                        <option value="ping" @selected($field->direction === 'ping')>Ping</option>
-                        <option value="post" @selected($field->direction === 'post')>Post</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="text-xs text-slate-600">Source Type</label>
-                      <select name="source_type" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1 text-xs">
-                        <option value="lead" @selected($field->source_type === 'lead')>Lead</option>
-                        <option value="static" @selected($field->source_type === 'static')>Static</option>
-                        <option value="computed" @selected($field->source_type === 'computed')>Computed</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="text-xs text-slate-600">Our Field</label>
-                      <input name="source_key" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1 text-xs" value="{{ $field->source_key }}" />
-                    </div>
-                    <div class="md:col-span-2">
-                      <label class="text-xs text-slate-600">Value (static)</label>
-                      <input name="source_value" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1 text-xs" value="{{ $field->source_value }}" />
-                    </div>
-                    <div>
-                      <label class="text-xs text-slate-600">Required</label>
-                      <select name="required" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1 text-xs">
-                        <option value="1" @selected($field->required)>Required</option>
-                        <option value="0" @selected(!$field->required)>Optional</option>
-                      </select>
-                    </div>
-                    <div class="md:col-span-3 flex justify-end">
-                      <button type="submit" class="rounded-lg bg-blue-600 text-white px-3 py-1 text-xs hover:bg-blue-700">Save</button>
-                    </div>
-                  </form>
-                </div>
-              </details>
-              <form method="post" action="{{ route('buyers.fields.delete', $field) }}" class="inline">
-                @csrf
-                <button type="submit" class="border border-red-200 text-red-600 px-2 py-1 rounded-lg text-xs hover:bg-red-50">Delete</button>
-              </form>
-            </td>
-          </tr>
-        @empty
-          <tr>
-            <td colspan="7" class="text-slate-500 py-3">No fields yet.</td>
-          </tr>
-        @endforelse
-      </tbody>
-    </table>
+    @php
+      $pingFields = $fields->where('direction', 'ping');
+      $postFields = $fields->where('direction', 'post');
+      $singleFields = $fields->where('direction', 'single');
+    @endphp
+
+    @if ($isPingPost)
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <div class="text-sm font-semibold text-slate-700 mb-2">Ping Mapping</div>
+          @include('buyers.partials.field-table', ['fieldRows' => $pingFields])
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700 mb-2">Post Mapping</div>
+          @include('buyers.partials.field-table', ['fieldRows' => $postFields])
+        </div>
+      </div>
+    @else
+      @include('buyers.partials.field-table', ['fieldRows' => $singleFields])
+    @endif
   </div>
 
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mt-6">
     <h3 class="text-lg font-semibold mb-4">Test Buyer</h3>
-    <form method="post" action="{{ route('buyers.test', $buyer) }}" class="space-y-4">
-      @csrf
-      <div>
-        <label for="lead_json" class="text-sm text-slate-600">Lead JSON</label>
-        <textarea id="lead_json" name="lead_json" rows="6" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{ "first_name": "John", "last_name": "Doe", "phone": "5551234567", "zip5": "90210" }</textarea>
-      </div>
-      <button type="submit" class="rounded-lg bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">Send Test</button>
-    </form>
 
-    @if (session('test_result'))
-      <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <div class="text-sm font-semibold mb-2">Parsed Result</div>
-        <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result')['parsed'], JSON_PRETTY_PRINT) }}</pre>
+    @if ($isPingPost)
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <div class="text-sm font-semibold text-slate-700 mb-2">Ping Test</div>
+          <form method="post" action="{{ route('buyers.test.ping', $buyer) }}" class="space-y-3">
+            @csrf
+            <textarea name="lead_json_ping" rows="8" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $sampleLeadPing }}</textarea>
+            <button type="submit" class="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">Send Ping Test</button>
+          </form>
+
+          @if (session('test_result_ping'))
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm font-semibold mb-2">Parsed Result</div>
+              <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_ping')['parsed'], JSON_PRETTY_PRINT) }}</pre>
+            </div>
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm font-semibold mb-2">Raw Response</div>
+              <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_ping')['raw'], JSON_PRETTY_PRINT) }}</pre>
+            </div>
+          @endif
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700 mb-2">Post Test</div>
+          <form method="post" action="{{ route('buyers.test.post', $buyer) }}" class="space-y-3">
+            @csrf
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input name="ping_id" placeholder="Ping ID (optional)" class="rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+              <input name="lead_id" placeholder="Lead ID (optional)" class="rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+            </div>
+            <textarea name="lead_json_post" rows="8" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $sampleLeadPost }}</textarea>
+            <button type="submit" class="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">Send Post Test</button>
+          </form>
+
+          @if (session('test_result_post'))
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm font-semibold mb-2">Parsed Result</div>
+              <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_post')['parsed'], JSON_PRETTY_PRINT) }}</pre>
+            </div>
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm font-semibold mb-2">Raw Response</div>
+              <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_post')['raw'], JSON_PRETTY_PRINT) }}</pre>
+            </div>
+          @endif
+        </div>
       </div>
-      <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <div class="text-sm font-semibold mb-2">Raw Response</div>
-        <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result')['raw'], JSON_PRETTY_PRINT) }}</pre>
-      </div>
+    @else
+      <form method="post" action="{{ route('buyers.test', $buyer) }}" class="space-y-3">
+        @csrf
+        <textarea name="lead_json" rows="8" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $sampleLeadSingle }}</textarea>
+        <button type="submit" class="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">Send Full Post Test</button>
+      </form>
+
+      @if (session('test_result_single'))
+        <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div class="text-sm font-semibold mb-2">Parsed Result</div>
+          <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_single')['parsed'], JSON_PRETTY_PRINT) }}</pre>
+        </div>
+        <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div class="text-sm font-semibold mb-2">Raw Response</div>
+          <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_single')['raw'], JSON_PRETTY_PRINT) }}</pre>
+        </div>
+      @endif
     @endif
   </div>
 @endsection

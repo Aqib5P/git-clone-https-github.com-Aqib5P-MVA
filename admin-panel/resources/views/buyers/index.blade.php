@@ -17,9 +17,8 @@
         <div>
           <label for="type" class="text-sm text-slate-600">Type</label>
           <select id="type" name="type" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
-            <option value="single">Single</option>
+            <option value="single">Full Post</option>
             <option value="ping_post">Ping/Post</option>
-            <option value="rtb">RTB</option>
           </select>
         </div>
         <div>
@@ -91,6 +90,8 @@
           <th class="py-2">Name</th>
           <th class="py-2">Type</th>
           <th class="py-2">Scope</th>
+          <th class="py-2">Total Payout</th>
+          <th class="py-2">Max Payout</th>
           <th class="py-2">Status</th>
           <th class="py-2">Public Link</th>
           <th class="py-2">Actions</th>
@@ -98,11 +99,16 @@
       </thead>
       <tbody>
         @forelse ($buyers as $buyer)
+          @php
+            $payout = $payouts->get($buyer->id);
+          @endphp
           <tr class="border-t border-slate-100">
             <td class="py-2">{{ $buyer->code }}</td>
             <td class="py-2">{{ $buyer->name }}</td>
-            <td class="py-2">{{ $buyer->type }}</td>
+            <td class="py-2">{{ $buyer->type === 'ping_post' ? 'Ping/Post' : 'Full Post' }}</td>
             <td class="py-2">{{ $buyer->scope }}</td>
+            <td class="py-2">${{ number_format($payout?->total_payout ?? 0, 2) }}</td>
+            <td class="py-2">${{ number_format($payout?->max_payout ?? 0, 2) }}</td>
             <td class="py-2">{{ $buyer->active ? 'Active' : 'Inactive' }}</td>
             <td class="py-2">
               @if ($buyer->public_token && $buyer->public_enabled)

@@ -32,6 +32,8 @@ Route::middleware(["ip.allow"])->group(function () {
         Route::post("/buyers/{buyer}/token", [BuyerController::class, "regenerateToken"])->name("buyers.token");
         Route::post("/buyers/{buyer}/template", [BuyerController::class, "applyTemplate"])->name("buyers.template");
         Route::post("/buyers/{buyer}/test", [BuyerController::class, "test"])->name("buyers.test");
+        Route::post("/buyers/{buyer}/test-ping", [BuyerController::class, "testPing"])->name("buyers.test.ping");
+        Route::post("/buyers/{buyer}/test-post", [BuyerController::class, "testPost"])->name("buyers.test.post");
         Route::post("/buyers/{buyer}/fields", [BuyerController::class, "storeField"])->name("buyers.fields.store");
         Route::post("/buyers/fields/{field}/update", [BuyerController::class, "updateField"])->name("buyers.fields.update");
         Route::post("/buyers/fields/{field}/delete", [BuyerController::class, "deleteField"])->name("buyers.fields.delete");
