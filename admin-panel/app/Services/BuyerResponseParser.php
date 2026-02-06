@@ -88,6 +88,12 @@ class BuyerResponseParser
         if (isset($data["outcome"]) && $data["outcome"] === "failure") {
             return "rejected";
         }
+        if (!empty($data["rejectReason"]) || !empty($data["reject_reason"])) {
+            return "rejected";
+        }
+        if (!empty($data["errors"])) {
+            return "rejected";
+        }
         if (isset($data["outcome"]) && $data["outcome"] === "success") {
             return "accepted";
         }
@@ -98,17 +104,11 @@ class BuyerResponseParser
         if (isset($data["success"]) && is_bool($data["success"])) {
             return $data["success"] ? "accepted" : "rejected";
         }
-        if (!empty($data["rejectReason"]) || !empty($data["reject_reason"])) {
-            return "rejected";
-        }
         if ((isset($data["bidAmount"]) || isset($data["bidPrice"])) && empty($data["rejectReason"]) && empty($data["reject_reason"])) {
             $bid = $data["bidAmount"] ?? $data["bidPrice"];
             if (is_numeric($bid) && (float) $bid >= 0) {
                 return "accepted";
             }
-        }
-        if (!empty($data["errors"])) {
-            return "rejected";
         }
         if (isset($data["message"])) {
             $status = $this->inferStatusFromText((string) $data["message"], $rules);

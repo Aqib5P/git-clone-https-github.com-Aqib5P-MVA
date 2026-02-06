@@ -168,6 +168,12 @@ class LeadIntakeController extends Controller
         if (isset($data["outcome"]) && $data["outcome"] === "failure") {
             return "rejected";
         }
+        if (!empty($data["rejectReason"]) || !empty($data["reject_reason"])) {
+            return "rejected";
+        }
+        if (!empty($data["errors"])) {
+            return "rejected";
+        }
         if (isset($data["outcome"]) && $data["outcome"] === "success") {
             return "accepted";
         }
@@ -178,17 +184,11 @@ class LeadIntakeController extends Controller
         if (isset($data["success"]) && is_bool($data["success"])) {
             return $data["success"] ? "accepted" : "rejected";
         }
-        if (!empty($data["rejectReason"]) || !empty($data["reject_reason"])) {
-            return "rejected";
-        }
         if ((isset($data["bidAmount"]) || isset($data["bidPrice"])) && empty($data["rejectReason"]) && empty($data["reject_reason"])) {
             $bid = $data["bidAmount"] ?? $data["bidPrice"];
             if (is_numeric($bid) && (float) $bid >= 0) {
                 return "accepted";
             }
-        }
-        if (!empty($data["errors"])) {
-            return "rejected";
         }
         if (isset($data["message"])) {
             $status = $this->inferStatusFromText((string) $data["message"]);
@@ -207,7 +207,7 @@ class LeadIntakeController extends Controller
     private function inferStatusFromText(string $text): string
     {
         $t = strtolower($text);
-        if (str_contains($t, "accept") || str_contains($t, "success") || str_contains($t, "created") || str_contains($t, "approved")) {
+        if (str_contains($t, "accept") || str_contains($t, "success") || str_contains($t, "created") || str_contains($t, "approved") || str_contains($t, "matched")) {
             return "Accepted";
         }
         if (str_contains($t, "reject") || str_contains($t, "declin") || str_contains($t, "fail") || str_contains($t, "error") || str_contains($t, "invalid")) {

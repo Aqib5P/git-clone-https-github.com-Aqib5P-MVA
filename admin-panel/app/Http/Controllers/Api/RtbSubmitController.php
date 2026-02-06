@@ -161,14 +161,16 @@ class RtbSubmitController extends Controller
         }
 
         usort($results, fn ($a, $b) => ($b["sort_bid"] ?? 0) <=> ($a["sort_bid"] ?? 0));
-        foreach ($results as $index => &$row) {
+        $ranked = 0;
+        foreach ($results as &$row) {
             if (strtolower((string) $row["status"]) === "accepted") {
-                $row["rank_label"] = match ($index) {
+                $row["rank_label"] = match ($ranked) {
                     0 => "Highest Payout",
                     1 => "2nd Highest",
                     2 => "3rd Highest",
                     default => "",
                 };
+                $ranked++;
             } else {
                 $row["rank_label"] = "";
             }

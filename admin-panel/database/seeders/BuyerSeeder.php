@@ -152,7 +152,7 @@ class BuyerSeeder extends Seeder
                 ["traffic_source_id", "static", null, "3055", "ping", false],
                 ["first_name", "lead", "first_name", null, "ping", true],
                 ["last_name", "lead", "last_name", null, "ping", true],
-                ["ZIP", "lead", "zip5", null, "ping", true],
+                ["zip", "lead", "zip5", null, "ping", true],
                 ["caller_id", "lead", "phone", null, "ping", true],
                 ["trusted_form_cert_url", "lead", "cert_id", null, "ping", true],
 
@@ -160,7 +160,7 @@ class BuyerSeeder extends Seeder
                 ["traffic_source_id", "static", null, "3055", "post", false],
                 ["first_name", "lead", "first_name", null, "post", true],
                 ["last_name", "lead", "last_name", null, "post", true],
-                ["ZIP", "lead", "zip5", null, "post", true],
+                ["zip", "lead", "zip5", null, "post", true],
                 ["caller_id", "lead", "phone", null, "post", true],
                 ["trusted_form_cert_url", "lead", "cert_id", null, "post", true],
                 ["ping_id", "computed", "ping_id", null, "post", false],
