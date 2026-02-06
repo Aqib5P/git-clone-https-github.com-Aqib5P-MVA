@@ -165,6 +165,9 @@
   </div>
 
   @php
+    $singleFields = $singleFields ?? collect();
+    $pingFields = $pingFields ?? collect();
+    $postFields = $postFields ?? collect();
     $mapSingle = $singleFields->map(fn ($f) => [
       "field_name" => $f->field_name,
       "source_type" => $f->source_type,
