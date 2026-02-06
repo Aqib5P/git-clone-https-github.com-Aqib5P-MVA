@@ -430,30 +430,41 @@ class BuyerSeeder extends Seeder
             }
 
             if (array_key_exists($code, $fieldMap)) {
+                $desired = [];
                 foreach ($fieldMap[$code] as $item) {
                     [$fieldName, $sourceType, $sourceKey, $sourceValue, $direction, $isRequired] = $item;
-                    BuyerField::firstOrCreate([
+                    $desired[] = $direction . "|" . $fieldName;
+                    BuyerField::updateOrCreate([
                         "buyer_id" => $buyer->id,
                         "field_name" => $fieldName,
                         "direction" => $direction,
+                    ], [
                         "source_type" => $sourceType,
                         "source_key" => $sourceKey,
                         "source_value" => $sourceValue,
-                    ], [
                         "required" => $isRequired,
                     ]);
+                }
+
+                if (in_array($code, $rtbCodes, true)) {
+                    $buyer->fields()->get()->each(function ($field) use ($desired) {
+                        $key = $field->direction . "|" . $field->field_name;
+                        if (!in_array($key, $desired, true)) {
+                            $field->delete();
+                        }
+                    });
                 }
                 continue;
             }
 
             if (array_key_exists($code, $required)) {
                 foreach ($required[$code] as $field) {
-                    BuyerField::firstOrCreate([
+                    BuyerField::updateOrCreate([
                         "buyer_id" => $buyer->id,
                         "field_name" => $field,
                         "direction" => "single",
-                        "source_type" => "lead",
                     ], [
+                        "source_type" => "lead",
                         "source_key" => $field,
                         "required" => true,
                     ]);

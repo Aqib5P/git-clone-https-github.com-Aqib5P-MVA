@@ -47,6 +47,7 @@ class DashboardController extends Controller
             ->selectRaw("endpoint, count(*) as total,
                 sum(case when status = 'accepted' then 1 else 0 end) as accepted,
                 sum(case when status = 'rejected' then 1 else 0 end) as rejected,
+                sum(payout) as total_payout,
                 max(payout) as max_payout")
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($status, fn ($q) => $q->where("status", $status))

@@ -860,9 +860,7 @@
 
           const leadId = (data.lead && data.lead.id) || data.lead_id || data.leadId;
           addDetail(details, "Lead ID", leadId);
-          addDetail(details, "Price", data.price);
-          addDetail(details, "Payout", data.offer_conversion_payout);
-          addDetail(details, "Bid amount", pickFirst(data, ["bidAmount", "bid_amount"]));
+          // payouts/bids are captured server-side only
           addDetail(details, "Bid ID", pickFirst(data, ["bidId", "bid_id"]));
           addDetail(details, "Tracking", data.tracking_type);
           addDetail(details, "Call Router ID", data.call_router_id);
@@ -874,10 +872,6 @@
             const buyerIds = data.buyers.map((b) => b && b.id).filter(Boolean);
             if (buyerIds.length) {
               addDetail(details, "Buyer IDs", buyerIds.slice(0, 3).join(", ") + (buyerIds.length > 3 ? "…" : ""));
-            }
-            const payout = data.buyers.find((b) => b && b.offer_conversion_payout !== undefined);
-            if (payout && payout.offer_conversion_payout !== undefined) {
-              addDetail(details, "Offer payout", payout.offer_conversion_payout);
             }
           }
 
@@ -926,7 +920,6 @@
           if (!message && msgVal) message = msgVal;
           if (!reason && msgVal && status === "Rejected") reason = msgVal;
           addDetail(details, "Lead ID", getXmlValue(info.xml, ["lead_id", "leadid"]));
-          addDetail(details, "Price", getXmlValue(info.xml, ["price", "payout"]));
           const xmlForward = getXmlValue(info.xml, [
             "phone_number",
             "phoneNumber",

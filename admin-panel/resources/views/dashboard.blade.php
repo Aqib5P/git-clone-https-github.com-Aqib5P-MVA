@@ -114,6 +114,7 @@
           <th class="py-2">Total</th>
           <th class="py-2">Accepted</th>
           <th class="py-2">Rejected</th>
+          <th class="py-2">Total Payout</th>
           <th class="py-2">Max Payout</th>
         </tr>
       </thead>
@@ -124,11 +125,12 @@
             <td class="py-2">{{ $row->total }}</td>
             <td class="py-2">{{ $row->accepted }}</td>
             <td class="py-2">{{ $row->rejected }}</td>
-            <td class="py-2">${{ $row->max_payout ?? 0 }}</td>
+            <td class="py-2">${{ number_format($row->total_payout ?? 0, 2) }}</td>
+            <td class="py-2">${{ number_format($row->max_payout ?? 0, 2) }}</td>
           </tr>
         @empty
           <tr>
-            <td colspan="5" class="text-slate-500 py-3">No data for selected filters.</td>
+            <td colspan="6" class="text-slate-500 py-3">No data for selected filters.</td>
           </tr>
         @endforelse
       </tbody>

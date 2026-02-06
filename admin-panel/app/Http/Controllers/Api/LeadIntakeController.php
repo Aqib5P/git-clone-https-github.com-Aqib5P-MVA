@@ -54,26 +54,38 @@ class LeadIntakeController extends Controller
 
         $primaryResponse = $postData ?: ($responseData ?: $pingData);
         $direction = $postData ? "post" : ($pingData ? "ping" : "single");
-
+        $pingParsed = $this->parseBuyerResponse($pingData);
+        $postParsed = $this->parseBuyerResponse($postData);
         $parsed = $this->parseBuyerResponse($primaryResponse);
+
+        $payout = $postParsed["payout"] ?? $pingParsed["payout"] ?? $parsed["payout"] ?? null;
+        $bidAmount = $postParsed["bid_amount"] ?? $pingParsed["bid_amount"] ?? $parsed["bid_amount"] ?? null;
+        $status = $parsed["status"] ?? "unknown";
+        if ($buyer?->type === "ping_post" && !$postData) {
+            $status = "rejected";
+        }
+        $rejectReason = $this->extractRejectReason($parsed["body_json"] ?? null);
+        if ($status === "accepted" && $rejectReason !== "") {
+            $status = "rejected";
+        }
 
         Attempt::create([
             "lead_id" => $lead->id,
             "buyer_id" => $buyer?->id,
             "endpoint" => $endpoint,
             "direction" => $direction,
-            "status" => $parsed["status"],
+            "status" => $status,
             "is_duplicate" => $duplicate !== null,
             "duplicate_of_id" => $duplicate?->id,
             "duplicate_window" => config("admin.duplicate_window_days") . "d",
-            "http_status" => $parsed["http_status"],
-            "ping_id" => $parsed["ping_id"],
-            "forwarding_number" => $parsed["forwarding_number"],
-            "payout" => $parsed["payout"],
-            "bid_amount" => $parsed["bid_amount"],
+            "http_status" => $postParsed["http_status"] ?? $pingParsed["http_status"] ?? $parsed["http_status"],
+            "ping_id" => $pingParsed["ping_id"] ?? $parsed["ping_id"],
+            "forwarding_number" => $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"],
+            "payout" => $payout,
+            "bid_amount" => $bidAmount,
             "payload_json" => $payloadData,
-            "response_json" => $parsed["body_json"],
-            "response_raw" => $parsed["body_raw"],
+            "response_json" => $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"],
+            "response_raw" => $postParsed["body_raw"] ?? $pingParsed["body_raw"] ?? $parsed["body_raw"],
         ]);
 
         return response()->json(["ok" => true]);
@@ -108,8 +120,8 @@ class LeadIntakeController extends Controller
         if (is_array($bodyJson)) {
             $pingId = $this->extractPingId($bodyJson);
             $forwarding = $this->extractForwardingNumber($bodyJson);
-            $payout = $this->extractNumber($bodyJson, ["payout", "price", "offer_conversion_payout"]);
-            $bidAmount = $this->extractNumber($bodyJson, ["bidAmount", "bid_amount"]);
+            $payout = $this->extractNumber($bodyJson, ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
+            $bidAmount = $this->extractNumber($bodyJson, ["bidAmount", "bid_amount", "bidPrice"]);
 
             $status = $this->inferStatusFromJson($bodyJson);
         }
@@ -135,7 +147,7 @@ class LeadIntakeController extends Controller
             }
         }
 
-        if ($status === "unknown" && is_array($response) && array_key_exists("effective_ok", $response)) {
+        if ($status === "unknown" && !$bodyRaw && !$bodyJson && is_array($response) && array_key_exists("effective_ok", $response)) {
             $status = $response["effective_ok"] ? "accepted" : "rejected";
         }
 
@@ -165,6 +177,15 @@ class LeadIntakeController extends Controller
         }
         if (isset($data["success"]) && is_bool($data["success"])) {
             return $data["success"] ? "accepted" : "rejected";
+        }
+        if (!empty($data["rejectReason"]) || !empty($data["reject_reason"])) {
+            return "rejected";
+        }
+        if ((isset($data["bidAmount"]) || isset($data["bidPrice"])) && empty($data["rejectReason"]) && empty($data["reject_reason"])) {
+            $bid = $data["bidAmount"] ?? $data["bidPrice"];
+            if (is_numeric($bid) && (float) $bid >= 0) {
+                return "accepted";
+            }
         }
         if (!empty($data["errors"])) {
             return "rejected";
@@ -266,6 +287,20 @@ class LeadIntakeController extends Controller
                 return (float) $data[$key];
             }
         }
+        if (isset($data["response"]) && is_array($data["response"])) {
+            foreach ($keys as $key) {
+                if (isset($data["response"][$key]) && is_numeric($data["response"][$key])) {
+                    return (float) $data["response"][$key];
+                }
+            }
+        }
+        if (isset($data["buyers"]) && is_array($data["buyers"]) && isset($data["buyers"][0]) && is_array($data["buyers"][0])) {
+            foreach ($keys as $key) {
+                if (isset($data["buyers"][0][$key]) && is_numeric($data["buyers"][0][$key])) {
+                    return (float) $data["buyers"][0][$key];
+                }
+            }
+        }
         return null;
     }
 
@@ -276,5 +311,26 @@ class LeadIntakeController extends Controller
         if (str_starts_with($raw, "+")) return $raw;
         if (preg_match("/^[0-9]+$/", $raw)) return "+" . $raw;
         return $raw;
+    }
+
+    private function extractRejectReason(?array $data): string
+    {
+        if (!is_array($data)) return "";
+        if (!empty($data["rejectReason"])) return (string) $data["rejectReason"];
+        if (!empty($data["reject_reason"])) return (string) $data["reject_reason"];
+        if (!empty($data["error"])) return (string) $data["error"];
+        if (!empty($data["message"])) return (string) $data["message"];
+        if (!empty($data["msg"])) return (string) $data["msg"];
+        if (!empty($data["errors"])) {
+            if (is_array($data["errors"])) {
+                $flat = [];
+                foreach ($data["errors"] as $err) {
+                    $flat[] = is_array($err) ? implode(", ", $err) : (string) $err;
+                }
+                return implode(" | ", $flat);
+            }
+            return (string) $data["errors"];
+        }
+        return "";
     }
 }

@@ -57,8 +57,6 @@
             <input id="trusted_form_cert_id" name="trusted_form_cert_id" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
           </div>
 
-          <div id="dynamicFields" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-
           <div class="md:col-span-2">
             <button id="submitBtn" type="submit" class="w-full rounded-lg bg-blue-600 text-white py-2 hover:bg-blue-700">Ping RTB Buyers</button>
           </div>
@@ -76,21 +74,6 @@
     <script>
       const RTB_CONFIG_URL = "/api/rtb-config";
       const RTB_SUBMIT_URL = "/api/rtb-submit";
-      const staticKeys = new Set([
-        "first_name",
-        "last_name",
-        "email",
-        "phone_number",
-        "phone",
-        "zip_code",
-        "zip",
-        "zip5",
-        "state",
-        "have_attorney",
-        "trusted_form_cert_id",
-        "cert_id",
-        "cert_url"
-      ]);
       let rtbConfig = { buyers: [], fields: {}, requirements: {} };
 
       function setError(message) {
@@ -110,51 +93,6 @@
         btn.textContent = isLoading ? "Submitting..." : "Ping RTB Buyers";
       }
 
-      function renderDynamicFields(requiredKeys) {
-        const container = document.getElementById("dynamicFields");
-        container.innerHTML = "";
-        requiredKeys.forEach((key) => {
-          if (staticKeys.has(key)) return;
-          const meta = (rtbConfig.fields && rtbConfig.fields[key]) || {};
-          const label = meta.label || key.replace(/_/g, " ").toUpperCase();
-          const type = meta.type || "text";
-          const options = meta.options || null;
-
-          const wrapper = document.createElement("div");
-          const labelEl = document.createElement("label");
-          labelEl.className = "text-sm text-slate-600";
-          labelEl.setAttribute("for", key);
-          labelEl.textContent = label;
-
-          let inputEl;
-          if (type === "select" && options) {
-            inputEl = document.createElement("select");
-            inputEl.className = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2";
-            inputEl.innerHTML = '<option value="">Select</option>';
-            Object.keys(options).forEach((optKey) => {
-              const opt = document.createElement("option");
-              opt.value = options[optKey];
-              opt.textContent = options[optKey];
-              inputEl.appendChild(opt);
-            });
-          } else if (type === "textarea") {
-            inputEl = document.createElement("textarea");
-            inputEl.className = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2";
-          } else {
-            inputEl = document.createElement("input");
-            inputEl.type = type;
-            inputEl.className = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2";
-          }
-          inputEl.name = key;
-          inputEl.id = key;
-          inputEl.required = true;
-
-          wrapper.appendChild(labelEl);
-          wrapper.appendChild(inputEl);
-          container.appendChild(wrapper);
-        });
-      }
-
       async function loadConfig() {
         try {
           const res = await fetch(RTB_CONFIG_URL);
@@ -163,14 +101,6 @@
           rtbConfig = data || rtbConfig;
           const buyerCount = Array.isArray(rtbConfig.buyers) ? rtbConfig.buyers.length : 0;
           document.getElementById("buyerCount").textContent = "Buyers: " + buyerCount;
-
-          const requiredSet = new Set();
-          if (rtbConfig.requirements) {
-            Object.values(rtbConfig.requirements).forEach((list) => {
-              (list || []).forEach((key) => requiredSet.add(key));
-            });
-          }
-          renderDynamicFields(Array.from(requiredSet));
         } catch (err) {
           setError(err.message || "Failed to load configuration");
         }
