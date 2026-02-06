@@ -29,10 +29,14 @@ class BuyerResponseParser
 
         if (is_array($bodyJson)) {
             $pingId = $this->extractPingId($bodyJson);
-            $forwarding = $this->extractForwardingNumber($bodyJson, $rules["forwarding_keys"] ?? []);
-            $payout = $this->extractNumber($bodyJson, $rules["payout_keys"] ?? ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
-            $bidAmount = $this->extractNumber($bodyJson, $rules["bid_keys"] ?? ["bidAmount", "bid_amount", "bidPrice"]);
-            $duration = $this->extractNumber($bodyJson, $rules["duration_keys"] ?? ["duration", "current_conversion_duration", "min_duration", "callMinDuration"]);
+            $forwardingKeys = $rules["forwarding_keys"] ?? null;
+            $payoutKeys = $rules["payout_keys"] ?? null;
+            $bidKeys = $rules["bid_keys"] ?? null;
+            $durationKeys = $rules["duration_keys"] ?? null;
+            $forwarding = $this->extractForwardingNumber($bodyJson, $forwardingKeys && count($forwardingKeys) ? $forwardingKeys : []);
+            $payout = $this->extractNumber($bodyJson, $payoutKeys && count($payoutKeys) ? $payoutKeys : ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
+            $bidAmount = $this->extractNumber($bodyJson, $bidKeys && count($bidKeys) ? $bidKeys : ["bidAmount", "bid_amount", "bidPrice"]);
+            $duration = $this->extractNumber($bodyJson, $durationKeys && count($durationKeys) ? $durationKeys : ["duration", "current_conversion_duration", "min_duration", "callMinDuration"]);
             $status = $this->inferStatusFromJson($bodyJson, $rules);
         }
 
