@@ -131,9 +131,6 @@
 
   <div class="rounded-2xl border border-slate-200 bg-white p-4">
     <div class="text-sm text-slate-500">Rejected %</div>
-    @php
-      $rejectRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
-    @endphp
     <div class="text-2xl font-semibold">{{ $rejectRate }}%</div>
     <div class="mt-2 h-2 rounded-full bg-slate-100">
       <div class="h-2 rounded-full bg-red-500" style="width: {{ $rejectRate }}%"></div>

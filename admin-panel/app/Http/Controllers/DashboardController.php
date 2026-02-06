@@ -64,6 +64,7 @@ class DashboardController extends Controller
         $unknown = $statusCounts["unknown"] ?? 0;
         $total = $accepted + $rejected + $unknown;
         $acceptRate = $totalAttempts > 0 ? round(($accepted / $totalAttempts) * 100, 1) : 0;
+        $rejectRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
         $totalRevenue = Attempt::query()
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($status, fn ($q) => $q->where("status", $status))
@@ -114,6 +115,7 @@ class DashboardController extends Controller
             "unknown" => $unknown,
             "total" => $total,
             "acceptRate" => $acceptRate,
+            "rejectRate" => $rejectRate,
             "topBuyer" => $topBuyer,
             "topPayoutBuyer" => $topPayoutBuyer,
             "totalRevenue" => $totalRevenue,
