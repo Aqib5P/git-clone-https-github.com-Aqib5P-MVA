@@ -71,13 +71,21 @@ class RtbSubmitController extends Controller
             $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
             $parsed = $parser->parse(is_array($primary) ? $primary : null, $buyer->response_rules ?? []);
 
+            $bodyData = $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"] ?? null;
             $payout = $postParsed["payout"] ?? $pingParsed["payout"] ?? $parsed["payout"] ?? null;
             if ($buyer->payout_type === "static" && $buyer->static_payout !== null) {
                 $payout = $buyer->static_payout;
             }
+            if ($payout === null && is_array($bodyData)) {
+                $payout = $this->extractNumberFromBody($bodyData, ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
+            }
+
             $bidAmount = $postParsed["bid_amount"] ?? $pingParsed["bid_amount"] ?? $parsed["bid_amount"];
+            if ($bidAmount === null && is_array($bodyData)) {
+                $bidAmount = $this->extractNumberFromBody($bodyData, ["bidAmount", "bid_amount", "bidPrice"]);
+            }
             $forwardingNumber = $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"] ?? null;
-            $rejectReason = $this->extractRejectReason($parsed["body_json"] ?? null);
+            $rejectReason = $this->extractRejectReason($bodyData);
 
             $status = $parsed["status"] ?? "unknown";
             $numericBid = is_numeric($bidAmount) ? (float) $bidAmount : null;
@@ -88,12 +96,12 @@ class RtbSubmitController extends Controller
             }
             $hasForwarding = is_string($forwardingNumber) && trim($forwardingNumber) !== "";
 
-            if ($rejectReason === "" && (($numericBid !== null && $numericBid >= $minBid) || ($numericPayout !== null && $numericPayout >= $minBid) || $hasForwarding)) {
-                $status = "accepted";
-            } elseif (($numericBid !== null && $numericBid > 0 && $numericBid < $minBid) || ($numericPayout !== null && $numericPayout > 0 && $numericPayout < $minBid)) {
+            if (($numericBid !== null && $numericBid > 0 && $numericBid < $minBid) || ($numericPayout !== null && $numericPayout > 0 && $numericPayout < $minBid)) {
                 $status = "Bid too low";
             } elseif ($rejectReason !== "") {
                 $status = "rejected";
+            } elseif (($numericBid !== null && $numericBid >= $minBid) || ($numericPayout !== null && $numericPayout >= $minBid) || $hasForwarding) {
+                $status = "accepted";
             } elseif ($buyer->type === "ping_post" && !($result["post"] ?? null)) {
                 $status = "rejected";
             } elseif (!in_array($status, ["accepted", "rejected"], true)) {
@@ -249,8 +257,6 @@ class RtbSubmitController extends Controller
         if (!empty($data["rejectReason"])) return (string) $data["rejectReason"];
         if (!empty($data["reject_reason"])) return (string) $data["reject_reason"];
         if (!empty($data["error"])) return (string) $data["error"];
-        if (!empty($data["message"])) return (string) $data["message"];
-        if (!empty($data["msg"])) return (string) $data["msg"];
         if (!empty($data["errors"])) {
             if (is_array($data["errors"])) {
                 $flat = [];
@@ -261,6 +267,21 @@ class RtbSubmitController extends Controller
             }
             return (string) $data["errors"];
         }
+        if (!empty($data["message"]) && $this->isRejectText((string) $data["message"])) return (string) $data["message"];
+        if (!empty($data["msg"]) && $this->isRejectText((string) $data["msg"])) return (string) $data["msg"];
         return "";
+    }
+
+    private function isRejectText(string $text): bool
+    {
+        $t = strtolower($text);
+        return str_contains($t, "reject")
+            || str_contains($t, "declin")
+            || str_contains($t, "fail")
+            || str_contains($t, "error")
+            || str_contains($t, "invalid")
+            || str_contains($t, "no match")
+            || str_contains($t, "no_matching")
+            || str_contains($t, "no matching");
     }
 }

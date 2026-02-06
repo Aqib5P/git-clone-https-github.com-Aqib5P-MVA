@@ -93,24 +93,27 @@
   </div>
 
   <div>
-    <div class="text-sm text-slate-500 uppercase tracking-wide mb-3">Performance</div>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 text-white p-5 shadow-sm">
-        <div class="text-sm text-slate-200">RPM (per 1000)</div>
-        <div class="text-3xl font-semibold mt-1">${{ $rpm }}</div>
-        <div class="text-sm text-slate-300 mt-2">Revenue: ${{ number_format($totalRevenue, 2) }}</div>
+    <div class="text-sm text-slate-500 uppercase tracking-wide mb-3">Waterflow Metrics</div>
+    <div class="flex flex-wrap items-end gap-6">
+      <div class="w-40 h-40 rounded-full bg-white border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+        <div class="text-xs text-slate-500">Total Leads</div>
+        <div class="text-2xl font-semibold">{{ $total }}</div>
       </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="text-sm text-slate-500">Acceptance Rate</div>
-        <div class="text-3xl font-semibold mt-1">{{ $acceptRate }}%</div>
-        <div class="mt-3 h-2 rounded-full bg-slate-100">
-          <div class="h-2 rounded-full bg-emerald-500" style="width: {{ $acceptRate }}%"></div>
-        </div>
+      <div class="w-44 h-44 rounded-full bg-emerald-50 border border-emerald-100 shadow-sm flex flex-col items-center justify-center">
+        <div class="text-xs text-emerald-600">Acceptance</div>
+        <div class="text-2xl font-semibold">{{ $acceptRate }}%</div>
       </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="text-sm text-slate-500">Duplicates</div>
-        <div class="text-3xl font-semibold mt-1">{{ $duplicateCount }}</div>
-        <div class="text-sm text-slate-500 mt-2">{{ $duplicateRate }}% of attempts</div>
+      <div class="w-36 h-36 rounded-full bg-red-50 border border-red-100 shadow-sm flex flex-col items-center justify-center">
+        <div class="text-xs text-red-600">Rejected</div>
+        <div class="text-xl font-semibold">{{ $rejected }}</div>
+      </div>
+      <div class="w-44 h-44 rounded-full bg-blue-50 border border-blue-100 shadow-sm flex flex-col items-center justify-center">
+        <div class="text-xs text-blue-600">Revenue</div>
+        <div class="text-2xl font-semibold">${{ number_format($totalRevenue, 2) }}</div>
+      </div>
+      <div class="w-36 h-36 rounded-full bg-amber-50 border border-amber-100 shadow-sm flex flex-col items-center justify-center">
+        <div class="text-xs text-amber-600">Duplicates</div>
+        <div class="text-xl font-semibold">{{ $duplicateCount }}</div>
       </div>
     </div>
   </div>

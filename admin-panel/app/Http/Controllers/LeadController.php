@@ -15,6 +15,7 @@ class LeadController extends Controller
         $end = $request->input("end_date") ?: Carbon::now()->toDateString();
         $buyer = $request->input("buyer");
         $status = $request->input("status");
+        $scope = $request->input("scope");
         $search = trim((string) $request->input("search", ""));
 
         $startDate = Carbon::parse($start)->startOfDay();
@@ -30,6 +31,11 @@ class LeadController extends Controller
             })
             ->when($status, function ($query) use ($status) {
                 $query->where("status", $status);
+            })
+            ->when($scope, function ($query) use ($scope) {
+                $query->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                    $buyerQuery->where("scope", $scope);
+                });
             })
             ->when($search !== "", function ($query) use ($search) {
                 $query->whereHas("lead", function ($leadQuery) use ($search) {
@@ -51,6 +57,7 @@ class LeadController extends Controller
                 "end_date" => $end,
                 "buyer" => $buyer,
                 "status" => $status,
+                "scope" => $scope,
                 "search" => $search,
             ],
         ]);

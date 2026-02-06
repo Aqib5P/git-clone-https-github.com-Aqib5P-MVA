@@ -4,7 +4,7 @@
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-6">
     <h3 class="text-lg font-semibold mb-4">Lead Filters</h3>
     <form method="get" action="{{ route('leads.index') }}">
-      <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+      <div class="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
         <div>
           <label for="start_date" class="text-sm text-slate-600">Start</label>
           <input id="start_date" name="start_date" type="date" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ $filters['start_date'] }}" />
@@ -31,6 +31,15 @@
             <option value="accepted" @selected($filters['status'] === 'accepted')>Accepted</option>
             <option value="rejected" @selected($filters['status'] === 'rejected')>Rejected</option>
             <option value="unknown" @selected($filters['status'] === 'unknown')>Unknown</option>
+          </select>
+        </div>
+        <div>
+          <label for="scope" class="text-sm text-slate-600">Scope</label>
+          <select id="scope" name="scope" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            <option value="">All</option>
+            <option value="unified" @selected($filters['scope'] === 'unified')>Unified</option>
+            <option value="rtb" @selected($filters['scope'] === 'rtb')>RTB</option>
+            <option value="single" @selected($filters['scope'] === 'single')>Single</option>
           </select>
         </div>
         <div class="md:col-span-2">

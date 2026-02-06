@@ -117,32 +117,35 @@ class PublicFormController extends Controller
 
     private function buyerFields(Buyer $buyer): array
     {
-        $fields = $buyer->fields()
-            ->where("required", true)
+        $leadFields = $buyer->fields()
             ->where("source_type", "lead")
             ->orderBy("field_name")
-            ->get()
-            ->pluck("source_key", "field_name")
-            ->toArray();
+            ->get();
 
-        $required = array_values(array_unique(array_values($fields)));
-        if (!empty($required)) {
-            return $required;
+        if ($leadFields->isEmpty()) {
+            return [
+                ["key" => "first_name", "required" => true],
+                ["key" => "last_name", "required" => true],
+                ["key" => "phone", "required" => true],
+                ["key" => "zip5", "required" => true],
+            ];
         }
 
-        $fallback = $buyer->fields()
-            ->where("source_type", "lead")
-            ->orderBy("field_name")
-            ->get()
-            ->pluck("source_key", "field_name")
-            ->toArray();
+        $required = $leadFields->where("required", true);
+        $selected = $required->isNotEmpty() ? $required : $leadFields;
 
-        $allMapped = array_values(array_unique(array_values($fallback)));
-        if (!empty($allMapped)) {
-            return $allMapped;
+        $map = [];
+        foreach ($selected as $field) {
+            $key = $field->source_key ?: $field->field_name;
+            if (!$key) continue;
+            if (!isset($map[$key])) {
+                $map[$key] = ["key" => $key, "required" => (bool) $field->required];
+            } elseif ($field->required) {
+                $map[$key]["required"] = true;
+            }
         }
 
-        return ["first_name", "last_name", "phone", "zip5"];
+        return array_values($map);
     }
 
     private function extractRejectReason(?array $data): string
