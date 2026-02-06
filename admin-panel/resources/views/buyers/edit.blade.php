@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-  @php($isPingPost = $buyer->type === 'ping_post')
+  @php
+    $isPingPost = $buyer->type === 'ping_post';
+  @endphp
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-6">
     <h3 class="text-lg font-semibold mb-4">Edit Buyer: {{ $buyer->code }}</h3>
     <form method="post" action="{{ route('buyers.update', $buyer) }}">
