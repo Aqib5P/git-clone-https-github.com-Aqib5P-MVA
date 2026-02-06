@@ -29,7 +29,9 @@
       </div>
     </nav>
 
-    @php($fullWidth = $fullWidth ?? false)
+    @php
+      $fullWidth = $fullWidth ?? false;
+    @endphp
     <div class="{{ $fullWidth ? 'w-full' : 'max-w-7xl mx-auto' }} {{ $fullWidth ? '' : 'px-6' }} py-6">
       @if ($errors->any())
         <div class="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 mb-4">
