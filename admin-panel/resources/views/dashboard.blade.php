@@ -125,207 +125,226 @@
     </div>
   </div>
 
-  <div>
-    <div class="text-sm text-slate-500 uppercase tracking-wide mb-3">Waterflow Metrics</div>
-    <div class="flex flex-wrap items-end gap-6">
-      <div class="w-40 h-40 rounded-full bg-white border border-slate-200 shadow-sm flex flex-col items-center justify-center">
-        <div class="text-xs text-slate-500">Total Leads</div>
-        <div class="text-2xl font-semibold">{{ $total }}</div>
-      </div>
-      <div class="w-44 h-44 rounded-full bg-emerald-50 border border-emerald-100 shadow-sm flex flex-col items-center justify-center">
-        <div class="text-xs text-emerald-600">Acceptance</div>
-        <div class="text-2xl font-semibold">{{ $acceptRate }}%</div>
-      </div>
-      <div class="w-36 h-36 rounded-full bg-red-50 border border-red-100 shadow-sm flex flex-col items-center justify-center">
-        <div class="text-xs text-red-600">Rejected</div>
-        <div class="text-xl font-semibold">{{ $rejected }}</div>
-      </div>
-      <div class="w-44 h-44 rounded-full bg-blue-50 border border-blue-100 shadow-sm flex flex-col items-center justify-center">
-        <div class="text-xs text-blue-600">Revenue</div>
-        <div class="text-2xl font-semibold">${{ number_format($totalRevenue, 2) }}</div>
-      </div>
-      <div class="w-36 h-36 rounded-full bg-amber-50 border border-amber-100 shadow-sm flex flex-col items-center justify-center text-center px-2">
-        <div class="text-xs text-amber-600">Duplicate Leads</div>
-        <div class="text-xl font-semibold">{{ $duplicateCount }}</div>
-        <div class="text-[10px] text-amber-600">Buyer dupes: {{ $duplicateAttemptCount }}</div>
-      </div>
-    </div>
-  </div>
-
-  <div>
-    <div class="text-sm text-slate-500 uppercase tracking-wide mb-3">Highlights</div>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="text-sm text-slate-500">Top Buyer (Accepted)</div>
-        <div class="text-xl font-semibold mt-1">{{ $topBuyer?->endpoint ?? '—' }}</div>
-        <div class="text-sm text-slate-500">{{ $topBuyer?->accepted ?? 0 }} accepted</div>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="text-sm text-slate-500">Top Payout Buyer</div>
-        <div class="text-xl font-semibold mt-1">{{ $topPayoutBuyer?->endpoint ?? '—' }}</div>
-        <div class="text-sm text-slate-500">${{ number_format($topPayoutBuyer?->max_payout ?? 0, 2) }}</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="rounded-2xl border border-slate-200 bg-white p-4">
-    <div class="text-sm text-slate-500">Rejected %</div>
-    <div class="text-2xl font-semibold">{{ $rejectRate }}%</div>
-    <div class="mt-2 h-2 rounded-full bg-slate-100">
-      <div class="h-2 rounded-full bg-red-500" style="width: {{ $rejectRate }}%"></div>
-    </div>
-  </div>
-
-  <div class="rounded-2xl border border-slate-200 bg-white p-4">
-    <h3 class="text-lg font-semibold mb-3">Buyer Stats</h3>
-    <table class="min-w-full text-sm">
-      <thead>
-        <tr class="text-left text-slate-500">
-          <th class="py-2">Buyer</th>
-          <th class="py-2">Total</th>
-          <th class="py-2">Accepted</th>
-          <th class="py-2">Rejected</th>
-          <th class="py-2">Total Payout</th>
-          <th class="py-2">Max Payout</th>
-        </tr>
-      </thead>
-      <tbody>
-        @forelse ($buyerStats as $row)
-          <tr class="border-t border-slate-100">
-            <td class="py-2">{{ $row->endpoint ?: 'Unknown' }}</td>
-            <td class="py-2">{{ $row->total }}</td>
-            <td class="py-2">{{ $row->accepted }}</td>
-            <td class="py-2">{{ $row->rejected }}</td>
-            <td class="py-2">${{ number_format($row->total_payout ?? 0, 2) }}</td>
-            <td class="py-2">${{ number_format($row->max_payout ?? 0, 2) }}</td>
-          </tr>
-        @empty
-          <tr>
-            <td colspan="6" class="text-slate-500 py-3">No data for selected filters.</td>
-          </tr>
-        @endforelse
-      </tbody>
-    </table>
-  </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div class="rounded-2xl border border-slate-200 bg-white p-4">
-      <h3 class="text-lg font-semibold mb-3">Products</h3>
-      <table class="min-w-full text-sm">
-        <thead>
-          <tr class="text-left text-slate-500">
-            <th class="py-1">Product</th>
-            <th class="py-1">Leads</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse ($productStats as $row)
-            <tr class="border-t border-slate-100">
-              <td class="py-1">{{ $row->product?->code ?? 'Unknown' }}</td>
-              <td class="py-1">{{ $row->total }}</td>
-            </tr>
-          @empty
-            <tr><td colspan="2" class="text-slate-500 py-2">No data.</td></tr>
-          @endforelse
-        </tbody>
-      </table>
-    </div>
-    <div class="rounded-2xl border border-slate-200 bg-white p-4">
-      <h3 class="text-lg font-semibold mb-3">Campaigns</h3>
-      <table class="min-w-full text-sm">
-        <thead>
-          <tr class="text-left text-slate-500">
-            <th class="py-1">Campaign</th>
-            <th class="py-1">Leads</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse ($campaignStats as $row)
-            <tr class="border-t border-slate-100">
-              <td class="py-1">{{ $row->campaign?->code ?? 'Unknown' }}</td>
-              <td class="py-1">{{ $row->total }}</td>
-            </tr>
-          @empty
-            <tr><td colspan="2" class="text-slate-500 py-2">No data.</td></tr>
-          @endforelse
-        </tbody>
-      </table>
-    </div>
-    <div class="rounded-2xl border border-slate-200 bg-white p-4">
-      <h3 class="text-lg font-semibold mb-3">Publishers</h3>
-      <table class="min-w-full text-sm">
-        <thead>
-          <tr class="text-left text-slate-500">
-            <th class="py-1">Publisher</th>
-            <th class="py-1">Leads</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse ($publisherStats as $row)
-            <tr class="border-t border-slate-100">
-              <td class="py-1">{{ $row->publisher?->code ?? 'Unknown' }}</td>
-              <td class="py-1">{{ $row->total }}</td>
-            </tr>
-          @empty
-            <tr><td colspan="2" class="text-slate-500 py-2">No data.</td></tr>
-          @endforelse
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <details class="rounded-2xl border border-slate-200 bg-white p-4" open>
-    <summary class="cursor-pointer list-none">
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h3 class="text-lg font-semibold">Recent Attempts</h3>
-          <div class="text-xs text-slate-500">Last {{ $attempts->count() }} attempts (filters applied)</div>
-        </div>
-        <div class="flex items-center gap-2 text-xs text-slate-500">
-          <span class="rounded-full bg-slate-100 px-2 py-1">Scope: {{ $filters['scope'] ? strtoupper($filters['scope']) : 'ALL' }}</span>
-          <span class="rounded-full bg-slate-100 px-2 py-1">Status: {{ $filters['status'] ? strtoupper($filters['status']) : 'ALL' }}</span>
-          <span class="rounded-full bg-slate-100 px-2 py-1">Buyer: {{ $filters['buyer'] ?: 'ALL' }}</span>
+  <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6">
+    <div class="space-y-6">
+      <div>
+        <div class="text-sm text-slate-500 uppercase tracking-wide mb-3">Waterflow Metrics</div>
+        <div class="flex flex-wrap items-end gap-6">
+          <div class="w-40 h-40 rounded-full bg-white border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+            <div class="text-xs text-slate-500">Total Leads</div>
+            <div class="text-2xl font-semibold">{{ $total }}</div>
+          </div>
+          <div class="w-44 h-44 rounded-full bg-emerald-50 border border-emerald-100 shadow-sm flex flex-col items-center justify-center">
+            <div class="text-xs text-emerald-600">Acceptance</div>
+            <div class="text-2xl font-semibold">{{ $acceptRate }}%</div>
+          </div>
+          <div class="w-36 h-36 rounded-full bg-red-50 border border-red-100 shadow-sm flex flex-col items-center justify-center">
+            <div class="text-xs text-red-600">Rejected</div>
+            <div class="text-xl font-semibold">{{ $rejected }}</div>
+          </div>
+          <div class="w-44 h-44 rounded-full bg-blue-50 border border-blue-100 shadow-sm flex flex-col items-center justify-center">
+            <div class="text-xs text-blue-600">Revenue</div>
+            <div class="text-2xl font-semibold">${{ number_format($totalRevenue, 2) }}</div>
+          </div>
+          <div class="w-36 h-36 rounded-full bg-amber-50 border border-amber-100 shadow-sm flex flex-col items-center justify-center text-center px-2">
+            <div class="text-xs text-amber-600">Duplicate Leads</div>
+            <div class="text-xl font-semibold">{{ $duplicateCount }}</div>
+            <div class="text-[10px] text-amber-600">Buyer dupes: {{ $duplicateAttemptCount }}</div>
+          </div>
         </div>
       </div>
-    </summary>
-    <div class="mt-4">
-    <table class="min-w-full text-sm">
-      <thead>
-        <tr class="text-left text-slate-500">
-          <th class="py-2">Time</th>
-          <th class="py-2">Buyer</th>
-          <th class="py-2">Status</th>
-          <th class="py-2">Lead</th>
-          <th class="py-2">Forwarding</th>
-          <th class="py-2">HTTP</th>
-        </tr>
-      </thead>
-      <tbody>
-        @forelse ($attempts as $attempt)
-          <tr class="border-t border-slate-100">
-            <td class="py-2">{{ $attempt->created_at }}</td>
-            <td class="py-2">{{ $attempt->endpoint }}</td>
-            <td class="py-2">
+
+      <div>
+        <div class="text-sm text-slate-500 uppercase tracking-wide mb-3">Highlights</div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="text-sm text-slate-500">Top Buyer (Accepted)</div>
+            <div class="text-xl font-semibold mt-1">{{ $topBuyer?->endpoint ?? '—' }}</div>
+            <div class="text-sm text-slate-500">{{ $topBuyer?->accepted ?? 0 }} accepted</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="text-sm text-slate-500">Top Payout Buyer</div>
+            <div class="text-xl font-semibold mt-1">{{ $topPayoutBuyer?->endpoint ?? '—' }}</div>
+            <div class="text-sm text-slate-500">${{ number_format($topPayoutBuyer?->max_payout ?? 0, 2) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="text-sm text-slate-500">Rejected %</div>
+        <div class="text-2xl font-semibold">{{ $rejectRate }}%</div>
+        <div class="mt-2 h-2 rounded-full bg-slate-100">
+          <div class="h-2 rounded-full bg-red-500" style="width: {{ $rejectRate }}%"></div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-xs uppercase tracking-wide text-slate-400">Buyer Performance</div>
+            <h3 class="text-lg font-semibold">Buyer Stats</h3>
+          </div>
+          <div class="text-xs text-slate-500">{{ $buyerStats->count() }} buyers</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          @forelse ($buyerStats as $row)
+            @php
+              $rowTotal = (int) $row->total;
+              $rowAccepted = (int) $row->accepted;
+              $rowRejected = (int) $row->rejected;
+              $rowRate = $rowTotal > 0 ? round(($rowAccepted / $rowTotal) * 100, 1) : 0;
+            @endphp
+            <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="text-xs text-slate-400 uppercase tracking-wide">Buyer</div>
+                  <div class="text-lg font-semibold">{{ $row->endpoint ?: 'Unknown' }}</div>
+                </div>
+                <div class="text-xs text-slate-500">{{ $rowTotal }} total</div>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                <span class="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1">{{ $rowAccepted }} accepted</span>
+                <span class="rounded-full bg-red-100 text-red-700 px-2 py-1">{{ $rowRejected }} rejected</span>
+              </div>
+              <div class="mt-3">
+                <div class="flex justify-between text-xs text-slate-500">
+                  <span>Acceptance</span>
+                  <span>{{ $rowRate }}%</span>
+                </div>
+                <div class="mt-1 h-2 rounded-full bg-white">
+                  <div class="h-2 rounded-full bg-emerald-500" style="width: {{ $rowRate }}%"></div>
+                </div>
+              </div>
+              <div class="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div class="rounded-lg bg-white p-2">
+                  <div class="text-slate-400">Total Payout</div>
+                  <div class="font-semibold">${{ number_format($row->total_payout ?? 0, 2) }}</div>
+                </div>
+                <div class="rounded-lg bg-white p-2">
+                  <div class="text-slate-400">Max Payout</div>
+                  <div class="font-semibold">${{ number_format($row->max_payout ?? 0, 2) }}</div>
+                </div>
+              </div>
+            </div>
+          @empty
+            <div class="text-slate-500">No data for selected filters.</div>
+          @endforelse
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+          <h3 class="text-lg font-semibold mb-3">Products</h3>
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-slate-500">
+                <th class="py-1">Product</th>
+                <th class="py-1">Leads</th>
+              </tr>
+            </thead>
+            <tbody>
+              @forelse ($productStats as $row)
+                <tr class="border-t border-slate-100">
+                  <td class="py-1">{{ $row->product?->code ?? 'Unknown' }}</td>
+                  <td class="py-1">{{ $row->total }}</td>
+                </tr>
+              @empty
+                <tr><td colspan="2" class="text-slate-500 py-2">No data.</td></tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+          <h3 class="text-lg font-semibold mb-3">Campaigns</h3>
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-slate-500">
+                <th class="py-1">Campaign</th>
+                <th class="py-1">Leads</th>
+              </tr>
+            </thead>
+            <tbody>
+              @forelse ($campaignStats as $row)
+                <tr class="border-t border-slate-100">
+                  <td class="py-1">{{ $row->campaign?->code ?? 'Unknown' }}</td>
+                  <td class="py-1">{{ $row->total }}</td>
+                </tr>
+              @empty
+                <tr><td colspan="2" class="text-slate-500 py-2">No data.</td></tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+          <h3 class="text-lg font-semibold mb-3">Publishers</h3>
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-slate-500">
+                <th class="py-1">Publisher</th>
+                <th class="py-1">Leads</th>
+              </tr>
+            </thead>
+            <tbody>
+              @forelse ($publisherStats as $row)
+                <tr class="border-t border-slate-100">
+                  <td class="py-1">{{ $row->publisher?->code ?? 'Unknown' }}</td>
+                  <td class="py-1">{{ $row->total }}</td>
+                </tr>
+              @empty
+                <tr><td colspan="2" class="text-slate-500 py-2">No data.</td></tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <aside class="space-y-6">
+      <details class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" open>
+        <summary class="cursor-pointer list-none">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-semibold">Recent Attempts</h3>
+              <div class="text-xs text-slate-500">Last {{ $attempts->count() }} attempts</div>
+            </div>
+            <span class="text-xs text-slate-400">Click to collapse</span>
+          </div>
+        </summary>
+        <div class="mt-4 space-y-4">
+          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span class="rounded-full bg-slate-100 px-2 py-1">Scope: {{ $filters['scope'] ? strtoupper($filters['scope']) : 'ALL' }}</span>
+            <span class="rounded-full bg-slate-100 px-2 py-1">Status: {{ $filters['status'] ? strtoupper($filters['status']) : 'ALL' }}</span>
+            <span class="rounded-full bg-slate-100 px-2 py-1">Buyer: {{ $filters['buyer'] ?: 'ALL' }}</span>
+          </div>
+          <div class="divide-y divide-slate-100 text-sm">
+            @forelse ($attempts as $attempt)
               @php
                 $badgeClass = $attempt->status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : ($attempt->status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600');
               @endphp
-              <span class="px-2 py-1 rounded-full text-xs font-medium {{ $badgeClass }}">{{ ucfirst($attempt->status) }}</span>
-            </td>
-            <td class="py-2">
-              {{ $attempt->lead->first_name ?? '' }} {{ $attempt->lead->last_name ?? '' }}
-              <div class="text-xs text-slate-500">{{ $attempt->lead->phone ?? '' }}</div>
-            </td>
-            <td class="py-2">{{ $attempt->forwarding_number }}</td>
-            <td class="py-2">{{ $attempt->http_status }}</td>
-          </tr>
-        @empty
-          <tr>
-            <td colspan="6" class="text-slate-500 py-3">No attempts found.</td>
-          </tr>
-        @endforelse
-      </tbody>
-    </table>
-    </div>
-  </details>
+              <div class="py-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="font-semibold text-slate-800">{{ $attempt->endpoint }}</div>
+                    <div class="text-xs text-slate-500">{{ $attempt->created_at }}</div>
+                  </div>
+                  <span class="px-2 py-1 rounded-full text-xs font-medium {{ $badgeClass }}">{{ ucfirst($attempt->status) }}</span>
+                </div>
+                <div class="mt-2 text-xs text-slate-500">
+                  {{ $attempt->lead->first_name ?? '' }} {{ $attempt->lead->last_name ?? '' }}
+                  <span class="text-slate-400">•</span> {{ $attempt->lead->phone ?? '' }}
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5">FWD: {{ $attempt->forwarding_number ?: '—' }}</span>
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5">HTTP: {{ $attempt->http_status ?? '—' }}</span>
+                </div>
+              </div>
+            @empty
+              <div class="py-3 text-slate-500">No attempts found.</div>
+            @endforelse
+          </div>
+        </div>
+      </details>
+    </aside>
+  </div>
   </div>
 @endsection

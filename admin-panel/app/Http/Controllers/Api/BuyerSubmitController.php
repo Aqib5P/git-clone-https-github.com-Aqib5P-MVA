@@ -68,9 +68,6 @@ class BuyerSubmitController extends Controller
             "ping" => $pingParsed["payout"] ?? null,
             "single" => $parsed["payout"] ?? null,
         ], ["post", "ping", "single"]);
-        if ($buyer->payout_type === "static" && $buyer->static_payout !== null) {
-            $payout = $buyer->static_payout;
-        }
         $bidAmount = $this->pickRecordValue($recordSources, "bid_amount", [
             "post" => $postParsed["bid_amount"] ?? null,
             "ping" => $pingParsed["bid_amount"] ?? null,
@@ -91,6 +88,9 @@ class BuyerSubmitController extends Controller
         $rejectReason = $this->extractRejectReason($parsed["body_json"] ?? null);
         if ($status === "accepted" && $rejectReason !== "") {
             $status = "rejected";
+        }
+        if ($status === "accepted" && $payout === null && $buyer->payout_type === "static" && $buyer->static_payout !== null) {
+            $payout = $buyer->static_payout;
         }
 
         $httpStatus = $this->pickRecordValue($recordSources, "http_status", [

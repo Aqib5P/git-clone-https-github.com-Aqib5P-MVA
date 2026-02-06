@@ -88,6 +88,9 @@ class LeadIntakeController extends Controller
         if ($status === "accepted" && $rejectReason !== "") {
             $status = "rejected";
         }
+        if ($status === "accepted" && $payout === null && $buyer?->payout_type === "static" && $buyer?->static_payout !== null) {
+            $payout = $buyer->static_payout;
+        }
 
         $httpStatus = $this->pickRecordValue($recordSources, "http_status", [
             "post" => $postParsed["http_status"] ?? null,

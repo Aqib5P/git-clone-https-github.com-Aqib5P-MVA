@@ -94,9 +94,6 @@ class RtbSubmitController extends Controller
                     "ping" => $pingParsed["payout"] ?? null,
                     "single" => $parsed["payout"] ?? null,
                 ], ["post", "ping", "single"]);
-                if ($buyer->payout_type === "static" && $buyer->static_payout !== null) {
-                    $payout = $buyer->static_payout;
-                }
                 if ($payout === null && is_array($bodyData)) {
                     $payout = $this->extractNumberFromBody($bodyData, ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
                 }
@@ -143,6 +140,16 @@ class RtbSubmitController extends Controller
                     $status = "rejected";
                 } elseif (!in_array($status, ["accepted", "rejected"], true)) {
                     $status = "rejected";
+                }
+                if ($status === "accepted" && $payout === null && $buyer->payout_type === "static" && $buyer->static_payout !== null) {
+                    $payout = $buyer->static_payout;
+                    if ($bidAmount === null) {
+                        $bidAmount = $payout;
+                    }
+                    if (is_numeric($payout)) {
+                        $numericPayout = (float) $payout;
+                        if ($numericBid === null) $numericBid = $numericPayout;
+                    }
                 }
 
                 $attempt = Attempt::create([
