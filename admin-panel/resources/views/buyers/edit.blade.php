@@ -143,7 +143,13 @@
         $singleRules = $rules['single'] ?? $rules;
         $pingRules = $rules['ping'] ?? $rules;
         $postRules = $rules['post'] ?? $rules;
+        $payloadSingleJson = json_encode($samplePayloadSingle, JSON_PRETTY_PRINT);
+        $payloadPingJson = json_encode($samplePayloadPing, JSON_PRETTY_PRINT);
+        $payloadPostJson = json_encode($samplePayloadPost, JSON_PRETTY_PRINT);
       @endphp
+      <div class="flex justify-end mt-6">
+        <button type="submit" class="rounded-lg bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">Save Buyer</button>
+      </div>
     </form>
 
     @if ($buyer->public_token)
@@ -298,6 +304,10 @@
               </div>
             </div>
           </div>
+          <div class="mt-4 rounded-xl border border-slate-200 p-4 bg-slate-50">
+            <div class="text-sm font-semibold text-slate-700 mb-3">Ping Test Payload</div>
+            <textarea name="payload_override_ping" form="ping-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $payloadPingJson }}</textarea>
+          </div>
         </div>
         <div>
           <div class="text-sm font-semibold text-slate-700 mb-2">Post Mapping</div>
@@ -330,6 +340,10 @@
                 <input name="duration_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['duration_keys'] ?? []) }}" />
               </div>
             </div>
+          </div>
+          <div class="mt-4 rounded-xl border border-slate-200 p-4 bg-slate-50">
+            <div class="text-sm font-semibold text-slate-700 mb-3">Post Test Payload</div>
+            <textarea name="payload_override_post" form="post-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $payloadPostJson }}</textarea>
           </div>
         </div>
       </div>
@@ -364,6 +378,10 @@
           </div>
         </div>
       </div>
+      <div class="mt-4 rounded-xl border border-slate-200 p-4 bg-slate-50">
+        <div class="text-sm font-semibold text-slate-700 mb-3">Full Post Test Payload</div>
+        <textarea name="payload_override_single" form="single-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $payloadSingleJson }}</textarea>
+      </div>
     @endif
   </div>
 
@@ -374,7 +392,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <div class="text-sm font-semibold text-slate-700 mb-2">Ping Test</div>
-          <form method="post" action="{{ route('buyers.test.ping', $buyer) }}" class="space-y-3">
+          <form method="post" action="{{ route('buyers.test.ping', $buyer) }}" class="space-y-3" id="ping-test-form">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               @foreach ($sampleLeadPing as $key => $value)
@@ -393,6 +411,10 @@
               <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_ping')['parsed'], JSON_PRETTY_PRINT) }}</pre>
             </div>
             <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm font-semibold mb-2">Payload Sent</div>
+              <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_ping')['payload'], JSON_PRETTY_PRINT) }}</pre>
+            </div>
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div class="text-sm font-semibold mb-2">Raw Response</div>
               <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_ping')['raw'], JSON_PRETTY_PRINT) }}</pre>
             </div>
@@ -400,7 +422,7 @@
         </div>
         <div>
           <div class="text-sm font-semibold text-slate-700 mb-2">Post Test</div>
-          <form method="post" action="{{ route('buyers.test.post', $buyer) }}" class="space-y-3">
+          <form method="post" action="{{ route('buyers.test.post', $buyer) }}" class="space-y-3" id="post-test-form">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input name="ping_id" placeholder="Ping ID (optional)" class="rounded-lg border border-slate-300 px-3 py-2 text-xs" />
@@ -423,6 +445,10 @@
               <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_post')['parsed'], JSON_PRETTY_PRINT) }}</pre>
             </div>
             <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div class="text-sm font-semibold mb-2">Payload Sent</div>
+              <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_post')['payload'], JSON_PRETTY_PRINT) }}</pre>
+            </div>
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div class="text-sm font-semibold mb-2">Raw Response</div>
               <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_post')['raw'], JSON_PRETTY_PRINT) }}</pre>
             </div>
@@ -430,7 +456,7 @@
         </div>
       </div>
     @else
-      <form method="post" action="{{ route('buyers.test', $buyer) }}" class="space-y-3">
+      <form method="post" action="{{ route('buyers.test', $buyer) }}" class="space-y-3" id="single-test-form">
         @csrf
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           @foreach ($sampleLeadSingle as $key => $value)
@@ -447,6 +473,10 @@
         <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div class="text-sm font-semibold mb-2">Parsed Result</div>
           <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_single')['parsed'], JSON_PRETTY_PRINT) }}</pre>
+        </div>
+        <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div class="text-sm font-semibold mb-2">Payload Sent</div>
+          <pre class="text-xs whitespace-pre-wrap">{{ json_encode(session('test_result_single')['payload'], JSON_PRETTY_PRINT) }}</pre>
         </div>
         <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div class="text-sm font-semibold mb-2">Raw Response</div>

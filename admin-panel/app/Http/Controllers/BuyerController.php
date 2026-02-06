@@ -114,7 +114,7 @@ class BuyerController extends Controller
         return redirect()->route("buyers.edit", $buyer);
     }
 
-    public function edit(Buyer $buyer)
+    public function edit(Buyer $buyer, BuyerRequestService $service)
     {
         $fields = $buyer->fields()->orderBy("field_name")->get();
         $leadFields = LeadField::orderBy("key")->get();
@@ -124,6 +124,12 @@ class BuyerController extends Controller
         $sampleLeadSingle = $this->buildSampleLeadData($buyer, "single", $leadFields);
         $sampleLeadPing = $this->buildSampleLeadData($buyer, "ping", $leadFields);
         $sampleLeadPost = $this->buildSampleLeadData($buyer, "post", $leadFields);
+        $samplePayloadSingle = $service->buildPayload($buyer, $sampleLeadSingle, "single");
+        $samplePayloadPing = $service->buildPayload($buyer, $sampleLeadPing, "ping");
+        $samplePayloadPost = $service->buildPayload($buyer, $sampleLeadPost, "post", [
+            "ping_id" => "PING_ID",
+            "lead_id" => "LEAD_ID",
+        ]);
 
         return view("buyers.edit", [
             "buyer" => $buyer,
@@ -135,6 +141,9 @@ class BuyerController extends Controller
             "sampleLeadSingle" => $sampleLeadSingle,
             "sampleLeadPing" => $sampleLeadPing,
             "sampleLeadPost" => $sampleLeadPost,
+            "samplePayloadSingle" => $samplePayloadSingle,
+            "samplePayloadPing" => $samplePayloadPing,
+            "samplePayloadPost" => $samplePayloadPost,
         ]);
     }
 
@@ -250,13 +259,15 @@ class BuyerController extends Controller
             return redirect()->route("buyers.edit", $buyer)->withErrors(["lead_json" => "Invalid JSON."]);
         }
 
-        $result = $service->submitDirection($buyer, $leadData, "single");
+        $payload = $this->buildPayloadForTest($buyer, $service, $leadData, "single", $request->input("payload_override_single"));
+        $result = $service->sendPayload($buyer, "single", $payload);
         $primary = $result["upstream"] ?? null;
         $parsed = $parser->parse(is_array($primary) ? $primary : null, $this->rulesFor($buyer, "single"));
 
         return redirect()->route("buyers.edit", $buyer)->with("test_result_single", [
             "raw" => $result,
             "parsed" => $parsed,
+            "payload" => $payload,
         ]);
     }
 
@@ -267,12 +278,14 @@ class BuyerController extends Controller
             return redirect()->route("buyers.edit", $buyer)->withErrors(["lead_json_ping" => "Invalid JSON."]);
         }
 
-        $result = $service->submitDirection($buyer, $leadData, "ping");
+        $payload = $this->buildPayloadForTest($buyer, $service, $leadData, "ping", $request->input("payload_override_ping"));
+        $result = $service->sendPayload($buyer, "ping", $payload);
         $parsed = $parser->parse(is_array($result["ping"] ?? null) ? $result["ping"] : null, $this->rulesFor($buyer, "ping"));
 
         return redirect()->route("buyers.edit", $buyer)->with("test_result_ping", [
             "raw" => $result,
             "parsed" => $parsed,
+            "payload" => $payload,
         ]);
     }
 
@@ -288,12 +301,14 @@ class BuyerController extends Controller
             "lead_id" => $request->input("lead_id"),
         ]);
 
-        $result = $service->submitDirection($buyer, $leadData, "post", $context);
+        $payload = $this->buildPayloadForTest($buyer, $service, $leadData, "post", $request->input("payload_override_post"), $context);
+        $result = $service->sendPayload($buyer, "post", $payload);
         $parsed = $parser->parse(is_array($result["post"] ?? null) ? $result["post"] : null, $this->rulesFor($buyer, "post"));
 
         return redirect()->route("buyers.edit", $buyer)->with("test_result_post", [
             "raw" => $result,
             "parsed" => $parsed,
+            "payload" => $payload,
         ]);
     }
 
@@ -489,6 +504,23 @@ class BuyerController extends Controller
         if ($type === "url") return "https://example.com";
 
         return "Test";
+    }
+
+    private function buildPayloadForTest(Buyer $buyer, BuyerRequestService $service, array $leadData, string $direction, ?string $overrideJson, array $context = []): array
+    {
+        $basePayload = $service->buildPayload($buyer, $leadData, $direction, $context);
+        $override = $this->decodePayloadOverride($overrideJson);
+        if ($override) {
+            return array_merge($basePayload, $override);
+        }
+        return $basePayload;
+    }
+
+    private function decodePayloadOverride(?string $raw): ?array
+    {
+        if (!is_string($raw) || trim($raw) === "") return null;
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : null;
     }
 
     private function splitCsv(?string $value): array

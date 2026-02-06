@@ -27,6 +27,22 @@ class BuyerRequestService
         return ["upstream" => $result];
     }
 
+    public function sendPayload(Buyer $buyer, string $direction, array $payload): array
+    {
+        if ($direction === "ping") {
+            $result = $this->sendRequest($buyer, $buyer->ping_url, $payload);
+            return ["ping" => $result];
+        }
+
+        if ($direction === "post") {
+            $result = $this->sendRequest($buyer, $buyer->post_url, $payload);
+            return ["post" => $result];
+        }
+
+        $result = $this->sendRequest($buyer, $buyer->post_url, $payload);
+        return ["upstream" => $result];
+    }
+
     public function submit(Buyer $buyer, array $leadData): array
     {
         if ($buyer->code === "D2") {
