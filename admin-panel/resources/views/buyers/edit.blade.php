@@ -6,7 +6,7 @@
   @endphp
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-6">
     <h3 class="text-lg font-semibold mb-4">Edit Buyer: {{ $buyer->code }}</h3>
-    <form method="post" action="{{ route('buyers.update', $buyer) }}">
+    <form method="post" action="{{ route('buyers.update', $buyer) }}" id="buyer-update-form">
       @csrf
       <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div class="md:col-span-2">
@@ -78,7 +78,7 @@
           </select>
         </div>
         <div class="flex items-end">
-          <button type="submit" class="w-full rounded-lg bg-blue-600 text-white py-2 hover:bg-blue-700">Save</button>
+          <button type="submit" class="w-full rounded-lg bg-blue-600 text-white py-2 hover:bg-blue-700">Save Buyer</button>
         </div>
       </div>
 
@@ -163,6 +163,119 @@
       </div>
     @endif
   </div>
+
+  @php
+    $mapSingle = $singleFields->map(fn ($f) => [
+      "field_name" => $f->field_name,
+      "source_type" => $f->source_type,
+      "source_key" => $f->source_key,
+      "source_value" => $f->source_value,
+    ])->values();
+    $mapPing = $pingFields->map(fn ($f) => [
+      "field_name" => $f->field_name,
+      "source_type" => $f->source_type,
+      "source_key" => $f->source_key,
+      "source_value" => $f->source_value,
+    ])->values();
+    $mapPost = $postFields->map(fn ($f) => [
+      "field_name" => $f->field_name,
+      "source_type" => $f->source_type,
+      "source_key" => $f->source_key,
+      "source_value" => $f->source_value,
+    ])->values();
+  @endphp
+
+  <script>
+    (function () {
+      const mappings = {
+        single: @json($mapSingle),
+        ping: @json($mapPing),
+        post: @json($mapPost),
+      };
+
+      const payloadAreas = {
+        single: document.querySelector('[data-payload-area="single"]'),
+        ping: document.querySelector('[data-payload-area="ping"]'),
+        post: document.querySelector('[data-payload-area="post"]'),
+      };
+
+      Object.values(payloadAreas).forEach((area) => {
+        if (!area) return;
+        area.addEventListener("input", () => {
+          area.dataset.auto = "0";
+        });
+      });
+
+      document.querySelectorAll("[data-reset]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.getAttribute("data-reset");
+          const area = payloadAreas[key];
+          if (!area) return;
+          area.dataset.auto = "1";
+          updatePayloadPreview(key);
+        });
+      });
+
+      function readLeadInputs(scope) {
+        const inputs = document.querySelectorAll(`[data-lead-input="${scope}"]`);
+        const data = {};
+        inputs.forEach((input) => {
+          const key = input.getAttribute("data-key");
+          const value = input.value;
+          if (key && value !== "") data[key] = value;
+        });
+        return data;
+      }
+
+      function readContext() {
+        const pingId = document.querySelector('[data-context="ping_id"]')?.value || "";
+        const leadId = document.querySelector('[data-context="lead_id"]')?.value || "";
+        return { ping_id: pingId, lead_id: leadId };
+      }
+
+      function buildPayload(map, leadData, context) {
+        const payload = {};
+        map.forEach((field) => {
+          let value = null;
+          if (field.source_type === "static") {
+            value = field.source_value;
+          } else if (field.source_type === "computed") {
+            if (field.source_key === "ping_id") value = context.ping_id || null;
+            if (field.source_key === "lead_id") value = context.lead_id || null;
+          } else {
+            const key = field.source_key || field.field_name;
+            value = leadData[key];
+          }
+          if (value !== null && value !== "") {
+            payload[field.field_name] = value;
+          }
+        });
+        return payload;
+      }
+
+      function updatePayloadPreview(scope) {
+        const area = payloadAreas[scope];
+        if (!area || area.dataset.auto !== "1") return;
+        const leadData = readLeadInputs(scope);
+        const context = readContext();
+        const payload = buildPayload(mappings[scope] || [], leadData, context);
+        area.value = JSON.stringify(payload, null, 2);
+      }
+
+      ["single", "ping", "post"].forEach((scope) => {
+        document.querySelectorAll(`[data-lead-input="${scope}"]`).forEach((input) => {
+          input.addEventListener("input", () => updatePayloadPreview(scope));
+        });
+      });
+      document.querySelectorAll("[data-context]").forEach((input) => {
+        input.addEventListener("input", () => updatePayloadPreview("post"));
+      });
+
+      updatePayloadPreview("single");
+      updatePayloadPreview("ping");
+      updatePayloadPreview("post");
+    })();
+  </script>
 
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-6">
     <h3 class="text-lg font-semibold mb-4">Add Field</h3>
@@ -303,10 +416,16 @@
                 <input name="duration_keys_ping" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $pingRules['duration_keys'] ?? []) }}" />
               </div>
             </div>
+            <div class="flex justify-end mt-4">
+              <button type="submit" form="buyer-update-form" class="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">Save Ping Mapping</button>
+            </div>
           </div>
           <div class="mt-4 rounded-xl border border-slate-200 p-4 bg-slate-50">
             <div class="text-sm font-semibold text-slate-700 mb-3">Ping Test Payload</div>
-            <textarea name="payload_override_ping" form="ping-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $payloadPingJson }}</textarea>
+            <textarea name="payload_override_ping" form="ping-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs" data-payload-area="ping" data-auto="1">{{ $payloadPingJson }}</textarea>
+            <div class="flex justify-end mt-2">
+              <button type="button" class="text-xs text-slate-600 hover:text-slate-900" data-reset="ping">Reset preview</button>
+            </div>
           </div>
         </div>
         <div>
@@ -340,10 +459,16 @@
                 <input name="duration_keys_post" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $postRules['duration_keys'] ?? []) }}" />
               </div>
             </div>
+            <div class="flex justify-end mt-4">
+              <button type="submit" form="buyer-update-form" class="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">Save Post Mapping</button>
+            </div>
           </div>
           <div class="mt-4 rounded-xl border border-slate-200 p-4 bg-slate-50">
             <div class="text-sm font-semibold text-slate-700 mb-3">Post Test Payload</div>
-            <textarea name="payload_override_post" form="post-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $payloadPostJson }}</textarea>
+            <textarea name="payload_override_post" form="post-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs" data-payload-area="post" data-auto="1">{{ $payloadPostJson }}</textarea>
+            <div class="flex justify-end mt-2">
+              <button type="button" class="text-xs text-slate-600 hover:text-slate-900" data-reset="post">Reset preview</button>
+            </div>
           </div>
         </div>
       </div>
@@ -377,10 +502,16 @@
             <input name="duration_keys_single" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="{{ implode(',', $singleRules['duration_keys'] ?? []) }}" />
           </div>
         </div>
+        <div class="flex justify-end mt-4">
+          <button type="submit" form="buyer-update-form" class="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">Save Full Post Mapping</button>
+        </div>
       </div>
       <div class="mt-4 rounded-xl border border-slate-200 p-4 bg-slate-50">
         <div class="text-sm font-semibold text-slate-700 mb-3">Full Post Test Payload</div>
-        <textarea name="payload_override_single" form="single-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs">{{ $payloadSingleJson }}</textarea>
+        <textarea name="payload_override_single" form="single-test-form" rows="6" class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs" data-payload-area="single" data-auto="1">{{ $payloadSingleJson }}</textarea>
+        <div class="flex justify-end mt-2">
+          <button type="button" class="text-xs text-slate-600 hover:text-slate-900" data-reset="single">Reset preview</button>
+        </div>
       </div>
     @endif
   </div>
@@ -398,7 +529,7 @@
               @foreach ($sampleLeadPing as $key => $value)
                 <div>
                   <label class="text-xs text-slate-600">{{ $key }}</label>
-                  <input name="lead_fields_ping[{{ $key }}]" value="{{ $value }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+                  <input name="lead_fields_ping[{{ $key }}]" value="{{ $value }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" data-lead-input="ping" data-key="{{ $key }}" />
                 </div>
               @endforeach
             </div>
@@ -425,14 +556,14 @@
           <form method="post" action="{{ route('buyers.test.post', $buyer) }}" class="space-y-3" id="post-test-form">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input name="ping_id" placeholder="Ping ID (optional)" class="rounded-lg border border-slate-300 px-3 py-2 text-xs" />
-              <input name="lead_id" placeholder="Lead ID (optional)" class="rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+              <input name="ping_id" placeholder="Ping ID (optional)" class="rounded-lg border border-slate-300 px-3 py-2 text-xs" data-context="ping_id" />
+              <input name="lead_id" placeholder="Lead ID (optional)" class="rounded-lg border border-slate-300 px-3 py-2 text-xs" data-context="lead_id" />
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               @foreach ($sampleLeadPost as $key => $value)
                 <div>
                   <label class="text-xs text-slate-600">{{ $key }}</label>
-                  <input name="lead_fields_post[{{ $key }}]" value="{{ $value }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+                  <input name="lead_fields_post[{{ $key }}]" value="{{ $value }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" data-lead-input="post" data-key="{{ $key }}" />
                 </div>
               @endforeach
             </div>
@@ -462,7 +593,7 @@
           @foreach ($sampleLeadSingle as $key => $value)
             <div>
               <label class="text-xs text-slate-600">{{ $key }}</label>
-              <input name="lead_fields_single[{{ $key }}]" value="{{ $value }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+              <input name="lead_fields_single[{{ $key }}]" value="{{ $value }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" data-lead-input="single" data-key="{{ $key }}" />
             </div>
           @endforeach
         </div>
