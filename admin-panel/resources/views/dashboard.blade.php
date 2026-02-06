@@ -2,12 +2,6 @@
 
 @section('content')
   @php($fullWidth = true)
-  @php
-    $accepted = $statusCounts['accepted'] ?? 0;
-    $rejected = $statusCounts['rejected'] ?? 0;
-    $unknown = $statusCounts['unknown'] ?? 0;
-    $total = $accepted + $rejected + $unknown;
-  @endphp
 
   <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
     <div class="px-6 lg:px-10 py-10">
