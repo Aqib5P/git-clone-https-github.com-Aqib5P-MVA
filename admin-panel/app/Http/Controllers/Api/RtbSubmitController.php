@@ -13,6 +13,7 @@ use App\Services\DuplicateChecker;
 use App\Services\GoogleLogger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class RtbSubmitController extends Controller
 {
@@ -23,6 +24,7 @@ class RtbSubmitController extends Controller
         DuplicateChecker $duplicateChecker,
         GoogleLogger $googleLogger
     ) {
+        try {
         $data = $request->json()->all();
         $leadData = $data["data"] ?? $data["lead"] ?? $data;
         if (!is_array($leadData)) $leadData = [];
@@ -194,6 +196,16 @@ class RtbSubmitController extends Controller
         ]);
 
         return $this->cors($response);
+        } catch (\Throwable $e) {
+            Log::error("RTB submit failed", [
+                "error" => $e->getMessage(),
+                "trace" => $e->getTraceAsString(),
+            ]);
+            return $this->cors(response()->json([
+                "error" => "RTB submit failed",
+                "message" => $e->getMessage(),
+            ], 500));
+        }
     }
 
     private function normalizeLeadData(array $leadData): array

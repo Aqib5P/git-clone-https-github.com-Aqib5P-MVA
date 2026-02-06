@@ -166,6 +166,9 @@
           try {
             data = JSON.parse(text);
           } catch (err) {
+            if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+              throw new Error("Server error returned HTML. Please try again or contact admin.");
+            }
             throw new Error(text.slice(0, 200) || "Invalid JSON response");
           }
           if (!res.ok) {
