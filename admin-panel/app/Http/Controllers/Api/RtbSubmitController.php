@@ -155,6 +155,9 @@ class RtbSubmitController extends Controller
                     }
                 }
             }
+            if (!$minDuration && is_array($bodyData)) {
+                $minDuration = $this->extractDurationFromBody($bodyData);
+            }
 
             $results[] = [
                 "buyer" => $buyer->code,
@@ -221,6 +224,24 @@ class RtbSubmitController extends Controller
         foreach ($keys as $key) {
             if (isset($data[$key]) && $data[$key] !== "") {
                 return is_scalar($data[$key]) ? (string) $data[$key] : null;
+            }
+        }
+        return null;
+    }
+
+    private function extractDurationFromBody(array $data): ?string
+    {
+        foreach (["duration", "current_conversion_duration", "min_duration", "minimumDuration"] as $key) {
+            if (isset($data[$key]) && $data[$key] !== "") {
+                return (string) $data[$key];
+            }
+        }
+        if (isset($data["buyers"]) && is_array($data["buyers"]) && isset($data["buyers"][0]) && is_array($data["buyers"][0])) {
+            $buyer = $data["buyers"][0];
+            foreach (["current_conversion_duration", "duration", "min_duration"] as $key) {
+                if (isset($buyer[$key]) && $buyer[$key] !== "") {
+                    return (string) $buyer[$key];
+                }
             }
         }
         return null;
