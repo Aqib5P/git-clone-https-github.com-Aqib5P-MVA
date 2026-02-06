@@ -7,10 +7,13 @@ use App\Models\Attempt;
 use App\Models\Buyer;
 use App\Models\Lead;
 use App\Services\DuplicateChecker;
+use App\Http\Controllers\Concerns\RecordSourceHelper;
 use Illuminate\Http\Request;
 
 class LeadIntakeController extends Controller
 {
+    use RecordSourceHelper;
+
     public function store(Request $request, DuplicateChecker $duplicateChecker)
     {
         $token = config("admin.intake_token");
@@ -58,9 +61,26 @@ class LeadIntakeController extends Controller
         $postParsed = $this->parseBuyerResponse($postData);
         $parsed = $this->parseBuyerResponse($primaryResponse);
 
-        $payout = $postParsed["payout"] ?? $pingParsed["payout"] ?? $parsed["payout"] ?? null;
-        $bidAmount = $postParsed["bid_amount"] ?? $pingParsed["bid_amount"] ?? $parsed["bid_amount"] ?? null;
+        $recordSources = $this->recordSources($buyer);
+        $payout = $this->pickRecordValue($recordSources, "payout", [
+            "post" => $postParsed["payout"] ?? null,
+            "ping" => $pingParsed["payout"] ?? null,
+            "single" => $parsed["payout"] ?? null,
+        ], ["post", "ping", "single"]);
+        $bidAmount = $this->pickRecordValue($recordSources, "bid_amount", [
+            "post" => $postParsed["bid_amount"] ?? null,
+            "ping" => $pingParsed["bid_amount"] ?? null,
+            "single" => $parsed["bid_amount"] ?? null,
+        ], ["post", "ping", "single"]);
         $status = $parsed["status"] ?? "unknown";
+        if (array_key_exists("status", $recordSources)) {
+            $pickedStatus = $this->pickRecordValue($recordSources, "status", [
+                "post" => $postParsed["status"] ?? null,
+                "ping" => $pingParsed["status"] ?? null,
+                "single" => $parsed["status"] ?? null,
+            ], ["post", "ping", "single"]);
+            if ($pickedStatus !== null) $status = $pickedStatus;
+        }
         if ($buyer?->type === "ping_post" && !$postData) {
             $status = "rejected";
         }
@@ -68,6 +88,32 @@ class LeadIntakeController extends Controller
         if ($status === "accepted" && $rejectReason !== "") {
             $status = "rejected";
         }
+
+        $httpStatus = $this->pickRecordValue($recordSources, "http_status", [
+            "post" => $postParsed["http_status"] ?? null,
+            "ping" => $pingParsed["http_status"] ?? null,
+            "single" => $parsed["http_status"] ?? null,
+        ], ["post", "ping", "single"]);
+        $pingId = $this->pickRecordValue($recordSources, "ping_id", [
+            "ping" => $pingParsed["ping_id"] ?? null,
+            "post" => $postParsed["ping_id"] ?? null,
+            "single" => $parsed["ping_id"] ?? null,
+        ], ["ping", "post", "single"], false, true);
+        $forwardingNumber = $this->pickRecordValue($recordSources, "forwarding_number", [
+            "post" => $postParsed["forwarding_number"] ?? null,
+            "ping" => $pingParsed["forwarding_number"] ?? null,
+            "single" => $parsed["forwarding_number"] ?? null,
+        ], ["post", "ping", "single"], false, true);
+        $responseJson = $this->pickRecordValue($recordSources, "response", [
+            "post" => $postParsed["body_json"] ?? null,
+            "ping" => $pingParsed["body_json"] ?? null,
+            "single" => $parsed["body_json"] ?? null,
+        ], ["post", "ping", "single"]);
+        $responseRaw = $this->pickRecordValue($recordSources, "response", [
+            "post" => $postParsed["body_raw"] ?? null,
+            "ping" => $pingParsed["body_raw"] ?? null,
+            "single" => $parsed["body_raw"] ?? null,
+        ], ["post", "ping", "single"], false, true);
 
         Attempt::create([
             "lead_id" => $lead->id,
@@ -78,14 +124,14 @@ class LeadIntakeController extends Controller
             "is_duplicate" => $duplicate !== null,
             "duplicate_of_id" => $duplicate?->id,
             "duplicate_window" => config("admin.duplicate_window_days") . "d",
-            "http_status" => $postParsed["http_status"] ?? $pingParsed["http_status"] ?? $parsed["http_status"],
-            "ping_id" => $pingParsed["ping_id"] ?? $parsed["ping_id"],
-            "forwarding_number" => $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"],
+            "http_status" => $httpStatus,
+            "ping_id" => $pingId,
+            "forwarding_number" => $forwardingNumber,
             "payout" => $payout,
             "bid_amount" => $bidAmount,
             "payload_json" => $payloadData,
-            "response_json" => $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"],
-            "response_raw" => $postParsed["body_raw"] ?? $pingParsed["body_raw"] ?? $parsed["body_raw"],
+            "response_json" => $responseJson,
+            "response_raw" => $responseRaw,
         ]);
 
         return response()->json(["ok" => true]);

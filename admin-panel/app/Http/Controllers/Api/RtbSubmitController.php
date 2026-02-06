@@ -11,12 +11,15 @@ use App\Services\BuyerRequestService;
 use App\Services\BuyerResponseParser;
 use App\Services\DuplicateChecker;
 use App\Services\GoogleLogger;
+use App\Http\Controllers\Concerns\RecordSourceHelper;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class RtbSubmitController extends Controller
 {
+    use RecordSourceHelper;
+
     public function submit(
         Request $request,
         BuyerRequestService $service,
@@ -74,8 +77,23 @@ class RtbSubmitController extends Controller
                 $primary = $result["post"] ?? $result["upstream"] ?? $result["ping"] ?? null;
                 $parsed = $parser->parse(is_array($primary) ? $primary : null, $this->rulesFor($buyer, "single"));
 
-                $bodyData = $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"] ?? null;
-                $payout = $postParsed["payout"] ?? $pingParsed["payout"] ?? $parsed["payout"] ?? null;
+                $recordSources = $this->recordSources($buyer);
+                $responseJson = $this->pickRecordValue($recordSources, "response", [
+                    "post" => $postParsed["body_json"] ?? null,
+                    "ping" => $pingParsed["body_json"] ?? null,
+                    "single" => $parsed["body_json"] ?? null,
+                ], ["post", "ping", "single"]);
+                $responseRaw = $this->pickRecordValue($recordSources, "response", [
+                    "post" => $postParsed["body_raw"] ?? null,
+                    "ping" => $pingParsed["body_raw"] ?? null,
+                    "single" => $parsed["body_raw"] ?? null,
+                ], ["post", "ping", "single"], false, true);
+                $bodyData = is_array($responseJson) ? $responseJson : null;
+                $payout = $this->pickRecordValue($recordSources, "payout", [
+                    "post" => $postParsed["payout"] ?? null,
+                    "ping" => $pingParsed["payout"] ?? null,
+                    "single" => $parsed["payout"] ?? null,
+                ], ["post", "ping", "single"]);
                 if ($buyer->payout_type === "static" && $buyer->static_payout !== null) {
                     $payout = $buyer->static_payout;
                 }
@@ -83,14 +101,30 @@ class RtbSubmitController extends Controller
                     $payout = $this->extractNumberFromBody($bodyData, ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
                 }
 
-                $bidAmount = $postParsed["bid_amount"] ?? $pingParsed["bid_amount"] ?? $parsed["bid_amount"];
+                $bidAmount = $this->pickRecordValue($recordSources, "bid_amount", [
+                    "post" => $postParsed["bid_amount"] ?? null,
+                    "ping" => $pingParsed["bid_amount"] ?? null,
+                    "single" => $parsed["bid_amount"] ?? null,
+                ], ["post", "ping", "single"]);
                 if ($bidAmount === null && is_array($bodyData)) {
                     $bidAmount = $this->extractNumberFromBody($bodyData, ["bidAmount", "bid_amount", "bidPrice"]);
                 }
-                $forwardingNumber = $postParsed["forwarding_number"] ?? $pingParsed["forwarding_number"] ?? $parsed["forwarding_number"] ?? null;
+                $forwardingNumber = $this->pickRecordValue($recordSources, "forwarding_number", [
+                    "post" => $postParsed["forwarding_number"] ?? null,
+                    "ping" => $pingParsed["forwarding_number"] ?? null,
+                    "single" => $parsed["forwarding_number"] ?? null,
+                ], ["post", "ping", "single"]);
                 $rejectReason = $this->extractRejectReason($bodyData);
 
                 $status = $parsed["status"] ?? "unknown";
+                if (array_key_exists("status", $recordSources)) {
+                    $pickedStatus = $this->pickRecordValue($recordSources, "status", [
+                        "post" => $postParsed["status"] ?? null,
+                        "ping" => $pingParsed["status"] ?? null,
+                        "single" => $parsed["status"] ?? null,
+                    ], ["post", "ping", "single"]);
+                    if ($pickedStatus !== null) $status = $pickedStatus;
+                }
                 $numericBid = is_numeric($bidAmount) ? (float) $bidAmount : null;
                 $numericPayout = is_numeric($payout) ? (float) $payout : null;
                 if ($numericBid === null && $numericPayout !== null) {
@@ -120,17 +154,25 @@ class RtbSubmitController extends Controller
                     "is_duplicate" => $duplicate !== null,
                     "duplicate_of_id" => $duplicate?->id,
                     "duplicate_window" => config("admin.duplicate_window_days") . "d",
-                    "http_status" => $postParsed["http_status"] ?? $pingParsed["http_status"] ?? $parsed["http_status"] ?? null,
-                    "ping_id" => $pingParsed["ping_id"] ?? $parsed["ping_id"] ?? null,
+                    "http_status" => $this->pickRecordValue($recordSources, "http_status", [
+                        "post" => $postParsed["http_status"] ?? null,
+                        "ping" => $pingParsed["http_status"] ?? null,
+                        "single" => $parsed["http_status"] ?? null,
+                    ], ["post", "ping", "single"]),
+                    "ping_id" => $this->pickRecordValue($recordSources, "ping_id", [
+                        "ping" => $pingParsed["ping_id"] ?? null,
+                        "post" => $postParsed["ping_id"] ?? null,
+                        "single" => $parsed["ping_id"] ?? null,
+                    ], ["ping", "post", "single"]),
                     "forwarding_number" => $forwardingNumber,
                     "payout" => $payout,
                     "bid_amount" => $bidAmount,
                     "payload_json" => $leadData,
-                    "response_json" => $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"] ?? null,
-                    "response_raw" => $postParsed["body_raw"] ?? $pingParsed["body_raw"] ?? $parsed["body_raw"] ?? null,
+                    "response_json" => $responseJson,
+                    "response_raw" => $responseRaw,
                 ]);
 
-                $bidJson = $postParsed["body_json"] ?? $pingParsed["body_json"] ?? $parsed["body_json"] ?? null;
+                $bidJson = $responseJson ?? $bodyData;
                 RtbBid::create([
                     "attempt_id" => $attempt->id,
                     "buyer_id" => $buyer->id,

@@ -143,6 +143,13 @@
         $singleRules = $rules['single'] ?? $rules;
         $pingRules = $rules['ping'] ?? $rules;
         $postRules = $rules['post'] ?? $rules;
+        $recordSources = is_array($rules) ? ($rules['record_source'] ?? []) : [];
+        $recordSourceOptions = [
+          'auto' => 'Auto (default)',
+          'post' => 'Post first',
+          'ping' => 'Ping first',
+          'single' => 'Single only',
+        ];
         $payloadSingleJson = json_encode($samplePayloadSingle, JSON_PRETTY_PRINT);
         $payloadPingJson = json_encode($samplePayloadPing, JSON_PRETTY_PRINT);
         $payloadPostJson = json_encode($samplePayloadPost, JSON_PRETTY_PRINT);
@@ -546,6 +553,69 @@
         </div>
       </div>
     @endif
+
+    <div class="mt-6 rounded-xl border border-slate-200 p-4">
+      <div class="text-sm font-semibold text-slate-700 mb-3">Record Source (Saved Attempt Values)</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="text-xs text-slate-600">Status source</label>
+          <select name="record_source_status" form="buyer-update-form" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            @foreach ($recordSourceOptions as $value => $label)
+              <option value="{{ $value }}" @selected(($recordSources['status'] ?? 'auto') === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-600">Payout source</label>
+          <select name="record_source_payout" form="buyer-update-form" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            @foreach ($recordSourceOptions as $value => $label)
+              <option value="{{ $value }}" @selected(($recordSources['payout'] ?? 'auto') === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-600">Bid source</label>
+          <select name="record_source_bid_amount" form="buyer-update-form" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            @foreach ($recordSourceOptions as $value => $label)
+              <option value="{{ $value }}" @selected(($recordSources['bid_amount'] ?? 'auto') === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-600">Forwarding source</label>
+          <select name="record_source_forwarding_number" form="buyer-update-form" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            @foreach ($recordSourceOptions as $value => $label)
+              <option value="{{ $value }}" @selected(($recordSources['forwarding_number'] ?? 'auto') === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-600">HTTP status source</label>
+          <select name="record_source_http_status" form="buyer-update-form" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            @foreach ($recordSourceOptions as $value => $label)
+              <option value="{{ $value }}" @selected(($recordSources['http_status'] ?? 'auto') === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-600">Response body source</label>
+          <select name="record_source_response" form="buyer-update-form" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            @foreach ($recordSourceOptions as $value => $label)
+              <option value="{{ $value }}" @selected(($recordSources['response'] ?? 'auto') === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-600">Ping ID source</label>
+          <select name="record_source_ping_id" form="buyer-update-form" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            @foreach ($recordSourceOptions as $value => $label)
+              <option value="{{ $value }}" @selected(($recordSources['ping_id'] ?? 'auto') === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
+      </div>
+      <div class="text-xs text-slate-500 mt-2">Controls which response is used when saving attempt values.</div>
+    </div>
   </div>
 
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mt-6">

@@ -72,6 +72,13 @@ class BuyerController extends Controller
             "payout_keys_post" => ["nullable", "string"],
             "bid_keys_post" => ["nullable", "string"],
             "duration_keys_post" => ["nullable", "string"],
+            "record_source_status" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_payout" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_bid_amount" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_forwarding_number" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_http_status" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_response" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_ping_id" => ["nullable", "string", "in:auto,ping,post,single"],
             "default_product_id" => ["nullable", "integer"],
             "default_campaign_id" => ["nullable", "integer"],
             "default_publisher_id" => ["nullable", "integer"],
@@ -182,6 +189,13 @@ class BuyerController extends Controller
             "payout_keys_post" => ["nullable", "string"],
             "bid_keys_post" => ["nullable", "string"],
             "duration_keys_post" => ["nullable", "string"],
+            "record_source_status" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_payout" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_bid_amount" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_forwarding_number" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_http_status" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_response" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_ping_id" => ["nullable", "string", "in:auto,ping,post,single"],
             "default_product_id" => ["nullable", "integer"],
             "default_campaign_id" => ["nullable", "integer"],
             "default_publisher_id" => ["nullable", "integer"],
@@ -381,10 +395,12 @@ class BuyerController extends Controller
         $single = $this->buildRuleSet($request, "single");
         $ping = $this->buildRuleSet($request, "ping");
         $post = $this->buildRuleSet($request, "post");
+        $recordSources = $this->buildRecordSources($request);
 
         if ($single) $rules["single"] = $single;
         if ($ping) $rules["ping"] = $ping;
         if ($post) $rules["post"] = $post;
+        if ($recordSources) $rules["record_source"] = $recordSources;
 
         if (!empty($rules)) {
             return $rules;
@@ -397,6 +413,10 @@ class BuyerController extends Controller
                 $hasLegacy = true;
                 break;
             }
+        }
+        if ($recordSources) {
+            $legacy["record_source"] = $recordSources;
+            $hasLegacy = true;
         }
         return $hasLegacy ? $legacy : [];
     }
@@ -433,6 +453,30 @@ class BuyerController extends Controller
             "bid_keys" => $this->splitCsv($request->input("bid_keys")),
             "duration_keys" => $this->splitCsv($request->input("duration_keys")),
         ];
+    }
+
+    private function buildRecordSources(Request $request): array
+    {
+        $map = [
+            "status" => "record_source_status",
+            "payout" => "record_source_payout",
+            "bid_amount" => "record_source_bid_amount",
+            "forwarding_number" => "record_source_forwarding_number",
+            "http_status" => "record_source_http_status",
+            "response" => "record_source_response",
+            "ping_id" => "record_source_ping_id",
+        ];
+
+        $sources = [];
+        foreach ($map as $key => $input) {
+            $value = $request->input($input);
+            if (!is_string($value)) continue;
+            $value = strtolower(trim($value));
+            if ($value === "" || $value === "auto") continue;
+            $sources[$key] = $value;
+        }
+
+        return $sources;
     }
 
     private function rulesFor(Buyer $buyer, string $direction): array
