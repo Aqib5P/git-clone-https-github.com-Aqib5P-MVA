@@ -90,6 +90,10 @@ class BuyerRequestService
 
     public function buildPayload(Buyer $buyer, array $leadData, string $direction, array $context = []): array
     {
+        if ($buyer->code === "D2") {
+            return $this->buildD2Payload($leadData);
+        }
+
         $fields = BuyerField::query()
             ->where("buyer_id", $buyer->id)
             ->whereIn("direction", [$direction, "single"])
