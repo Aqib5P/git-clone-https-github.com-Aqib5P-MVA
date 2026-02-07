@@ -300,6 +300,25 @@
     </div>
 
     <aside class="space-y-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Quick Links</div>
+        <h3 class="text-lg font-semibold mt-1">Forms & Access</h3>
+        <div class="mt-4 space-y-3 text-sm">
+          <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <div class="text-xs text-slate-500">Unified Form</div>
+            <a class="text-blue-600 hover:text-blue-800 break-all" href="{{ url('/unified_form.html') }}" target="_blank">{{ url('/unified_form.html') }}</a>
+          </div>
+          <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <div class="text-xs text-slate-500">RTB Form</div>
+            <a class="text-blue-600 hover:text-blue-800 break-all" href="{{ url('/rtb_form.html') }}" target="_blank">{{ url('/rtb_form.html') }}</a>
+          </div>
+          <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <div class="text-xs text-slate-500">IP Allowlist</div>
+            <a class="text-blue-600 hover:text-blue-800 break-all" href="{{ route('ip.validate') }}" target="_blank">{{ route('ip.validate') }}</a>
+          </div>
+        </div>
+      </div>
+
       <details class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" open>
         <summary class="cursor-pointer list-none">
           <div class="flex flex-wrap items-center justify-between gap-3">
