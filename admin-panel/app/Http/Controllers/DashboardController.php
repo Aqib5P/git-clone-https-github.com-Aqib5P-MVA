@@ -66,6 +66,13 @@ class DashboardController extends Controller
             ->limit(100)
             ->get();
 
+        $declinedCount = (clone $baseQuery)
+            ->whereRaw("lower(status) = 'declined'")
+            ->count();
+        $bidTooLowCount = (clone $baseQuery)
+            ->whereRaw("lower(status) = 'bid too low'")
+            ->count();
+
         $leadStatusSub = Attempt::query()
             ->selectRaw("lead_id,
                 max(case when lower(status) in ('{$acceptedList}') then 1 else 0 end) as has_accepted,
@@ -224,6 +231,8 @@ class DashboardController extends Controller
             "total" => $total,
             "acceptRate" => $acceptRate,
             "rejectRate" => $rejectRate,
+            "declinedCount" => $declinedCount,
+            "bidTooLowCount" => $bidTooLowCount,
             "topBuyer" => $topBuyer,
             "topPayoutBuyer" => $topPayoutBuyer,
             "totalRevenue" => $totalRevenue,

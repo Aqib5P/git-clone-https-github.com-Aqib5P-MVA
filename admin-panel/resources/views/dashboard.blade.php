@@ -106,7 +106,7 @@
     </form>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
     <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
       <div class="text-sm text-emerald-600">Accepted</div>
       <div class="text-2xl font-semibold">{{ $accepted }}</div>
@@ -114,6 +114,14 @@
     <div class="rounded-2xl bg-red-50 border border-red-100 p-4">
       <div class="text-sm text-red-600">Rejected</div>
       <div class="text-2xl font-semibold">{{ $rejected }}</div>
+    </div>
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+      <div class="text-sm text-amber-700">Declined</div>
+      <div class="text-2xl font-semibold">{{ $declinedCount }}</div>
+    </div>
+    <div class="rounded-2xl bg-purple-50 border border-purple-100 p-4">
+      <div class="text-sm text-purple-700">Bid Too Low</div>
+      <div class="text-2xl font-semibold">{{ $bidTooLowCount }}</div>
     </div>
     <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
       <div class="text-sm text-slate-600">Unknown</div>
