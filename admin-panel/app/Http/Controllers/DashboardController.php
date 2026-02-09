@@ -105,6 +105,7 @@ class DashboardController extends Controller
             ->selectRaw("endpoint, count(*) as total,
                 sum(case when lower(status) in ('{$acceptedList}') then 1 else 0 end) as accepted,
                 sum(case when lower(status) in ('{$rejectedList}') then 1 else 0 end) as rejected,
+                sum(case when lower(status) = 'bid too low' then 1 else 0 end) as bid_too_low,
                 sum(payout) as total_payout,
                 max(payout) as max_payout")
             ->whereBetween("created_at", [$startDate, $endDate])

@@ -200,6 +200,7 @@
               $rowTotal = (int) $row->total;
               $rowAccepted = (int) $row->accepted;
               $rowRejected = (int) $row->rejected;
+              $rowBidTooLow = (int) ($row->bid_too_low ?? 0);
               $rowRate = $rowTotal > 0 ? round(($rowAccepted / $rowTotal) * 100, 1) : 0;
             @endphp
             <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
@@ -213,6 +214,7 @@
               <div class="mt-3 flex flex-wrap gap-2 text-xs">
                 <span class="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1">{{ $rowAccepted }} accepted</span>
                 <span class="rounded-full bg-red-100 text-red-700 px-2 py-1">{{ $rowRejected }} rejected</span>
+                <span class="rounded-full bg-amber-100 text-amber-800 px-2 py-1">{{ $rowBidTooLow }} bid too low</span>
               </div>
               <div class="mt-3">
                 <div class="flex justify-between text-xs text-slate-500">

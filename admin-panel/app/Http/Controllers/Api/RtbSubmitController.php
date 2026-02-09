@@ -66,6 +66,7 @@ class RtbSubmitController extends Controller
         ]);
 
         $results = [];
+        $submittedAt = Carbon::now()->toIso8601String();
         $minBid = 20;
         foreach ($buyers as $buyer) {
             $duplicate = $duplicateChecker->findDuplicateAttempt($buyer->id, $lead->phone);
@@ -219,6 +220,7 @@ class RtbSubmitController extends Controller
                     "min_duration" => $minDuration,
                     "expires" => $this->extractFirst($bidJson, ["expireInSeconds", "expires_in", "expiresInSeconds"]),
                     "duplicate" => $duplicate !== null,
+                    "timestamp" => $submittedAt,
                 ];
             } catch (\Throwable $e) {
                 Log::error("RTB buyer failed", [
@@ -249,6 +251,7 @@ class RtbSubmitController extends Controller
                     "min_duration" => null,
                     "expires" => null,
                     "duplicate" => $duplicate !== null,
+                    "timestamp" => $submittedAt,
                 ];
             }
         }
@@ -273,6 +276,7 @@ class RtbSubmitController extends Controller
 
         $response = response()->json([
             "lead_id" => $lead->id,
+            "submitted_at" => $submittedAt,
             "results" => $results,
         ]);
 

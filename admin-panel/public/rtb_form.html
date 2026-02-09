@@ -123,6 +123,8 @@
           const declined = status === "declined";
           const isTop = accepted && index === 0;
           const card = document.createElement("div");
+          const rawTime = item.timestamp || "";
+          const timeLabel = rawTime ? new Date(rawTime).toLocaleString() : new Date().toLocaleString();
           const cardClass = accepted
             ? "border-emerald-200 bg-emerald-50"
             : (bidTooLow
@@ -142,6 +144,7 @@
               </div>
               <div class="text-sm text-slate-500">${item.rank_label ? "Ranked" : ""}</div>
             </div>
+            <div class="mt-2 text-xs text-slate-500">Time: ${timeLabel}</div>
             <div class="mt-2 text-sm text-slate-600 grid grid-cols-1 md:grid-cols-3 gap-2">
               <div>Forwarding: ${item.forwarding_number || "—"}</div>
               <div>Min Duration: ${item.min_duration || "—"}</div>
