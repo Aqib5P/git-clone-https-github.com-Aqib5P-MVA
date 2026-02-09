@@ -63,6 +63,14 @@ class BuyerSubmitController extends Controller
         $parsed = $parser->parse(is_array($primary) ? $primary : null, $this->rulesFor($buyer, "single"));
 
         $recordSources = $this->recordSources($buyer);
+        $responseOrder = ["post", "ping", "single"];
+        if (!array_key_exists("response", $recordSources)) {
+            $payoutPref = $recordSources["payout"] ?? null;
+            $bidPref = $recordSources["bid_amount"] ?? null;
+            if ($payoutPref === "ping" || $bidPref === "ping") {
+                $responseOrder = ["ping", "post", "single"];
+            }
+        }
         $payout = $this->pickRecordValue($recordSources, "payout", [
             "post" => $postParsed["payout"] ?? null,
             "ping" => $pingParsed["payout"] ?? null,
@@ -112,12 +120,12 @@ class BuyerSubmitController extends Controller
             "post" => $postParsed["body_json"] ?? null,
             "ping" => $pingParsed["body_json"] ?? null,
             "single" => $parsed["body_json"] ?? null,
-        ], ["post", "ping", "single"]);
+        ], $responseOrder);
         $responseRaw = $this->pickRecordValue($recordSources, "response", [
             "post" => $postParsed["body_raw"] ?? null,
             "ping" => $pingParsed["body_raw"] ?? null,
             "single" => $parsed["body_raw"] ?? null,
-        ], ["post", "ping", "single"], false, true);
+        ], $responseOrder, false, true);
 
         Attempt::create([
             "lead_id" => $lead->id,
