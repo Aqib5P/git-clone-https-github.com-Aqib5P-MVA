@@ -18,6 +18,29 @@ class DashboardController extends Controller
         $status = $request->query("status");
         $buyer = $request->query("buyer");
         $scope = $request->query("scope");
+        $acceptedStates = ["accepted"];
+        $rejectedStates = ["rejected", "declined", "bid too low", "error", "failed"];
+        $acceptedStatesLower = array_map("strtolower", $acceptedStates);
+        $rejectedStatesLower = array_map("strtolower", $rejectedStates);
+        $acceptedList = implode("','", $acceptedStatesLower);
+        $rejectedList = implode("','", $rejectedStatesLower);
+        $applyStatusFilter = function ($query) use ($status, $acceptedStatesLower, $rejectedStatesLower) {
+            if (!$status) return;
+            $column = DB::raw("lower(status)");
+            if ($status === "accepted") {
+                $query->whereIn($column, $acceptedStatesLower);
+                return;
+            }
+            if ($status === "rejected") {
+                $query->whereIn($column, $rejectedStatesLower);
+                return;
+            }
+            if ($status === "unknown") {
+                $query->whereNotIn($column, array_merge($acceptedStatesLower, $rejectedStatesLower));
+                return;
+            }
+            $query->where($column, strtolower($status));
+        };
 
         $startDate = $start ? Carbon::parse($start)->startOfDay() : Carbon::today()->startOfDay();
         $endDate = $end ? Carbon::parse($end)->endOfDay() : Carbon::today()->endOfDay();
@@ -26,9 +49,7 @@ class DashboardController extends Controller
             ->with(["lead", "buyer"])
             ->whereBetween("created_at", [$startDate, $endDate]);
 
-        if ($status) {
-            $baseQuery->where("status", $status);
-        }
+        $applyStatusFilter($baseQuery);
 
         if ($buyer) {
             $baseQuery->where("endpoint", $buyer);
@@ -47,8 +68,8 @@ class DashboardController extends Controller
 
         $leadStatusSub = Attempt::query()
             ->selectRaw("lead_id,
-                max(case when status = 'accepted' then 1 else 0 end) as has_accepted,
-                max(case when status = 'rejected' then 1 else 0 end) as has_rejected")
+                max(case when lower(status) in ('{$acceptedList}') then 1 else 0 end) as has_accepted,
+                max(case when lower(status) in ('{$rejectedList}') then 1 else 0 end) as has_rejected")
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
             ->when($scope, function ($q) use ($scope) {
@@ -71,14 +92,13 @@ class DashboardController extends Controller
         $unknown = (int) ($leadCountsRow->unknown ?? 0);
         $total = (int) ($leadCountsRow->total ?? 0);
 
-        $buyerStats = Attempt::query()
+        $buyerStatsQuery = Attempt::query()
             ->selectRaw("endpoint, count(*) as total,
-                sum(case when status = 'accepted' then 1 else 0 end) as accepted,
-                sum(case when status = 'rejected' then 1 else 0 end) as rejected,
+                sum(case when lower(status) in ('{$acceptedList}') then 1 else 0 end) as accepted,
+                sum(case when lower(status) in ('{$rejectedList}') then 1 else 0 end) as rejected,
                 sum(payout) as total_payout,
                 max(payout) as max_payout")
             ->whereBetween("created_at", [$startDate, $endDate])
-            ->when($status, fn ($q) => $q->where("status", $status))
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
             ->when($scope, function ($q) use ($scope) {
                 $q->whereHas("buyer", function ($buyerQuery) use ($scope) {
@@ -86,34 +106,35 @@ class DashboardController extends Controller
                 });
             })
             ->groupBy("endpoint")
-            ->orderBy("endpoint")
-            ->get();
+            ->orderBy("endpoint");
+        $applyStatusFilter($buyerStatsQuery);
+        $buyerStats = $buyerStatsQuery->get();
 
         $topBuyer = $buyerStats->sortByDesc("accepted")->first();
         $topPayoutBuyer = $buyerStats->sortByDesc("total_payout")->first();
         $acceptRate = $total > 0 ? round(($accepted / $total) * 100, 1) : 0;
         $rejectRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
-        $totalRevenue = Attempt::query()
+        $totalRevenueQuery = Attempt::query()
             ->whereBetween("created_at", [$startDate, $endDate])
-            ->when($status, fn ($q) => $q->where("status", $status))
+            ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
+            ->when($scope, function ($q) use ($scope) {
+                $q->whereHas("buyer", function ($buyerQuery) use ($scope) {
+                    $buyerQuery->where("scope", $scope);
+                });
+            });
+        $applyStatusFilter($totalRevenueQuery);
+        $totalRevenue = $totalRevenueQuery->sum("payout");
+        $duplicateAttemptQuery = Attempt::query()
+            ->whereBetween("created_at", [$startDate, $endDate])
             ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
             ->when($scope, function ($q) use ($scope) {
                 $q->whereHas("buyer", function ($buyerQuery) use ($scope) {
                     $buyerQuery->where("scope", $scope);
                 });
             })
-            ->sum("payout");
-        $duplicateAttemptCount = Attempt::query()
-            ->whereBetween("created_at", [$startDate, $endDate])
-            ->when($status, fn ($q) => $q->where("status", $status))
-            ->when($buyer, fn ($q) => $q->where("endpoint", $buyer))
-            ->when($scope, function ($q) use ($scope) {
-                $q->whereHas("buyer", function ($buyerQuery) use ($scope) {
-                    $buyerQuery->where("scope", $scope);
-                });
-            })
-            ->where("is_duplicate", true)
-            ->count();
+            ->where("is_duplicate", true);
+        $applyStatusFilter($duplicateAttemptQuery);
+        $duplicateAttemptCount = $duplicateAttemptQuery->count();
         $duplicateLeadCount = Lead::query()
             ->whereBetween("created_at", [$startDate, $endDate])
             ->when($buyer, function ($query) use ($buyer) {
