@@ -63,9 +63,16 @@
       @forelse ($attempts as $attempt)
           @php
             $status = $attempt->status ?? 'unknown';
-            $badgeClass = $status === 'accepted'
+            $statusLower = strtolower((string) $status);
+            $badgeClass = $statusLower === 'accepted'
               ? 'bg-emerald-100 text-emerald-700'
-              : ($status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600');
+              : ($statusLower === 'bid too low'
+                ? 'bg-amber-100 text-amber-800'
+                : ($statusLower === 'declined'
+                  ? 'bg-orange-100 text-orange-700'
+                  : ($statusLower === 'rejected'
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-slate-100 text-slate-600')));
             $responseJson = is_array($attempt->response_json) ? $attempt->response_json : null;
             $rawResponse = $attempt->response_raw ?: ($responseJson ? json_encode($responseJson, JSON_PRETTY_PRINT) : '');
             $message = '';

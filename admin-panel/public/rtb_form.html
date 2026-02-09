@@ -119,14 +119,25 @@
         results.forEach((item, index) => {
           const status = (item.status || "unknown").toLowerCase();
           const accepted = status === "accepted";
+          const bidTooLow = status === "bid too low" || status === "bid_too_low";
+          const declined = status === "declined";
           const isTop = accepted && index === 0;
           const card = document.createElement("div");
-          card.className = "rounded-xl border p-4 " + (accepted ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50");
+          const cardClass = accepted
+            ? "border-emerald-200 bg-emerald-50"
+            : (bidTooLow
+              ? "border-amber-200 bg-amber-50"
+              : (declined ? "border-orange-200 bg-orange-50" : "border-red-200 bg-red-50"));
+          const statusLabel = status === "bid too low" || status === "bid_too_low"
+            ? "Bid Too Low"
+            : (status ? status.charAt(0).toUpperCase() + status.slice(1) : "Unknown");
+
+          card.className = "rounded-xl border p-4 " + cardClass;
 
           card.innerHTML = `
             <div class="flex items-center justify-between">
               <div class="text-sm font-semibold text-slate-800">
-                ${item.buyer} — ${status.charAt(0).toUpperCase() + status.slice(1)}
+                ${item.buyer} — ${statusLabel}
                 ${item.rank_label ? `<span class="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">${item.rank_label}</span>` : ""}
               </div>
               <div class="text-sm text-slate-500">${item.rank_label ? "Ranked" : ""}</div>

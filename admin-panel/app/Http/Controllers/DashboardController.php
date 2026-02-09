@@ -19,9 +19,11 @@ class DashboardController extends Controller
         $buyer = $request->query("buyer");
         $scope = $request->query("scope");
         $acceptedStates = ["accepted"];
-        $rejectedStates = ["rejected", "declined", "bid too low", "error", "failed"];
+        $rejectedStates = ["rejected", "declined", "error", "failed"];
+        $bidTooLowStates = ["bid too low"];
         $acceptedStatesLower = array_map("strtolower", $acceptedStates);
         $rejectedStatesLower = array_map("strtolower", $rejectedStates);
+        $bidTooLowStatesLower = array_map("strtolower", $bidTooLowStates);
         $acceptedList = implode("','", $acceptedStatesLower);
         $rejectedList = implode("','", $rejectedStatesLower);
         $applyStatusFilter = function ($query) use ($status, $acceptedStatesLower, $rejectedStatesLower) {
@@ -67,10 +69,10 @@ class DashboardController extends Controller
             ->get();
 
         $declinedCount = (clone $baseQuery)
-            ->whereRaw("lower(status) = 'declined'")
+            ->whereRaw("lower(status) = ?", ["declined"])
             ->count();
         $bidTooLowCount = (clone $baseQuery)
-            ->whereRaw("lower(status) = 'bid too low'")
+            ->whereRaw("lower(status) = ?", ["bid too low"])
             ->count();
 
         $leadStatusSub = Attempt::query()

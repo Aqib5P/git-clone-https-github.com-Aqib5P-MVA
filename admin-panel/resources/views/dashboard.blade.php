@@ -346,7 +346,16 @@
           <div class="divide-y divide-slate-100 text-sm">
             @forelse ($attempts as $attempt)
               @php
-                $badgeClass = $attempt->status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : ($attempt->status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600');
+                $statusValue = strtolower((string) ($attempt->status ?? ''));
+                $badgeClass = $statusValue === 'accepted'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : ($statusValue === 'bid too low'
+                    ? 'bg-amber-100 text-amber-800'
+                    : ($statusValue === 'declined'
+                      ? 'bg-orange-100 text-orange-700'
+                      : ($statusValue === 'rejected'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-slate-100 text-slate-600')));
               @endphp
               <div class="py-3">
                 <div class="flex items-start justify-between gap-3">
