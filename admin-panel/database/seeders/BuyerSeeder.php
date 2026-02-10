@@ -52,6 +52,16 @@ class BuyerSeeder extends Seeder
             "D32" => ["name" => "Buyer D32", "type" => "ping_post"],
         ];
 
+        $priorityMap = [
+            "D2" => 1,
+            "D32" => 2,
+            "D1" => 3,
+            "D10" => 4,
+            "D25" => 5,
+            "D30" => 6,
+            "D23" => 7,
+        ];
+
         $required = [
             "D1" => ["first_name", "last_name", "zip5", "phone", "cert_id"],
             "D2" => ["first_name", "last_name", "phone", "zip5", "cert_id", "cert_url", "source_url", "ip_address", "incident_date_option_b", "injury_cause", "primary_injury", "role_in_accident"],
@@ -326,6 +336,7 @@ class BuyerSeeder extends Seeder
                     "default_product_id" => $product?->id,
                     "default_campaign_id" => $campaign?->id,
                     "active" => true,
+                    "priority" => $priorityMap[$code] ?? 100,
                 ]
             );
 

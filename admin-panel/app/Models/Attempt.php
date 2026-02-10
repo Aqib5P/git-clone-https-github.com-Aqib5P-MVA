@@ -23,6 +23,7 @@ class Attempt extends Model
         "forwarding_number",
         "payout",
         "bid_amount",
+        "duration",
         "payload_json",
         "response_json",
         "response_raw",
@@ -32,6 +33,7 @@ class Attempt extends Model
         "payload_json" => "array",
         "response_json" => "array",
         "is_duplicate" => "boolean",
+        "duration" => "float",
     ];
 
     public function lead()

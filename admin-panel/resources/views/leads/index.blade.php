@@ -109,6 +109,7 @@
               <span class="px-2 py-1 rounded-full text-xs font-medium {{ $badgeClass }}">{{ ucfirst($status) }}</span>
               <div class="mt-2 text-sm text-slate-600">Payout: ${{ number_format((float) ($attempt->payout ?? 0), 2) }}</div>
               <div class="text-sm text-slate-600">Bid: ${{ number_format((float) ($attempt->bid_amount ?? 0), 2) }}</div>
+              <div class="text-sm text-slate-600">Duration: {{ $attempt->duration !== null ? number_format((float) $attempt->duration, 2) : '—' }}</div>
               <div class="text-sm text-slate-600">Forwarding: {{ $attempt->forwarding_number ?? '—' }}</div>
               <div class="text-sm text-slate-600">HTTP: {{ $attempt->http_status ?? '—' }}</div>
             </div>

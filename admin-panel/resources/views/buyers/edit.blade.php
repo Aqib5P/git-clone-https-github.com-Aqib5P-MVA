@@ -613,8 +613,19 @@
             @endforeach
           </select>
         </div>
+        <div>
+          <label class="text-xs text-slate-600">Duration source</label>
+          <select name="record_source_duration" form="buyer-update-form" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            @foreach ($recordSourceOptions as $value => $label)
+              <option value="{{ $value }}" @selected(($recordSources['duration'] ?? 'auto') === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </div>
       </div>
-      <div class="text-xs text-slate-500 mt-2">Controls which response is used when saving attempt values.</div>
+      <div class="flex items-center justify-between mt-3">
+        <div class="text-xs text-slate-500">Controls which response is used when saving attempt values.</div>
+        <button type="submit" form="buyer-update-form" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100">Save Record Source</button>
+      </div>
     </div>
   </div>
 

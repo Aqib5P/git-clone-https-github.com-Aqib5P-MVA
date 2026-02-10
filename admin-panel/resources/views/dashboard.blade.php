@@ -12,6 +12,7 @@
           <div class="text-xs uppercase tracking-[0.35em] text-slate-300">Dashboard</div>
           <h1 class="text-3xl lg:text-4xl font-semibold mt-2">Lead Performance Center</h1>
           <p class="text-sm text-slate-300 mt-2">Unified + RTB performance, payouts, and quality signals.</p>
+          <div class="text-xs text-slate-400 mt-2">Timezone: {{ config('app.timezone') }}</div>
           @if ($filters['scope'])
             <div class="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">
               <span class="uppercase tracking-wide">Scope</span>
@@ -106,7 +107,7 @@
     </form>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
     <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
       <div class="text-sm text-emerald-600">Accepted</div>
       <div class="text-2xl font-semibold">{{ $accepted }}</div>
@@ -122,6 +123,10 @@
     <div class="rounded-2xl bg-purple-50 border border-purple-100 p-4">
       <div class="text-sm text-purple-700">Bid Too Low</div>
       <div class="text-2xl font-semibold">{{ $bidTooLowCount }}</div>
+    </div>
+    <div class="rounded-2xl bg-sky-50 border border-sky-100 p-4">
+      <div class="text-sm text-sky-700">Unique Leads</div>
+      <div class="text-2xl font-semibold">{{ $uniqueLeadCount }}</div>
     </div>
     <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
       <div class="text-sm text-slate-600">Unknown</div>
@@ -240,6 +245,38 @@
             <div class="text-slate-500">No data for selected filters.</div>
           @endforelse
         </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-xs uppercase tracking-wide text-slate-400">Unified Priority</div>
+            <h3 class="text-lg font-semibold">Buyer Priority Board</h3>
+          </div>
+          <div class="text-xs text-slate-500">Lower number = higher priority</div>
+        </div>
+        <form method="post" action="{{ route('dashboard.priorities') }}" class="space-y-3">
+          @csrf
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @foreach ($priorityBuyers as $buyer)
+              <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-slate-800">{{ $buyer->code }}</div>
+                  <div class="text-xs text-slate-500">{{ $buyer->name }}</div>
+                </div>
+                <input
+                  type="number"
+                  name="priority[{{ $buyer->id }}]"
+                  value="{{ $buyer->priority ?? 100 }}"
+                  class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-sm text-right"
+                />
+              </div>
+            @endforeach
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" class="rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">Save Priorities</button>
+          </div>
+        </form>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

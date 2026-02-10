@@ -31,6 +31,7 @@ class Buyer extends Model
         "payment_terms",
         "active",
         "notes",
+        "priority",
     ];
 
     protected $casts = [
@@ -38,6 +39,7 @@ class Buyer extends Model
         "response_rules" => "array",
         "public_enabled" => "boolean",
         "active" => "boolean",
+        "priority" => "integer",
     ];
 
     public function fields()

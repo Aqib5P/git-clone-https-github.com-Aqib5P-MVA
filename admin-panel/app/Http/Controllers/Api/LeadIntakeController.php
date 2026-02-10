@@ -81,22 +81,27 @@ class LeadIntakeController extends Controller
             "single" => $parsed["bid_amount"] ?? null,
         ], ["post", "ping", "single"]);
         $status = $parsed["status"] ?? "unknown";
+        $statusOrder = $responseOrder;
         if (array_key_exists("status", $recordSources)) {
-            $pickedStatus = $this->pickRecordValue($recordSources, "status", [
-                "post" => $postParsed["status"] ?? null,
-                "ping" => $pingParsed["status"] ?? null,
-                "single" => $parsed["status"] ?? null,
-            ], ["post", "ping", "single"]);
-            if ($pickedStatus !== null) $status = $pickedStatus;
+            $statusOrder = $this->orderForRecordSource($recordSources["status"], ["post", "ping", "single"]);
         }
+        $pickedStatus = $this->pickRecordValue($recordSources, "status", [
+            "post" => $postParsed["status"] ?? null,
+            "ping" => $pingParsed["status"] ?? null,
+            "single" => $parsed["status"] ?? null,
+        ], $statusOrder, true);
+        if ($pickedStatus !== null) $status = $pickedStatus;
+        $statusLower = strtolower((string) $status);
         if ($buyer?->type === "ping_post" && !$postData) {
             $status = "rejected";
+            $statusLower = "rejected";
         }
         $rejectReason = $this->extractRejectReason($parsed["body_json"] ?? null);
-        if ($status === "accepted" && $rejectReason !== "") {
+        if ($statusLower === "accepted" && $rejectReason !== "") {
             $status = "rejected";
+            $statusLower = "rejected";
         }
-        if ($status === "accepted" && $payout === null && $buyer?->payout_type === "static" && $buyer?->static_payout !== null) {
+        if ($statusLower === "accepted" && $payout === null && $buyer?->payout_type === "static" && $buyer?->static_payout !== null) {
             $payout = $buyer->static_payout;
         }
 
@@ -115,6 +120,11 @@ class LeadIntakeController extends Controller
             "ping" => $pingParsed["forwarding_number"] ?? null,
             "single" => $parsed["forwarding_number"] ?? null,
         ], ["post", "ping", "single"], false, true);
+        $duration = $this->pickRecordValue($recordSources, "duration", [
+            "post" => $postParsed["duration"] ?? null,
+            "ping" => $pingParsed["duration"] ?? null,
+            "single" => $parsed["duration"] ?? null,
+        ], $this->orderForRecordSource($recordSources["duration"] ?? null, $responseOrder));
         $responseJson = $this->pickRecordValue($recordSources, "response", [
             "post" => $postParsed["body_json"] ?? null,
             "ping" => $pingParsed["body_json"] ?? null,
@@ -140,6 +150,7 @@ class LeadIntakeController extends Controller
             "forwarding_number" => $forwardingNumber,
             "payout" => $payout,
             "bid_amount" => $bidAmount,
+            "duration" => $duration,
             "payload_json" => $payloadData,
             "response_json" => $responseJson,
             "response_raw" => $responseRaw,
@@ -158,6 +169,7 @@ class LeadIntakeController extends Controller
         $forwarding = "";
         $payout = null;
         $bidAmount = null;
+        $duration = null;
 
         if (is_array($response)) {
             $httpStatus = $response["status"] ?? null;
@@ -179,6 +191,7 @@ class LeadIntakeController extends Controller
             $forwarding = $this->extractForwardingNumber($bodyJson);
             $payout = $this->extractNumber($bodyJson, ["payout", "price", "offer_conversion_payout", "bidAmount", "bidPrice"]);
             $bidAmount = $this->extractNumber($bodyJson, ["bidAmount", "bid_amount", "bidPrice"]);
+            $duration = $this->extractNumber($bodyJson, ["duration", "current_conversion_duration", "min_duration", "callMinDuration"]);
 
             $status = $this->inferStatusFromJson($bodyJson);
         }
@@ -201,6 +214,7 @@ class LeadIntakeController extends Controller
                     "call_router_number",
                 ]);
                 $payout = $payout ?? $this->xmlValue($xml, ["price", "payout"]);
+                $duration = $duration ?? $this->xmlValue($xml, ["duration", "call_duration", "min_duration"]);
             }
         }
 
@@ -215,6 +229,7 @@ class LeadIntakeController extends Controller
             "forwarding_number" => $this->normalizePhone($forwarding),
             "payout" => $payout,
             "bid_amount" => $bidAmount,
+            "duration" => $duration,
             "body_json" => $bodyJson,
             "body_raw" => $bodyRaw,
         ];
@@ -264,6 +279,9 @@ class LeadIntakeController extends Controller
     private function inferStatusFromText(string $text): string
     {
         $t = strtolower($text);
+        if (str_contains($t, "unmatched")) {
+            return "Rejected";
+        }
         if (str_contains($t, "accept") || str_contains($t, "success") || str_contains($t, "created") || str_contains($t, "approved") || str_contains($t, "matched")) {
             return "Accepted";
         }

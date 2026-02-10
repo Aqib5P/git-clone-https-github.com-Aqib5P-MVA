@@ -166,6 +166,7 @@ class DashboardController extends Controller
             ->get()
             ->sum(fn ($row) => (int) $row->cnt - 1);
         $duplicateRate = $total > 0 ? round(($duplicateLeadCount / $total) * 100, 1) : 0;
+        $uniqueLeadCount = max($total - $duplicateLeadCount, 0);
 
         $buyers = Buyer::orderBy("code")
             ->when($scope, fn ($q) => $q->where("scope", $scope))
@@ -177,6 +178,11 @@ class DashboardController extends Controller
             ->pluck("scope")
             ->filter()
             ->values();
+        $priorityBuyers = Buyer::query()
+            ->whereIn("scope", ["unified", "all"])
+            ->orderBy("priority")
+            ->orderBy("code")
+            ->get(["id", "code", "name", "priority"]);
 
         $productStats = Lead::query()
             ->with("product")
@@ -228,6 +234,7 @@ class DashboardController extends Controller
             "buyerStats" => $buyerStats,
             "buyers" => $buyers,
             "scopeOptions" => $scopeOptions,
+            "priorityBuyers" => $priorityBuyers,
             "accepted" => $accepted,
             "rejected" => $rejected,
             "unknown" => $unknown,
@@ -242,6 +249,7 @@ class DashboardController extends Controller
             "duplicateCount" => $duplicateLeadCount,
             "duplicateAttemptCount" => $duplicateAttemptCount,
             "duplicateRate" => $duplicateRate,
+            "uniqueLeadCount" => $uniqueLeadCount,
             "productStats" => $productStats,
             "campaignStats" => $campaignStats,
             "publisherStats" => $publisherStats,
@@ -253,5 +261,21 @@ class DashboardController extends Controller
                 "scope" => $scope,
             ],
         ]);
+    }
+
+    public function updatePriorities(Request $request)
+    {
+        $priorities = $request->input("priority", []);
+        if (!is_array($priorities)) {
+            return redirect()->route("dashboard");
+        }
+
+        foreach ($priorities as $buyerId => $value) {
+            if (!is_numeric($buyerId)) continue;
+            $priority = is_numeric($value) ? (int) $value : 100;
+            Buyer::where("id", (int) $buyerId)->update(["priority" => $priority]);
+        }
+
+        return redirect()->route("dashboard");
     }
 }

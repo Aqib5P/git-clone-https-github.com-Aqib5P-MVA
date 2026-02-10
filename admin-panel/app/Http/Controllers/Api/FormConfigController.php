@@ -11,10 +11,11 @@ class FormConfigController extends Controller
 {
     public function index()
     {
-        $buyers = Buyer::orderBy("code")
+        $buyers = Buyer::orderBy("priority")
+            ->orderBy("code")
             ->where("active", true)
             ->whereIn("scope", ["unified", "all"])
-            ->get(["code", "name", "active", "type", "scope"]);
+            ->get(["code", "name", "active", "type", "scope", "priority"]);
 
         $required = BuyerField::query()
             ->where("required", true)

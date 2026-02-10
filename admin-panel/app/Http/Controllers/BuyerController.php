@@ -79,6 +79,7 @@ class BuyerController extends Controller
             "record_source_http_status" => ["nullable", "string", "in:auto,ping,post,single"],
             "record_source_response" => ["nullable", "string", "in:auto,ping,post,single"],
             "record_source_ping_id" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_duration" => ["nullable", "string", "in:auto,ping,post,single"],
             "default_product_id" => ["nullable", "integer"],
             "default_campaign_id" => ["nullable", "integer"],
             "default_publisher_id" => ["nullable", "integer"],
@@ -196,6 +197,7 @@ class BuyerController extends Controller
             "record_source_http_status" => ["nullable", "string", "in:auto,ping,post,single"],
             "record_source_response" => ["nullable", "string", "in:auto,ping,post,single"],
             "record_source_ping_id" => ["nullable", "string", "in:auto,ping,post,single"],
+            "record_source_duration" => ["nullable", "string", "in:auto,ping,post,single"],
             "default_product_id" => ["nullable", "integer"],
             "default_campaign_id" => ["nullable", "integer"],
             "default_publisher_id" => ["nullable", "integer"],
@@ -465,6 +467,7 @@ class BuyerController extends Controller
             "http_status" => "record_source_http_status",
             "response" => "record_source_response",
             "ping_id" => "record_source_ping_id",
+            "duration" => "record_source_duration",
         ];
 
         $sources = [];

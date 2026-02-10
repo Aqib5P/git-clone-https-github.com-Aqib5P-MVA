@@ -147,6 +147,9 @@ class BuyerResponseParser
                 return "Accepted";
             }
         }
+        if (str_contains($t, "unmatched")) {
+            return "Rejected";
+        }
         if (str_contains($t, "accept") || str_contains($t, "success") || str_contains($t, "created") || str_contains($t, "approved") || str_contains($t, "matched")) {
             return "Accepted";
         }

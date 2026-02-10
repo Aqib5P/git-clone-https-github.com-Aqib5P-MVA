@@ -439,8 +439,12 @@
           <div class="status" id="statusLine"></div>
         </form>
 
-        <div class="card">
+          <div class="card">
           <h2>Step 2 — Choose destination + send</h2>
+          <div id="priorityBoard" class="summaryBox" style="margin-top: 10px;">
+            <div class="hint" style="margin: 0 0 6px;">Priority Board (send in this order)</div>
+            <ul id="priorityList"></ul>
+          </div>
           <div id="sendPanel">
             <label for="endpointSelect">Select destination</label>
             <select id="endpointSelect" disabled>
@@ -475,7 +479,7 @@
     <script>
       const FORM_CONFIG_URL = "/api/form-config";
       const SUBMIT_URL = "/api/buyer-submit";
-      let formConfig = { fields: {}, requirements: {} };
+      let formConfig = { fields: {}, requirements: {}, buyers: [] };
       const endpoints = {
         D1: {
           label: "D1",
@@ -585,6 +589,7 @@
       const sendBtn = $("sendBtn");
       const savedBanner = $("savedBanner");
       const dynamicFields = $("dynamicFields");
+      const priorityList = $("priorityList");
 
       let savedLead = null;
       let leadLocked = false;
@@ -1081,6 +1086,31 @@
         if (savedLead) setStatus(`Destination selected: ${ep.label}`, "ok");
       }
 
+      function renderPriorityBoard() {
+        if (!priorityList) return;
+        const buyers = Array.isArray(formConfig.buyers) ? formConfig.buyers.slice() : [];
+        priorityList.innerHTML = "";
+        if (!buyers.length) {
+          const li = document.createElement("li");
+          li.textContent = "No priority data available.";
+          priorityList.appendChild(li);
+          return;
+        }
+        buyers.sort((a, b) => {
+          const pa = Number.isFinite(a.priority) ? a.priority : 100;
+          const pb = Number.isFinite(b.priority) ? b.priority : 100;
+          if (pa !== pb) return pa - pb;
+          return String(a.code || "").localeCompare(String(b.code || ""));
+        });
+        buyers.forEach((buyer, index) => {
+          const li = document.createElement("li");
+          const rank = index + 1;
+          const label = buyer.code || "—";
+          li.textContent = `${rank}. ${label} (priority ${buyer.priority ?? 100})`;
+          priorityList.appendChild(li);
+        });
+      }
+
       function preview(endpointId) {
         // Payload preview intentionally removed (user-facing).
         const p = getPreviewObject(endpointId);
@@ -1191,6 +1221,7 @@
             }
 
             updateEndpointUi();
+            renderPriorityBoard();
           }
         } catch {
           /* ignore */
@@ -1245,6 +1276,7 @@
       updateEndpointUi();
       preview(endpointSelect.value);
       loadFormConfig();
+      renderPriorityBoard();
     </script>
   </body>
 </html>

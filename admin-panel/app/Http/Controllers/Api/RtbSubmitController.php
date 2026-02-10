@@ -120,6 +120,11 @@ class RtbSubmitController extends Controller
                     "ping" => $pingParsed["forwarding_number"] ?? null,
                     "single" => $parsed["forwarding_number"] ?? null,
                 ], ["post", "ping", "single"]);
+                $duration = $this->pickRecordValue($recordSources, "duration", [
+                    "post" => $postParsed["duration"] ?? null,
+                    "ping" => $pingParsed["duration"] ?? null,
+                    "single" => $parsed["duration"] ?? null,
+                ], $this->orderForRecordSource($recordSources["duration"] ?? null, $responseOrder));
                 $rejectReason = $this->extractRejectReason($bodyData);
 
                 $status = $parsed["status"] ?? "unknown";
@@ -150,7 +155,7 @@ class RtbSubmitController extends Controller
                 } elseif (!in_array($status, ["accepted", "rejected"], true)) {
                     $status = "rejected";
                 }
-                if ($status === "accepted" && $payout === null && $buyer->payout_type === "static" && $buyer->static_payout !== null) {
+                if (strtolower((string) $status) === "accepted" && $payout === null && $buyer->payout_type === "static" && $buyer->static_payout !== null) {
                     $payout = $buyer->static_payout;
                     if ($bidAmount === null) {
                         $bidAmount = $payout;
@@ -183,6 +188,7 @@ class RtbSubmitController extends Controller
                     "forwarding_number" => $forwardingNumber,
                     "payout" => $payout,
                     "bid_amount" => $bidAmount,
+                    "duration" => $duration,
                     "payload_json" => $leadData,
                     "response_json" => $responseJson,
                     "response_raw" => $responseRaw,

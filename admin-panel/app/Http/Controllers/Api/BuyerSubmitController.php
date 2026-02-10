@@ -82,22 +82,27 @@ class BuyerSubmitController extends Controller
             "single" => $parsed["bid_amount"] ?? null,
         ], ["post", "ping", "single"]);
         $status = $parsed["status"] ?? "unknown";
+        $statusOrder = $responseOrder;
         if (array_key_exists("status", $recordSources)) {
-            $pickedStatus = $this->pickRecordValue($recordSources, "status", [
-                "post" => $postParsed["status"] ?? null,
-                "ping" => $pingParsed["status"] ?? null,
-                "single" => $parsed["status"] ?? null,
-            ], ["post", "ping", "single"]);
-            if ($pickedStatus !== null) $status = $pickedStatus;
+            $statusOrder = $this->orderForRecordSource($recordSources["status"], ["post", "ping", "single"]);
         }
+        $pickedStatus = $this->pickRecordValue($recordSources, "status", [
+            "post" => $postParsed["status"] ?? null,
+            "ping" => $pingParsed["status"] ?? null,
+            "single" => $parsed["status"] ?? null,
+        ], $statusOrder, true);
+        if ($pickedStatus !== null) $status = $pickedStatus;
+        $statusLower = strtolower((string) $status);
         if ($buyer->type === "ping_post" && !($result["post"] ?? null)) {
             $status = "rejected";
+            $statusLower = "rejected";
         }
         $rejectReason = $this->extractRejectReason($parsed["body_json"] ?? null);
-        if ($status === "accepted" && $rejectReason !== "") {
+        if ($statusLower === "accepted" && $rejectReason !== "") {
             $status = "rejected";
+            $statusLower = "rejected";
         }
-        if ($status === "accepted" && $payout === null && $buyer->payout_type === "static" && $buyer->static_payout !== null) {
+        if ($statusLower === "accepted" && $payout === null && $buyer->payout_type === "static" && $buyer->static_payout !== null) {
             $payout = $buyer->static_payout;
         }
 
@@ -116,6 +121,11 @@ class BuyerSubmitController extends Controller
             "ping" => $pingParsed["forwarding_number"] ?? null,
             "single" => $parsed["forwarding_number"] ?? null,
         ], ["post", "ping", "single"]);
+        $duration = $this->pickRecordValue($recordSources, "duration", [
+            "post" => $postParsed["duration"] ?? null,
+            "ping" => $pingParsed["duration"] ?? null,
+            "single" => $parsed["duration"] ?? null,
+        ], $this->orderForRecordSource($recordSources["duration"] ?? null, $responseOrder));
         $responseJson = $this->pickRecordValue($recordSources, "response", [
             "post" => $postParsed["body_json"] ?? null,
             "ping" => $pingParsed["body_json"] ?? null,
@@ -141,6 +151,7 @@ class BuyerSubmitController extends Controller
             "forwarding_number" => $forwardingNumber,
             "payout" => $payout,
             "bid_amount" => $bidAmount,
+            "duration" => $duration,
             "payload_json" => $leadData,
             "response_json" => $responseJson,
             "response_raw" => $responseRaw,
