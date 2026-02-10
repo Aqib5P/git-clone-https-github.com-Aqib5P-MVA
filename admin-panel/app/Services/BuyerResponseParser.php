@@ -93,6 +93,16 @@ class BuyerResponseParser
 
     private function inferStatusFromJson(array $data, array $rules = []): string
     {
+        if (
+            !isset($data["outcome"]) && !isset($data["status"]) && !isset($data["success"]) && !isset($data["result"]) &&
+            (isset($data["ping_response"]) || isset($data["post_response"]))
+        ) {
+            $nested = $data["post_response"] ?? $data["ping_response"] ?? null;
+            if (is_array($nested)) {
+                $nestedStatus = $this->inferStatusFromJson($nested, $rules);
+                if ($nestedStatus !== "unknown") return $nestedStatus;
+            }
+        }
         if (isset($data["outcome"]) && $data["outcome"] === "failure") {
             return "rejected";
         }
@@ -194,11 +204,13 @@ class BuyerResponseParser
     private function extractPingId(array $data): ?string
     {
         $keys = ["ping_id", "pingId", "id", "try_all_buyers_ping_id"];
-        foreach ($keys as $key) {
-            if (isset($data[$key])) return (string) $data[$key];
+        $candidates = $this->candidateObjects($data);
+        foreach ($candidates as $candidate) {
+            foreach ($keys as $key) {
+                if (isset($candidate[$key])) return (string) $candidate[$key];
+            }
+            if (isset($candidate["try_all_buyers"]["ping_id"])) return (string) $candidate["try_all_buyers"]["ping_id"];
         }
-        if (isset($data["try_all_buyers"]["ping_id"])) return (string) $data["try_all_buyers"]["ping_id"];
-        if (isset($data["buyers"][0]["ping_id"])) return (string) $data["buyers"][0]["ping_id"];
         return null;
     }
 
@@ -217,34 +229,58 @@ class BuyerResponseParser
             "destination_number",
             "call_router_number",
         ];
-        foreach ($keys as $key) {
-            if (isset($data[$key]) && $data[$key] !== "") return (string) $data[$key];
+        $candidates = $this->candidateObjects($data);
+        foreach ($candidates as $candidate) {
+            foreach ($keys as $key) {
+                if (isset($candidate[$key]) && $candidate[$key] !== "") return (string) $candidate[$key];
+            }
         }
         return null;
     }
 
     private function extractNumber(array $data, array $keys): ?float
     {
-        foreach ($keys as $key) {
-            if (isset($data[$key]) && is_numeric($data[$key])) {
-                return (float) $data[$key];
-            }
-        }
-        if (isset($data["response"]) && is_array($data["response"])) {
+        $candidates = $this->candidateObjects($data);
+        foreach ($candidates as $candidate) {
             foreach ($keys as $key) {
-                if (isset($data["response"][$key]) && is_numeric($data["response"][$key])) {
-                    return (float) $data["response"][$key];
+                if (isset($candidate[$key]) && is_numeric($candidate[$key])) {
+                    return (float) $candidate[$key];
                 }
             }
-        }
-        if (isset($data["buyers"]) && is_array($data["buyers"]) && isset($data["buyers"][0]) && is_array($data["buyers"][0])) {
-            foreach ($keys as $key) {
-                if (isset($data["buyers"][0][$key]) && is_numeric($data["buyers"][0][$key])) {
-                    return (float) $data["buyers"][0][$key];
+            if (isset($candidate["bidTerms"]) && is_array($candidate["bidTerms"])) {
+                foreach ($candidate["bidTerms"] as $term) {
+                    if (!is_array($term)) continue;
+                    foreach ($keys as $key) {
+                        if (isset($term[$key]) && is_numeric($term[$key])) {
+                            return (float) $term[$key];
+                        }
+                    }
                 }
             }
         }
         return null;
+    }
+
+    private function candidateObjects(array $data): array
+    {
+        $objects = [$data];
+        if (isset($data["response"]) && is_array($data["response"])) {
+            $objects[] = $data["response"];
+        }
+        if (isset($data["ping_response"]) && is_array($data["ping_response"])) {
+            $objects[] = $data["ping_response"];
+        }
+        if (isset($data["post_response"]) && is_array($data["post_response"])) {
+            $objects[] = $data["post_response"];
+        }
+        $expanded = [];
+        foreach ($objects as $object) {
+            $expanded[] = $object;
+            if (isset($object["buyers"]) && is_array($object["buyers"]) && isset($object["buyers"][0]) && is_array($object["buyers"][0])) {
+                $expanded[] = $object["buyers"][0];
+            }
+        }
+        return $expanded;
     }
 
     private function normalizePhone(?string $value): ?string
