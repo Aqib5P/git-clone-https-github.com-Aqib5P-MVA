@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RTB Bid Comparator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <div class="max-w-3xl mx-auto px-4 py-10 space-y-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h1 class="text-2xl font-semibold">RTB Bid Comparator</h1>
+            <p class="text-sm text-slate-500">This form only pings RTB buyers.</p>
+          </div>
+          <div id="buyerCount" class="text-xs text-slate-500">Buyers: —</div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form id="rtbForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm text-slate-600" for="first_name">First Name</label>
+            <input id="first_name" name="first_name" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600" for="last_name">Last Name</label>
+            <input id="last_name" name="last_name" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600" for="email">Email</label>
+            <input id="email" name="email" type="email" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600" for="phone_number">Phone Number</label>
+            <input id="phone_number" name="phone_number" type="tel" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600" for="zip_code">ZIP Code</label>
+            <input id="zip_code" name="zip_code" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600" for="state">State</label>
+            <input id="state" name="state" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600" for="have_attorney">Have Attorney</label>
+            <select id="have_attorney" name="have_attorney" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
+              <option value="">Select</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm text-slate-600" for="trusted_form_cert_id">Trusted Form Cert ID</label>
+            <input id="trusted_form_cert_id" name="trusted_form_cert_id" type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required />
+          </div>
+
+          <div class="md:col-span-2">
+            <button id="submitBtn" type="submit" class="w-full rounded-lg bg-blue-600 text-white py-2 hover:bg-blue-700">Ping RTB Buyers</button>
+          </div>
+        </form>
+
+        <div id="formError" class="hidden mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+      </div>
+
+      <div id="resultsCard" class="hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-semibold mb-4">Results</h2>
+        <div id="results" class="space-y-4"></div>
+      </div>
+    </div>
+
+    <script>
+      const RTB_CONFIG_URL = "/api/rtb-config";
+      const RTB_SUBMIT_URL = "/api/rtb-submit";
+      let rtbConfig = { buyers: [], fields: {}, requirements: {} };
+
+      function setError(message) {
+        const el = document.getElementById("formError");
+        if (!message) {
+          el.classList.add("hidden");
+          el.textContent = "";
+          return;
+        }
+        el.textContent = message;
+        el.classList.remove("hidden");
+      }
+
+      function setLoading(isLoading) {
+        const btn = document.getElementById("submitBtn");
+        btn.disabled = isLoading;
+        btn.textContent = isLoading ? "Submitting..." : "Ping RTB Buyers";
+      }
+
+      async function loadConfig() {
+        try {
+          const res = await fetch(RTB_CONFIG_URL);
+          if (!res.ok) throw new Error("Failed to load RTB config");
+          const data = await res.json();
+          rtbConfig = data || rtbConfig;
+          const buyerCount = Array.isArray(rtbConfig.buyers) ? rtbConfig.buyers.length : 0;
+          document.getElementById("buyerCount").textContent = "Buyers: " + buyerCount;
+        } catch (err) {
+          setError(err.message || "Failed to load configuration");
+        }
+      }
+
+      function renderResults(results) {
+        const resultsCard = document.getElementById("resultsCard");
+        const container = document.getElementById("results");
+        container.innerHTML = "";
+        if (!Array.isArray(results) || results.length === 0) {
+          resultsCard.classList.remove("hidden");
+          container.innerHTML = '<div class="text-sm text-slate-600">No results returned.</div>';
+          return;
+        }
+
+        results.forEach((item, index) => {
+          const status = (item.status || "unknown").toLowerCase();
+          const accepted = status === "accepted";
+          const bidTooLow = status === "bid too low" || status === "bid_too_low";
+          const declined = status === "declined";
+          const isTop = accepted && index === 0;
+          const card = document.createElement("div");
+          const rawTime = item.timestamp || "";
+          const timeLabel = rawTime ? new Date(rawTime).toLocaleString() : new Date().toLocaleString();
+          const cardClass = accepted
+            ? "border-emerald-200 bg-emerald-50"
+            : (bidTooLow
+              ? "border-amber-200 bg-amber-50"
+              : (declined ? "border-orange-200 bg-orange-50" : "border-red-200 bg-red-50"));
+          const statusLabel = status === "bid too low" || status === "bid_too_low"
+            ? "Bid Too Low"
+            : (status ? status.charAt(0).toUpperCase() + status.slice(1) : "Unknown");
+
+          card.className = "rounded-xl border p-4 " + cardClass;
+
+          card.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-semibold text-slate-800">
+                ${item.buyer} — ${statusLabel}
+                ${item.rank_label ? `<span class="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">${item.rank_label}</span>` : ""}
+              </div>
+              <div class="text-sm text-slate-500">${item.rank_label ? "Ranked" : ""}</div>
+            </div>
+            <div class="mt-2 text-xs text-slate-500">Time: ${timeLabel}</div>
+            <div class="mt-2 text-sm text-slate-600 grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div>Forwarding: ${item.forwarding_number || "—"}</div>
+              <div>Min Duration: ${item.min_duration || "—"}</div>
+              <div>Expires: ${item.expires || "—"}</div>
+            </div>
+          `;
+
+          container.appendChild(card);
+        });
+
+        resultsCard.classList.remove("hidden");
+      }
+
+      document.getElementById("rtbForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setError("");
+        setLoading(true);
+        const form = event.target;
+        const formData = new FormData(form);
+        const payload = {};
+        formData.forEach((value, key) => {
+          if (String(value).trim() !== "") payload[key] = value;
+        });
+
+        try {
+          const res = await fetch(RTB_SUBMIT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const text = await res.text();
+          let data = null;
+          try {
+            data = JSON.parse(text);
+          } catch (err) {
+            if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+              throw new Error("Server error returned HTML. Please try again or contact admin.");
+            }
+            throw new Error(text.slice(0, 200) || "Invalid JSON response");
+          }
+          if (!res.ok) {
+            throw new Error(data.error || "Submission failed");
+          }
+          renderResults(data.results || []);
+        } catch (err) {
+          setError(err.message || "Submission failed");
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      loadConfig();
+    </script>
+  </body>
+</html>

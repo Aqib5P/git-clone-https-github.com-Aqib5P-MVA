@@ -1,0 +1,1282 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unified Lead Form (D1 / D2 / D6 / D23 / D25 / D26 / D27 / D30 / D32)</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --panel: #ffffff;
+        --panel2: #f2f4ff;
+        --text: #0f172a;
+        --muted: #475569;
+        --border: #d9dfeb;
+        --accent: #2563eb;
+        --danger: #dc2626;
+        --ok: #16a34a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background: var(--bg);
+        color: var(--text);
+      }
+      a { color: var(--accent); }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px 16px 40px;
+      }
+      header {
+        display: flex;
+        gap: 14px;
+        align-items: baseline;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      /* Allow grid children to shrink even with long content (pre/JSON) */
+      .grid > * { min-width: 0; }
+      @media (max-width: 920px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 520px) {
+        .row { grid-template-columns: 1fr; }
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 10px 0 6px;
+      }
+      input, select, textarea {
+        width: 100%;
+        padding: 10px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        color: var(--text);
+        outline: none;
+      }
+      textarea { min-height: 90px; resize: vertical; }
+      input:focus, select:focus, textarea:focus { border-color: rgba(122, 162, 255, 0.55); }
+      .hint {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--panel2);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .reqTag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(220, 38, 38, 0.08);
+        border: 1px solid rgba(220, 38, 38, 0.25);
+        color: var(--danger);
+        font-size: 11px;
+        margin-left: 6px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: rgba(37, 99, 235, 0.12);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 600;
+      }
+      button.secondary { background: rgba(15, 23, 42, 0.06); }
+      button.danger { background: rgba(220, 38, 38, 0.10); }
+      button:disabled { opacity: 0.55; cursor: not-allowed; }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      pre {
+        margin: 0;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #0b1020;
+        color: rgba(255, 255, 255, 0.92);
+        overflow: auto;
+        max-height: 420px;
+        /* Prevent long tokens from widening the column */
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .dynamicFields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 520px) {
+        .dynamicFields { grid-template-columns: 1fr; }
+      }
+      .summaryBox {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #ffffff;
+        padding: 10px 12px;
+        font-size: 12px;
+        color: var(--text);
+      }
+      .summaryBox ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .status {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .status .ok { color: var(--ok); }
+      .status .bad { color: var(--danger); }
+      details { border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: #ffffff; }
+      summary { cursor: pointer; color: var(--text); font-weight: 600; }
+      .small { font-size: 12px; color: var(--muted); margin-top: 6px; }
+      .twoColList { columns: 2; column-gap: 18px; }
+      @media (max-width: 700px) { .twoColList { columns: 1; } }
+      ul { margin: 8px 0 0; padding-left: 18px; }
+      li { break-inside: avoid; margin: 4px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Unified Lead Form</h1>
+        <p class="sub">Step 1: save lead once. Step 2: pick D# and send (repeat without retyping).</p>
+      </header>
+
+      <div class="grid">
+        <form id="unifiedForm" class="card" autocomplete="on">
+          <h2>Step 1 — Fill & save lead (no buyers contacted)</h2>
+          <div class="pill">Browser → <b>Admin API</b> only (keys + buyer URLs hidden)</div>
+          <div class="hint">After you save the lead, you can send it to any D# multiple times without re-filling.</div>
+          <div id="savedBanner" class="status" style="display:none;">
+            <span class="ok">✅ Lead data saved</span>
+            <span class="mono">|</span>
+            <span class="small">No buyer contacted yet.</span>
+          </div>
+
+          <details style="margin-top:12px;" open>
+            <summary>Common lead fields</summary>
+            <div class="row" style="margin-top: 8px;">
+              <div>
+                <label for="first_name">First Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30,D32">required</span></label>
+                <input id="first_name" name="first_name" type="text" required />
+              </div>
+              <div>
+                <label for="last_name">Last Name <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30,D32">required</span></label>
+                <input id="last_name" name="last_name" type="text" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="email">Email <span class="reqTag" data-required-for="D6,D23,D25,D26,D27,D30,D32">required</span></label>
+                <input id="email" name="email" type="email" required />
+              </div>
+              <div>
+                <label for="phone">Phone / Caller ID <span class="reqTag" data-required-for="D1,D2,D6,D23,D25,D26,D27,D30,D32">required</span></label>
+                <input id="phone" name="phone" type="tel" placeholder="+15642145678 or 5642145678" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="zip5">ZIP (5 digits) <span class="reqTag" data-required-for="D1,D2,D23,D25,D26,D27,D30,D32">required</span></label>
+                <input id="zip5" name="zip5" type="text" inputmode="numeric" maxlength="5" placeholder="90210" pattern="[0-9]{5}" required />
+              </div>
+              <div>
+                <label for="state">State <span class="reqTag" data-required-for="D6,D23,D27,D32">required</span></label>
+                <input id="state" name="state" type="text" placeholder="CA, TX, FL" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="address">Address <span class="reqTag" data-required-for="D32">required</span></label>
+                <input id="address" name="address" type="text" required />
+              </div>
+              <div>
+                <label for="city">City <span class="reqTag" data-required-for="D25,D32">required</span></label>
+                <input id="city" name="city" type="text" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="accident_state">Accident State <span class="reqTag" data-required-for="D27,D32">required</span></label>
+                <input id="accident_state" name="accident_state" type="text" placeholder="CA" required />
+              </div>
+              <div>
+                <label for="accident_date_raw">Accident Date (picker)</label>
+                <input id="accident_date_raw" name="accident_date_raw" type="date" required />
+                <div class="hint">
+                  Used to auto-fill MM/DD/YYYY (D6/D26) and YYYY-MM-DD (D27).
+                </div>
+              </div>
+            </div>
+
+            <div class="row" style="grid-template-columns: 1fr;">
+              <div>
+                <label for="dob">Date of Birth <span class="reqTag" data-required-for="D32">required</span></label>
+                <input id="dob" name="dob" type="date" required />
+                <div class="hint">YYYY-MM-DD</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="accident_date_mmddyyyy">Accident Date (MM/DD/YYYY)</label>
+                <input id="accident_date_mmddyyyy" class="mono" name="accident_date_mmddyyyy" type="text" placeholder="MM/DD/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required readonly />
+              </div>
+              <div>
+                <label for="ip_address">IP Address <span class="reqTag" data-required-for="D2,D25,D27,D30,D32">required</span></label>
+                <input id="ip_address" name="ip_address" type="text" placeholder="e.g. 192.168.1.1" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="source_url">Source URL <span class="reqTag" data-required-for="D2,D27,D32">required</span></label>
+                <input id="source_url" name="source_url" type="url" list="source_url_suggestions" placeholder="https://example.com/" required />
+                <datalist id="source_url_suggestions">
+                  <option value="https://motorvehicleclaim.com/"></option>
+                  <option value="https://accidentclaimnow.com/"></option>
+                  <option value="https://roadtrafficaccident.com/"></option>
+                </datalist>
+              </div>
+              <div>
+                <label for="accident_sol">Accident SOL (D27)</label>
+                <select id="accident_sol" name="accident_sol" required>
+                  <option value="">Select</option>
+                  <option value="1">Within 1 Year</option>
+                  <option value="2">Within 2 Years</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="incident_date_option_b">When did the accident happen? <span class="reqTag" data-required-for="D2,D25">required</span></label>
+                <select id="incident_date_option_b" name="incident_date_option_b" required>
+                  <option value="">Select...</option>
+                  <option value="Less than 1 year">Less than 1 year</option>
+                  <option value="Less than 2 years">Less than 2 years</option>
+                  <option value="Over 2 years">Over 2 years</option>
+                </select>
+              </div>
+              <div>
+                <label for="injury_cause">What caused your injury?</label>
+                <select id="injury_cause" name="injury_cause" required>
+                  <option value="">Select...</option>
+                  <option value="Motorcycle Accident">Motorcycle Accident</option>
+                  <option value="Car Accident">Car Accident</option>
+                  <option value="Truck Accident">Truck Accident</option>
+                  <option value="Slip and Fall">Slip and Fall</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="primary_injury">Did you sustain any of the following?</label>
+                <select id="primary_injury" name="primary_injury" required>
+                  <option value="">Select...</option>
+                  <option value="Headaches">Headaches</option>
+                  <option value="Whiplash">Whiplash</option>
+                  <option value="Broken Bones">Broken Bones</option>
+                  <option value="Back Injury">Back Injury</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label for="role_in_accident">Were you the driver, passenger or pedestrian? <span class="reqTag" data-required-for="D2,D32">required</span></label>
+                <select id="role_in_accident" name="role_in_accident" required>
+                  <option value="">Select...</option>
+                  <option value="Driver">Driver</option>
+                  <option value="Passenger">Passenger</option>
+                  <option value="Pedestrian">Pedestrian</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="attorney">Already Represented <span class="reqTag" data-required-for="D25,D32">required</span></label>
+                <select id="attorney" name="attorney" required>
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+              <div>
+                <label for="fault">Were You at Fault? <span class="reqTag" data-required-for="D25,D32">required</span></label>
+                <select id="fault" name="fault" required>
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="injured">Were You Injured? <span class="reqTag" data-required-for="D25,D32">required</span></label>
+                <select id="injured" name="injured" required>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div>
+                <label for="doctor_treatment">Doctor Treatment <span class="reqTag" data-required-for="D25,D32">required</span></label>
+                <select id="doctor_treatment" name="doctor_treatment" required>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="dynamicFields" class="dynamicFields"></div>
+          </details>
+
+          <details style="margin-top:12px;">
+            <summary>Certificates / tracking fields</summary>
+            <div class="row" style="margin-top: 8px;">
+              <div>
+                <label for="cert_url">Certificate URL (TrustedForm cert URL) <span class="reqTag" data-required-for="D2,D6,D23,D26,D27,D32">required</span></label>
+                <input id="cert_url" name="cert_url" type="text" placeholder="https://cert.trustedform.com/xxxxx" required />
+              </div>
+              <div>
+                <label for="cert_id">Certificate ID <span class="reqTag" data-required-for="D1,D2,D23,D25,D26,D30,D32">required</span></label>
+                <input id="cert_id" name="cert_id" type="text" placeholder="e.g. 910cdaf2501d44585c03731a7b72fc4ed0c650ae" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="cert_type">Certificate Type <span class="reqTag" data-required-for="D32">required</span></label>
+                <select id="cert_type" name="cert_type" required>
+                  <option value="">Select...</option>
+                  <option value="TrustedForm">TrustedForm</option>
+                  <option value="Jornaya">Jornaya</option>
+                </select>
+              </div>
+              <div>
+                <label for="jornaya_leadid">Jornaya leadid</label>
+                <input id="jornaya_leadid" name="jornaya_leadid" type="text" placeholder="Required" required />
+              </div>
+            </div>
+            <div class="row" style="grid-template-columns: 1fr;">
+              <div>
+                <label for="notes">Notes (not sent)</label>
+                <input id="notes" name="notes" type="text" placeholder="Optional" />
+              </div>
+            </div>
+          </details>
+
+          <div class="actions">
+            <button type="submit" id="saveBtn">Save / Submit Lead</button>
+            <button type="button" id="editBtn" class="secondary" style="display:none;">Edit Lead</button>
+            <button type="button" id="clearBtn" class="danger">Clear</button>
+          </div>
+
+          <div class="status" id="statusLine"></div>
+        </form>
+
+        <div class="card">
+          <h2>Step 2 — Choose destination + send</h2>
+          <div id="priorityBoard" class="summaryBox" style="margin-top: 10px;">
+            <div class="hint" style="margin: 0 0 6px;">Priority Board (send in this order)</div>
+            <ul id="priorityList"></ul>
+          </div>
+          <div id="sendPanel">
+            <label for="endpointSelect">Select destination</label>
+            <select id="endpointSelect" disabled>
+              <option value="D1">D1</option>
+              <option value="D2">D2</option>
+              <option value="D6">D6</option>
+              <option value="D23">D23</option>
+              <option value="D25">D25</option>
+              <option value="D26">D26</option>
+              <option value="D27">D27</option>
+              <option value="D30">D30</option>
+              <option value="D32">D32</option>
+            </select>
+            <div class="hint" id="endpointHint">Save the lead first to enable sending.</div>
+            <div class="actions">
+              <button type="button" id="sendBtn" disabled>Send to Selected</button>
+            </div>
+          </div>
+          <div class="hint">
+            This shows a clean summary. Raw response is available below.
+          </div>
+          <label style="margin-top: 12px;">Summary</label>
+          <div id="respSummary" class="summaryBox">---</div>
+          <details style="margin-top: 10px;">
+            <summary>Raw response (JSON)</summary>
+            <pre id="respPreview" class="mono">---</pre>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const FORM_CONFIG_URL = "/api/form-config";
+      const SUBMIT_URL = "/api/buyer-submit";
+      let formConfig = { fields: {}, requirements: {}, buyers: [] };
+      const endpoints = {
+        D1: {
+          label: "D1",
+          hint: "D1 request (server-side API).",
+          required: ["first_name", "last_name", "zip5", "phone", "cert_id"],
+        },
+        D2: {
+          label: "D2",
+          hint: "D2 request (server-side API).",
+          required: [
+            "first_name",
+            "last_name",
+            "phone",
+            "zip5",
+            "cert_id",
+            "cert_url",
+            "source_url",
+            "ip_address",
+            "incident_date_option_b",
+            "injury_cause",
+            "primary_injury",
+            "role_in_accident",
+          ],
+        },
+        D6: {
+          label: "D6",
+          hint: "D6 request (server-side API).",
+          required: ["phone", "cert_url", "first_name", "last_name", "email", "state", "accident_date_mmddyyyy"],
+        },
+        D23: {
+          label: "D23",
+          hint: "D23 request (server-side API).",
+          required: ["phone", "zip5", "cert_url"],
+        },
+        D25: {
+          label: "D25",
+          hint: "D25 request (server-side API).",
+          required: [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "zip5",
+            "city",
+            "ip_address",
+            "cert_id",
+            "attorney",
+            "fault",
+            "injured",
+            "doctor_treatment",
+            "incident_date_option_b",
+          ],
+        },
+        D26: {
+          label: "D26",
+          hint: "D26 request (server-side API).",
+          required: ["phone", "first_name", "last_name", "email", "zip5", "cert_url", "cert_id", "accident_date_mmddyyyy"],
+        },
+        D27: {
+          label: "D27",
+          hint: "D27 request (server-side API).",
+          required: ["first_name", "last_name", "email", "phone", "state", "accident_state", "zip5", "source_url", "ip_address", "cert_url", "accident_sol", "accident_date_yyyy_mm_dd"],
+        },
+        D30: {
+          label: "D30",
+          hint: "D30 request (server-side API).",
+          required: ["first_name", "last_name", "email", "phone", "zip5", "ip_address", "cert_id"],
+        },
+        D32: {
+          label: "D32",
+          hint: "D32 ping/post request (server-side API).",
+          required: [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "address",
+            "city",
+            "state",
+            "accident_state",
+            "zip5",
+            "ip_address",
+            "source_url",
+            "dob",
+            "cert_id",
+            "cert_url",
+            "cert_type",
+            "accident_date_yyyy_mm_dd",
+            "injured",
+            "doctor_treatment",
+            "fault",
+            "attorney",
+            "role_in_accident",
+          ],
+        },
+      };
+
+      const $ = (id) => document.getElementById(id);
+      const statusLine = $("statusLine");
+      const respPreview = $("respPreview");
+      const respSummary = $("respSummary");
+      const endpointSelect = $("endpointSelect");
+      const endpointHint = $("endpointHint");
+      const saveBtn = $("saveBtn");
+      const editBtn = $("editBtn");
+      const clearBtn = $("clearBtn");
+      const sendBtn = $("sendBtn");
+      const savedBanner = $("savedBanner");
+      const dynamicFields = $("dynamicFields");
+      const priorityList = $("priorityList");
+
+      let savedLead = null;
+      let leadLocked = false;
+
+      function mmddyyyyFromDateInput(value) {
+        if (!value) return "";
+        const dt = new Date(value + "T00:00:00");
+        if (Number.isNaN(dt.getTime())) return "";
+        const mm = String(dt.getMonth() + 1).padStart(2, "0");
+        const dd = String(dt.getDate()).padStart(2, "0");
+        const yyyy = String(dt.getFullYear());
+        return `${mm}/${dd}/${yyyy}`;
+      }
+
+      function yyyyMmDdFromDateInput(value) {
+        // input[type=date] already returns YYYY-MM-DD in most browsers
+        return value || "";
+      }
+
+      function readValues() {
+        const v = {
+          first_name: $("first_name").value.trim(),
+          last_name: $("last_name").value.trim(),
+          email: $("email").value.trim(),
+          phone: $("phone").value.trim(),
+          zip5: $("zip5").value.trim(),
+          address: $("address").value.trim(),
+          city: $("city").value.trim(),
+          state: $("state").value.trim(),
+          accident_state: $("accident_state").value.trim(),
+          accident_date_raw: $("accident_date_raw").value,
+          accident_date_mmddyyyy: $("accident_date_mmddyyyy").value.trim(),
+          accident_date_yyyy_mm_dd: yyyyMmDdFromDateInput($("accident_date_raw").value),
+          dob: $("dob").value,
+          ip_address: $("ip_address").value.trim(),
+          source_url: $("source_url").value.trim(),
+          accident_sol: $("accident_sol").value,
+
+          cert_id: $("cert_id").value.trim(),
+          cert_url: $("cert_url").value.trim(),
+          cert_type: $("cert_type").value,
+          jornaya_leadid: $("jornaya_leadid").value.trim(),
+          notes: $("notes").value.trim(),
+
+          incident_date_option_b: $("incident_date_option_b").value,
+          injury_cause: $("injury_cause").value,
+          primary_injury: $("primary_injury").value,
+          role_in_accident: $("role_in_accident").value,
+          attorney: $("attorney").value,
+          fault: $("fault").value,
+          injured: $("injured").value,
+          doctor_treatment: $("doctor_treatment").value,
+        };
+
+        document.querySelectorAll("[data-dynamic-field]").forEach((el) => {
+          if (!el.id) return;
+          v[el.id] = (el.value || "").trim();
+        });
+
+        // If user picked a date but didn't type MM/DD/YYYY, auto-fill it.
+        if (!v.accident_date_mmddyyyy && v.accident_date_raw) {
+          v.accident_date_mmddyyyy = mmddyyyyFromDateInput(v.accident_date_raw);
+          $("accident_date_mmddyyyy").value = v.accident_date_mmddyyyy;
+        }
+
+        return v;
+      }
+
+      function fillForm(v) {
+        if (!v || typeof v !== "object") return;
+        const set = (id, val) => {
+          const el = $(id);
+          if (!el) return;
+          if (el.tagName === "SELECT") el.value = val ?? "";
+          else el.value = val ?? "";
+        };
+
+        set("first_name", v.first_name);
+        set("last_name", v.last_name);
+        set("email", v.email);
+        set("phone", v.phone);
+        set("zip5", v.zip5);
+        set("address", v.address);
+        set("city", v.city);
+        set("state", v.state);
+        set("accident_state", v.accident_state);
+        set("accident_date_raw", v.accident_date_raw || v.accident_date_yyyy_mm_dd);
+        set("accident_date_mmddyyyy", v.accident_date_mmddyyyy);
+        set("dob", v.dob);
+        set("ip_address", v.ip_address);
+        set("source_url", v.source_url);
+        set("accident_sol", v.accident_sol);
+
+        set("cert_id", v.cert_id);
+        set("cert_url", v.cert_url);
+        set("cert_type", v.cert_type);
+        set("jornaya_leadid", v.jornaya_leadid);
+        set("notes", v.notes);
+
+        set("incident_date_option_b", v.incident_date_option_b);
+        set("injury_cause", v.injury_cause);
+        set("primary_injury", v.primary_injury);
+        set("role_in_accident", v.role_in_accident);
+        set("attorney", v.attorney);
+        set("fault", v.fault);
+        set("injured", v.injured);
+        set("doctor_treatment", v.doctor_treatment);
+
+        document.querySelectorAll("[data-dynamic-field]").forEach((el) => {
+          if (!el.id) return;
+          if (v[el.id] !== undefined) el.value = v[el.id];
+        });
+      }
+
+      function setLeadLocked(locked) {
+        leadLocked = locked;
+        // disable all inputs/selects/textareas inside the lead form (not buttons)
+        document.querySelectorAll("#unifiedForm input, #unifiedForm select, #unifiedForm textarea").forEach((el) => {
+          el.disabled = locked;
+        });
+        // allow Clear/Edit buttons even when locked
+        clearBtn.disabled = false;
+        editBtn.disabled = false;
+      }
+
+      function setSendEnabled(enabled) {
+        endpointSelect.disabled = !enabled;
+        sendBtn.disabled = !enabled;
+        endpointHint.textContent = enabled ? (endpoints[endpointSelect.value]?.hint || "") : "Save the lead first to enable sending.";
+      }
+
+      function setStatus(text, kind) {
+        statusLine.innerHTML = "";
+        const span = document.createElement("span");
+        span.textContent = text;
+        if (kind === "ok") span.className = "ok";
+        if (kind === "bad") span.className = "bad";
+        statusLine.appendChild(span);
+      }
+
+      function normalizeErrors(errors) {
+        const out = [];
+        if (!errors) return out;
+        if (Array.isArray(errors)) return errors.map((e) => String(e));
+        if (typeof errors === "string") return [errors];
+        if (typeof errors === "object") {
+          Object.keys(errors).forEach((key) => {
+            const val = errors[key];
+            if (Array.isArray(val)) val.forEach((msg) => out.push(`${key}: ${msg}`));
+            else out.push(`${key}: ${String(val)}`);
+          });
+        }
+        return out;
+      }
+
+      function parseXmlBody(text) {
+        if (!text || typeof text !== "string") return null;
+        try {
+          const doc = new DOMParser().parseFromString(text, "text/xml");
+          if (doc.getElementsByTagName("parsererror").length) return null;
+          return doc;
+        } catch {
+          return null;
+        }
+      }
+
+      function getXmlValue(doc, tags) {
+        if (!doc) return "";
+        for (const tag of tags) {
+          const el = doc.getElementsByTagName(tag)[0];
+          if (el && el.textContent) return el.textContent.trim();
+        }
+        return "";
+      }
+
+      function parseBodyInfo(result) {
+        const info = { json: null, xml: null, text: "" };
+        if (!result || typeof result !== "object") return info;
+        if (result.body_json && typeof result.body_json === "object") {
+          info.json = result.body_json;
+        }
+        const text = typeof result.body === "string" ? result.body.trim() : "";
+        info.text = text;
+        if (!info.json && text && (text.startsWith("{") || text.startsWith("["))) {
+          try { info.json = JSON.parse(text); } catch { /* ignore */ }
+        }
+        if (!info.json && text && text.startsWith("\"")) {
+          try {
+            const inner = JSON.parse(text);
+            if (inner && typeof inner === "string") {
+              try { info.json = JSON.parse(inner); } catch { /* ignore */ }
+            } else if (inner && typeof inner === "object") {
+              info.json = inner;
+            }
+          } catch { /* ignore */ }
+        }
+        if (!info.xml && text && text.startsWith("<")) {
+          info.xml = parseXmlBody(text);
+        }
+        return info;
+      }
+
+      function inferStatusFromText(text) {
+        if (!text) return "";
+        const t = String(text).toLowerCase();
+        if (t.includes("accept") || t.includes("success") || t.includes("created") || t.includes("approved")) return "Accepted";
+        if (t.includes("reject") || t.includes("declin") || t.includes("fail") || t.includes("error") || t.includes("invalid")) return "Rejected";
+        if (t.includes("no matching") || t.includes("no match") || t.includes("no_matching")) return "Rejected";
+        return "";
+      }
+
+      function extractPingId(bodyJson) {
+        if (!bodyJson || typeof bodyJson !== "object") return "";
+        if (bodyJson.ping_id) return String(bodyJson.ping_id);
+        if (bodyJson.pingId) return String(bodyJson.pingId);
+        if (bodyJson.id) return String(bodyJson.id);
+        if (bodyJson.try_all_buyers_ping_id) return String(bodyJson.try_all_buyers_ping_id);
+        if (bodyJson.try_all_buyers && bodyJson.try_all_buyers.ping_id) return String(bodyJson.try_all_buyers.ping_id);
+        if (Array.isArray(bodyJson.buyers) && bodyJson.buyers[0] && bodyJson.buyers[0].ping_id) return String(bodyJson.buyers[0].ping_id);
+        return "";
+      }
+
+      function addDetail(lines, label, value) {
+        if (value === undefined || value === null || value === "") return;
+        lines.push(`${label}: ${value}`);
+      }
+
+      function normalizePhone(value) {
+        if (value === undefined || value === null) return "";
+        const raw = String(value).trim();
+        if (!raw) return "";
+        if (raw.startsWith("+")) return raw;
+        if (/^[0-9]+$/.test(raw)) return `+${raw}`;
+        return raw;
+      }
+
+      function pickFirst(obj, keys) {
+        if (!obj || typeof obj !== "object") return "";
+        for (const key of keys) {
+          const value = obj[key];
+          if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+        }
+        return "";
+      }
+
+      function getBuyerStatusInfo(result) {
+        const info = parseBodyInfo(result);
+        let status = "";
+        let reason = "";
+        let message = "";
+        let pingId = "";
+        const details = [];
+
+        if (info.json) {
+          const data = info.json;
+          pingId = extractPingId(data);
+
+          if (typeof data.outcome === "string") {
+            status = data.outcome.toLowerCase() === "success" ? "Accepted" : "Rejected";
+            if (data.reason) reason = String(data.reason);
+          } else if (typeof data.status === "string") {
+            status = inferStatusFromText(data.status);
+            if (!status) message = data.status;
+          } else if (typeof data.success === "boolean") {
+            status = data.success ? "Accepted" : "Rejected";
+          } else if (typeof data.result === "string") {
+            status = inferStatusFromText(data.result);
+          }
+
+          if (!message && data.msg) message = String(data.msg);
+          if (!message && data.message) message = String(data.message);
+          if (!reason && data.reason) reason = String(data.reason);
+
+          const leadId = (data.lead && data.lead.id) || data.lead_id || data.leadId;
+          addDetail(details, "Lead ID", leadId);
+          // payouts/bids are captured server-side only
+          addDetail(details, "Bid ID", pickFirst(data, ["bidId", "bid_id"]));
+          addDetail(details, "Tracking", data.tracking_type);
+          addDetail(details, "Call Router ID", data.call_router_id);
+          addDetail(details, "Webhook Lead ID", data.inbound_webhook_lead_id);
+          addDetail(details, "Ping expiry (sec)", data.ping_ids_expiry_in_seconds);
+
+          if (Array.isArray(data.buyers)) {
+            addDetail(details, "Buyers", data.buyers.length);
+            const buyerIds = data.buyers.map((b) => b && b.id).filter(Boolean);
+            if (buyerIds.length) {
+              addDetail(details, "Buyer IDs", buyerIds.slice(0, 3).join(", ") + (buyerIds.length > 3 ? "…" : ""));
+            }
+          }
+
+          const combinedText = `${message} ${reason}`.trim();
+          const inferredFromMessage = combinedText ? inferStatusFromText(combinedText) : "";
+          if (inferredFromMessage === "Rejected") status = "Rejected";
+          else if (!status && inferredFromMessage) status = inferredFromMessage;
+
+          const errors = normalizeErrors(data.errors);
+          if (errors.length) {
+            status = "Rejected";
+            errors.forEach((err) => details.push(`Error: ${err}`));
+          }
+          if (data.error) {
+            status = "Rejected";
+            details.push(`Error: ${data.error}`);
+          }
+
+          if (Array.isArray(data.buyers) && data.buyers.length === 0 && status === "Accepted") {
+            status = "Rejected";
+            details.push("Error: No matching buyers.");
+          }
+
+          const forwardNumber = pickFirst(data, [
+            "phoneNumber",
+            "phone_number",
+            "phoneNumberNoPlus",
+            "number",
+            "forwarding_number",
+            "forwardingNumber",
+            "transfer_number",
+            "transferNumber",
+            "did",
+            "destination_number",
+            "call_router_number",
+          ]);
+          addDetail(details, "Forwarding number", normalizePhone(forwardNumber));
+          addDetail(details, "SIP address", pickFirst(data, ["sipAddress", "sip_address"]));
+        }
+
+        if (info.xml) {
+          const resultVal = getXmlValue(info.xml, ["result"]);
+          const statusVal = getXmlValue(info.xml, ["status"]);
+          const msgVal = getXmlValue(info.xml, ["msg", "message"]);
+          if (!status) status = inferStatusFromText(resultVal || statusVal || msgVal);
+          if (!message && msgVal) message = msgVal;
+          if (!reason && msgVal && status === "Rejected") reason = msgVal;
+          addDetail(details, "Lead ID", getXmlValue(info.xml, ["lead_id", "leadid"]));
+          const xmlForward = getXmlValue(info.xml, [
+            "phone_number",
+            "phoneNumber",
+            "forwarding_number",
+            "forwardingNumber",
+            "transfer_number",
+            "transferNumber",
+            "did",
+            "destination_number",
+            "call_router_number",
+          ]);
+          addDetail(details, "Forwarding number", normalizePhone(xmlForward));
+        }
+
+        if (!status && info.text) status = inferStatusFromText(info.text);
+        if (!status) status = "Unknown";
+
+        if (pingId) details.unshift(`Ping ID: ${pingId}`);
+        if (message) details.unshift(`Message: ${message}`);
+        if (reason && reason !== message) details.unshift(`Reason: ${reason}`);
+
+        if (result && typeof result.status === "number") {
+          details.push(`HTTP: ${result.status}`);
+        }
+
+        return { status, details };
+      }
+
+      function summarizeResult(label, result) {
+        const lines = [];
+        if (!result || typeof result !== "object") return lines;
+        const info = getBuyerStatusInfo(result);
+        lines.push(`${label} buyer status: ${info.status}`);
+        info.details.forEach((detail) => lines.push(`${label} ${detail}`));
+        return lines;
+      }
+
+      function setSummary(lines) {
+        respSummary.textContent = "";
+        if (!lines.length) {
+          respSummary.textContent = "---";
+          return;
+        }
+        const ul = document.createElement("ul");
+        lines.forEach((line) => {
+          const li = document.createElement("li");
+          li.textContent = line;
+          ul.appendChild(li);
+        });
+        respSummary.appendChild(ul);
+      }
+
+      function validateRequired(endpointId, values) {
+        const missing = [];
+        const required = getRequiredFields(endpointId);
+        for (const key of required) {
+          if (!values[key]) missing.push(key);
+        }
+        return missing;
+      }
+
+      function getPreviewObject(endpointId) {
+        const v = savedLead ? savedLead : readValues();
+        const missing = validateRequired(endpointId, v);
+        return { endpointId, missing, data: v };
+      }
+
+      function renderRequiredTags() {
+        const endpointId = endpointSelect.value;
+        const required = getRequiredFields(endpointId);
+        document.querySelectorAll(".reqTag").forEach((tag) => {
+          const label = tag.closest("label");
+          const field = label ? label.getAttribute("for") : null;
+          if (required.length && field) {
+            tag.style.display = required.includes(field) ? "inline-block" : "none";
+            return;
+          }
+          const list = (tag.getAttribute("data-required-for") || "").split(",").map((s) => s.trim()).filter(Boolean);
+          tag.style.display = list.includes(endpointId) ? "inline-block" : "none";
+        });
+      }
+
+      function getRequiredFields(endpointId) {
+        if (formConfig.requirements && formConfig.requirements[endpointId]) {
+          return formConfig.requirements[endpointId];
+        }
+        const ep = endpoints[endpointId];
+        return ep && ep.required ? ep.required : [];
+      }
+
+      function applyRequiredState(endpointId) {
+        const required = getRequiredFields(endpointId);
+        if (!required.length) return;
+        document.querySelectorAll("#unifiedForm input, #unifiedForm select, #unifiedForm textarea").forEach((el) => {
+          if (!el.id) return;
+          el.required = required.includes(el.id);
+        });
+      }
+
+      function renderDynamicFields(endpointId) {
+        if (!dynamicFields) return;
+        const required = getRequiredFields(endpointId);
+        const staticFields = new Set([
+          "first_name", "last_name", "email", "phone", "zip5", "address", "city", "state",
+          "accident_state", "accident_date_raw", "accident_date_mmddyyyy", "accident_date_yyyy_mm_dd",
+          "dob", "ip_address", "source_url", "accident_sol", "incident_date_option_b", "injury_cause",
+          "primary_injury", "role_in_accident", "attorney", "fault", "injured", "doctor_treatment",
+          "cert_url", "cert_id", "cert_type", "jornaya_leadid", "notes",
+        ]);
+
+        dynamicFields.innerHTML = "";
+        const extraFields = required.filter((field) => !staticFields.has(field));
+        if (!extraFields.length) return;
+
+        extraFields.forEach((fieldName) => {
+          const meta = (formConfig.fields && formConfig.fields[fieldName]) || { label: fieldName, type: "text" };
+          const wrapper = document.createElement("div");
+          const label = document.createElement("label");
+          label.setAttribute("for", fieldName);
+          label.textContent = meta.label || fieldName;
+          const req = document.createElement("span");
+          req.className = "reqTag";
+          req.textContent = "required";
+          label.appendChild(req);
+
+          let input;
+          if (meta.type === "select" && meta.options) {
+            input = document.createElement("select");
+            Object.entries(meta.options).forEach(([value, text]) => {
+              const opt = document.createElement("option");
+              opt.value = value;
+              opt.textContent = text;
+              input.appendChild(opt);
+            });
+          } else {
+            input = document.createElement("input");
+            input.type = meta.type || "text";
+          }
+
+          input.id = fieldName;
+          input.name = fieldName;
+          input.required = true;
+          input.setAttribute("data-dynamic-field", "1");
+
+          wrapper.appendChild(label);
+          wrapper.appendChild(input);
+          dynamicFields.appendChild(wrapper);
+        });
+      }
+
+      function updateEndpointUi() {
+        const endpointId = endpointSelect.value;
+        const ep = endpoints[endpointId] || { label: endpointId, hint: "" };
+        endpointHint.textContent = ep.hint || "";
+        renderRequiredTags();
+        applyRequiredState(endpointId);
+        renderDynamicFields(endpointId);
+        respPreview.textContent = "---";
+        if (savedLead) setStatus(`Destination selected: ${ep.label}`, "ok");
+      }
+
+      function renderPriorityBoard() {
+        if (!priorityList) return;
+        const buyers = Array.isArray(formConfig.buyers) ? formConfig.buyers.slice() : [];
+        priorityList.innerHTML = "";
+        if (!buyers.length) {
+          const li = document.createElement("li");
+          li.textContent = "No priority data available.";
+          priorityList.appendChild(li);
+          return;
+        }
+        buyers.sort((a, b) => {
+          const pa = Number.isFinite(a.priority) ? a.priority : 100;
+          const pb = Number.isFinite(b.priority) ? b.priority : 100;
+          if (pa !== pb) return pa - pb;
+          return String(a.code || "").localeCompare(String(b.code || ""));
+        });
+        buyers.forEach((buyer, index) => {
+          const li = document.createElement("li");
+          const rank = index + 1;
+          const label = buyer.code || "—";
+          li.textContent = `${rank}. ${label} (priority ${buyer.priority ?? 100})`;
+          priorityList.appendChild(li);
+        });
+      }
+
+      function preview(endpointId) {
+        // Payload preview intentionally removed (user-facing).
+        const p = getPreviewObject(endpointId);
+        if (p.missing.length) setStatus(`Missing required fields: ${p.missing.join(", ")}`, "bad");
+      }
+
+      async function send(endpointId) {
+        if (!savedLead) {
+          respPreview.textContent = "Save the lead first (Step 1), then send (Step 2).";
+          respSummary.textContent = "Save the lead first (Step 1), then send (Step 2).";
+          setStatus("Lead not saved yet.", "bad");
+          return;
+        }
+        const p = getPreviewObject(endpointId);
+        preview(endpointId);
+
+        if (p.missing.length) {
+          respPreview.textContent = "Cannot send: missing required fields.\nFix the fields listed in request preview.";
+          return;
+        }
+
+        respPreview.textContent = "Sending...";
+        respSummary.textContent = "Sending...";
+        setStatus("Sending to server...", "ok");
+
+        try {
+          const res = await fetch(SUBMIT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint: endpointId, data: p.data }),
+          });
+
+          const text = await res.text();
+          let json = null;
+          try { json = JSON.parse(text); } catch { /* ignore */ }
+
+          if (json) {
+            respPreview.textContent = JSON.stringify(json, null, 2);
+            const primary = json.post || json.upstream || json.ping;
+            const primaryInfo = primary ? getBuyerStatusInfo(primary) : null;
+            let statusText = "Request completed.";
+            let statusKind = undefined;
+            if (primaryInfo) {
+              const httpStatus = primary && typeof primary.status === "number" ? ` (HTTP ${primary.status})` : "";
+              statusText = `Buyer status: ${primaryInfo.status}${primaryInfo.status === "Unknown" ? httpStatus : ""}`;
+              if (primaryInfo.status === "Accepted") statusKind = "ok";
+              if (primaryInfo.status === "Rejected") statusKind = "bad";
+            }
+            setStatus(statusText, statusKind);
+
+            const summary = [];
+            const endpoint = json.endpoint || endpointId;
+            if (endpoint) summary.push(`Endpoint: ${endpoint}`);
+            if (json.ping || json.post) {
+              if (json.ping) summary.push(...summarizeResult("Ping", json.ping));
+              if (json.post) summary.push(...summarizeResult("Post", json.post));
+            } else {
+              summary.push(...summarizeResult("Upstream", json.upstream || {}));
+            }
+            if (json.post_attempted === false && json.post_skipped_reason) {
+              summary.push(`Post: skipped (${json.post_skipped_reason})`);
+            }
+            if (json.error) summary.push(`Error: ${json.error}`);
+            setSummary(summary);
+          } else {
+            respPreview.textContent = text;
+            setStatus(res.ok ? "Request completed." : `Request completed (HTTP ${res.status}).`, res.ok ? "ok" : "bad");
+            setSummary([`HTTP ${res.status}`, "Non-JSON response received."]);
+          }
+        } catch (err) {
+          respPreview.textContent = "Error:\n" + (err && err.message ? err.message : String(err));
+          setSummary(["Request failed.", err && err.message ? err.message : String(err)]);
+          setStatus("Request failed.", "bad");
+        }
+      }
+
+      async function loadFormConfig() {
+        if (!FORM_CONFIG_URL) return;
+        try {
+          const res = await fetch(FORM_CONFIG_URL);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && typeof data === "object") {
+            formConfig = {
+              fields: data.fields || {},
+              requirements: data.requirements || {},
+              buyers: data.buyers || [],
+            };
+            if (formConfig.requirements) {
+              Object.keys(formConfig.requirements).forEach((code) => {
+                if (!endpoints[code]) {
+                  endpoints[code] = { label: code, hint: "Configured in admin.", required: [] };
+                }
+                endpoints[code].required = formConfig.requirements[code];
+              });
+            }
+
+            if (Array.isArray(formConfig.buyers) && formConfig.buyers.length) {
+              const existing = new Set(Array.from(endpointSelect.options).map((opt) => opt.value));
+              formConfig.buyers.forEach((buyer) => {
+                if (!buyer || !buyer.code || existing.has(buyer.code)) return;
+                const opt = document.createElement("option");
+                opt.value = buyer.code;
+                opt.textContent = buyer.code;
+                endpointSelect.appendChild(opt);
+                existing.add(buyer.code);
+              });
+            }
+
+            updateEndpointUi();
+            renderPriorityBoard();
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      // Wire events
+      endpointSelect.addEventListener("change", updateEndpointUi);
+      sendBtn.addEventListener("click", () => send(endpointSelect.value));
+
+      $("accident_date_raw").addEventListener("change", () => {
+        const mmdd = mmddyyyyFromDateInput($("accident_date_raw").value);
+        if (mmdd) $("accident_date_mmddyyyy").value = mmdd;
+      });
+      $("unifiedForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        // Save lead only (no send)
+        const v = readValues();
+        savedLead = v;
+        setLeadLocked(true);
+        savedBanner.style.display = "flex";
+        editBtn.style.display = "inline-block";
+        setSendEnabled(true);
+        updateEndpointUi();
+        preview(endpointSelect.value);
+        setStatus("Lead saved. Now choose a D# and click Send.", "ok");
+      });
+
+      editBtn.addEventListener("click", () => {
+        setLeadLocked(false);
+        savedBanner.style.display = "none";
+        // require re-save before sending to avoid accidental stale sends while editing
+        setSendEnabled(false);
+        setStatus("Editing enabled. Click Save / Submit Lead again when ready.", "ok");
+      });
+
+      clearBtn.addEventListener("click", () => {
+        savedLead = null;
+        $("unifiedForm").reset();
+        setLeadLocked(false);
+        savedBanner.style.display = "none";
+        editBtn.style.display = "none";
+        setSendEnabled(false);
+        respPreview.textContent = "---";
+        respSummary.textContent = "---";
+        setStatus("Cleared.", "ok");
+      });
+
+      // init
+      // No persistence: refresh = new lead
+      setSendEnabled(false);
+      updateEndpointUi();
+      preview(endpointSelect.value);
+      loadFormConfig();
+      renderPriorityBoard();
+    </script>
+  </body>
+</html>
