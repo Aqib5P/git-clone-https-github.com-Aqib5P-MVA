@@ -257,6 +257,24 @@
         </div>
         <form method="post" action="{{ route('dashboard.priorities') }}" class="space-y-3">
           @csrf
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div class="text-xs text-slate-500 mb-2">Quick update</div>
+            <div class="grid grid-cols-1 md:grid-cols-[1fr_140px_auto] gap-3 items-end">
+              <div>
+                <label class="text-xs text-slate-600">Buyer</label>
+                <select name="single_buyer_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                  @foreach ($priorityBuyers as $buyer)
+                    <option value="{{ $buyer->id }}">{{ $buyer->code }} - {{ $buyer->name }}</option>
+                  @endforeach
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-600">Priority</label>
+                <input type="number" name="single_priority" value="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-right" />
+              </div>
+              <button type="submit" class="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm hover:bg-slate-800">Set Priority</button>
+            </div>
+          </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             @foreach ($priorityBuyers as $buyer)
               <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center justify-between gap-3">
@@ -347,6 +365,20 @@
     </div>
 
     <aside class="space-y-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Timezone</div>
+        <h3 class="text-lg font-semibold mt-1">Reporting Timezone</h3>
+        <form method="post" action="{{ route('dashboard.timezone') }}" class="mt-4 space-y-3">
+          @csrf
+          <select name="timezone" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            @foreach ($timezoneOptions as $value => $label)
+              <option value="{{ $value }}" @selected($currentTimezone === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+          <button type="submit" class="w-full rounded-lg bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700">Save Timezone</button>
+        </form>
+        <div class="text-xs text-slate-500 mt-2">Current: {{ $currentTimezone }}</div>
+      </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="text-xs uppercase tracking-wide text-slate-400">Quick Links</div>
         <h3 class="text-lg font-semibold mt-1">Forms & Access</h3>

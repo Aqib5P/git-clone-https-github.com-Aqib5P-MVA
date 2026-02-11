@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Attempt;
 use App\Models\Buyer;
 use App\Models\Lead;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use DateTimeZone;
 
 class DashboardController extends Controller
 {
@@ -183,6 +185,14 @@ class DashboardController extends Controller
             ->orderBy("priority")
             ->orderBy("code")
             ->get(["id", "code", "name", "priority"]);
+        $timezoneOptions = [
+            "America/New_York" => "US/Eastern (EST/EDT)",
+            "America/Chicago" => "US/Central (CST/CDT)",
+            "America/Denver" => "US/Mountain (MST/MDT)",
+            "America/Los_Angeles" => "US/Pacific (PST/PDT)",
+            "UTC" => "UTC",
+        ];
+        $currentTimezone = config("app.timezone");
 
         $productStats = Lead::query()
             ->with("product")
@@ -235,6 +245,8 @@ class DashboardController extends Controller
             "buyers" => $buyers,
             "scopeOptions" => $scopeOptions,
             "priorityBuyers" => $priorityBuyers,
+            "timezoneOptions" => $timezoneOptions,
+            "currentTimezone" => $currentTimezone,
             "accepted" => $accepted,
             "rejected" => $rejected,
             "unknown" => $unknown,
@@ -275,6 +287,31 @@ class DashboardController extends Controller
             $priority = is_numeric($value) ? (int) $value : 100;
             Buyer::where("id", (int) $buyerId)->update(["priority" => $priority]);
         }
+
+        $singleBuyerId = $request->input("single_buyer_id");
+        $singlePriority = $request->input("single_priority");
+        if (is_numeric($singleBuyerId)) {
+            $priority = is_numeric($singlePriority) ? (int) $singlePriority : 100;
+            Buyer::where("id", (int) $singleBuyerId)->update(["priority" => $priority]);
+        }
+
+        return redirect()->route("dashboard");
+    }
+
+    public function updateTimezone(Request $request)
+    {
+        $timezone = $request->input("timezone");
+        if (!is_string($timezone) || $timezone === "") {
+            return redirect()->route("dashboard");
+        }
+        if (!in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
+            return redirect()->route("dashboard");
+        }
+
+        Setting::updateOrCreate(
+            ["key" => "timezone"],
+            ["value" => $timezone]
+        );
 
         return redirect()->route("dashboard");
     }

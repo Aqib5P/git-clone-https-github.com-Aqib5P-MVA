@@ -25,6 +25,7 @@ Route::middleware(["ip.allow"])->group(function () {
     Route::middleware(["admin.auth"])->group(function () {
         Route::get("/", [DashboardController::class, "index"])->name("dashboard");
         Route::post("/dashboard/priorities", [DashboardController::class, "updatePriorities"])->name("dashboard.priorities");
+        Route::post("/dashboard/timezone", [DashboardController::class, "updateTimezone"])->name("dashboard.timezone");
         Route::get("/buyers", [BuyerController::class, "index"])->name("buyers.index");
         Route::post("/buyers", [BuyerController::class, "store"])->name("buyers.store");
         Route::get("/buyers/{buyer}", [BuyerController::class, "edit"])->name("buyers.edit");
